@@ -5,6 +5,7 @@ let shifts = [];
 let users = [];
 let currentPage = 1;
 let itemsPerPage = 10;
+let totalCount = 0;
 
 document.addEventListener("DOMContentLoaded", function () {
 	initializePage();
@@ -80,10 +81,13 @@ async function loadDowntimes() {
 		const response = await fetch(`/api/downtimes/filter?${params}`);
 		if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-		const downtimesData = await response.json();
-		downtimes = downtimesData;
+		const result = await response.json();
+		downtimes = result.data;
+		totalCount = result.total_count;
 		updateDowntimeStats(downtimes);
 		renderDowntimes(downtimes);
+		renderPagination();
+		updatePerPageOptions(result.total_count);
 	} catch (error) {
 		document.getElementById("downtime-table-body").innerHTML =
 			'<tr><td colspan="8" class="text-center text-red-500 py-4">Failed to load downtime records</td></tr>';
@@ -155,8 +159,6 @@ function renderDowntimes(downtimesToRender) {
 		tbody.appendChild(row);
 	});
 
-	renderPagination(downtimesToRender.length);
-
 	document.querySelectorAll(".edit-btn").forEach((btn) => {
 		btn.addEventListener("click", () => editDowntime(btn.dataset.id));
 	});
@@ -167,8 +169,8 @@ function renderDowntimes(downtimesToRender) {
 	});
 }
 
-function renderPagination(totalItems) {
-	const totalPages = Math.ceil(totalItems / itemsPerPage);
+function renderPagination() {
+	const totalPages = Math.ceil(totalCount / itemsPerPage);
 	const paginationContainer = document.getElementById("pagination");
 
 	if (totalPages <= 1) {
@@ -176,26 +178,23 @@ function renderPagination(totalItems) {
 		return;
 	}
 
-	let paginationHTML = "";
+	const startItem = (currentPage - 1) * itemsPerPage + 1;
+	const endItem = Math.min(currentPage * itemsPerPage, totalCount);
 
-	paginationHTML += `
-		<button class="pagination-btn" ${currentPage === 1 ? "disabled" : ""} id="prev-page">
-			<i class="fas fa-chevron-left"></i>
-		</button>
-	`;
-
-	for (let i = 1; i <= totalPages; i++) {
-		paginationHTML += `
-			<button class="pagination-btn ${currentPage === i ? "active" : ""}" data-page="${i}">
-				${i}
-			</button>
-		`;
-	}
-
-	paginationHTML += `
-		<button class="pagination-btn" ${currentPage === totalPages ? "disabled" : ""} id="next-page">
-			<i class="fas fa-chevron-right"></i>
-		</button>
+	let paginationHTML = `
+		<div class="flex items-center gap-4">
+			<div class="text-sm text-gray-600">
+				Showing ${startItem} to ${endItem} of ${totalCount} entries
+			</div>
+			<div class="flex gap-1">
+				<button class="pagination-btn" ${currentPage === 1 ? "disabled" : ""} id="prev-page">
+					<i class="fas fa-chevron-left"></i>
+				</button>
+				<button class="pagination-btn" ${currentPage === totalPages ? "disabled" : ""} id="next-page">
+					<i class="fas fa-chevron-right"></i>
+				</button>
+			</div>
+		</div>
 	`;
 
 	paginationContainer.innerHTML = paginationHTML;
@@ -212,13 +211,6 @@ function renderPagination(totalItems) {
 			currentPage++;
 			applyFilters();
 		}
-	});
-
-	document.querySelectorAll(".pagination-btn[data-page]").forEach((btn) => {
-		btn.addEventListener("click", () => {
-			currentPage = parseInt(btn.dataset.page);
-			applyFilters();
-		});
 	});
 }
 
@@ -247,9 +239,12 @@ async function applyFilters() {
 		if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
 		const result = await response.json();
-		downtimes = result;
+		downtimes = result.data;
+		totalCount = result.total_count;
 		updateDowntimeStats(downtimes);
 		renderDowntimes(downtimes);
+		renderPagination();
+		updatePerPageOptions(result.total_count);
 	} catch (error) {
 		showNotification(error.message || "Failed to apply filters. Please try again.", "error");
 	} finally {
@@ -444,7 +439,8 @@ async function exportToExcel() {
 		const response = await fetch(`/api/downtimes/filter?${params}`);
 		if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
-		const filteredDowntimes = await response.json();
+		const result = await response.json();
+		const filteredDowntimes = result.data;
 
 		if (filteredDowntimes.length === 0) {
 			showNotification("No data to export", "warning");
