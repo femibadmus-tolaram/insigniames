@@ -1,3 +1,3 @@
 pub mod backend;
-pub mod desktop;
+pub mod hardware;
 pub mod manager;

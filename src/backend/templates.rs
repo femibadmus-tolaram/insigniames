@@ -17,9 +17,7 @@ struct HomeTemplate {
 
 #[derive(Template)]
 #[template(path = "settings.html")]
-struct SettingsTemplate {
-    user_name: String,
-}
+struct SettingsTemplate;
 
 #[derive(Template)]
 #[template(path = "users.html")]
@@ -29,7 +27,47 @@ struct UsersTemplate {
 
 #[derive(Template)]
 #[template(path = "roles.html")]
-struct RolesTemplate{
+struct RolesTemplate;
+
+#[derive(Template)]
+#[template(path = "downtime.html")]
+struct DownTimeTemplate{
+    user_name: String,
+}
+
+#[derive(Template)]
+#[template(path = "consumable.html")]
+struct ConsumableTemplate{
+    user_name: String,
+}
+#[derive(Template)]
+#[template(path = "scrap.html")]
+struct ScrapTemplate{
+    user_name: String,
+}
+#[derive(Template)]
+#[template(path = "lookup.html")]
+struct LookUpTemplate{
+    user_name: String,
+}
+#[derive(Template)]
+#[template(path = "machine.html")]
+struct MachineTemplate{
+    user_name: String,
+}
+#[derive(Template)]
+#[template(path = "production.html")]
+struct ProductionTemplate{
+    user_name: String,
+}
+#[derive(Template)]
+#[template(path = "jobs.html")]
+struct JobsTemplate{
+    user_name: String,
+}
+#[derive(Template)]
+#[template(path = "rolls.html")]
+struct RollsTemplate{
     user_name: String,
 }
 
@@ -47,19 +85,73 @@ pub async fn whois_data() -> impl Responder {
     HttpResponse::Ok().content_type("text/plain").body(rand_str)
 }
 
-pub async fn roles_page(session: Session) -> impl Responder {
+pub async fn roles_page() -> impl Responder {
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(RolesTemplate.render().unwrap())
+}
+
+pub async fn downtime_page(session: Session) -> impl Responder {
     let user_name = session.get::<String>("user_name").unwrap_or(None).unwrap_or_default();
     HttpResponse::Ok()
         .content_type("text/html")
-        .body(RolesTemplate { user_name }.render().unwrap())
+        .body(DownTimeTemplate { user_name }.render().unwrap())
+}
+
+pub async fn consumable_page(session: Session) -> impl Responder {
+    let user_name = session.get::<String>("user_name").unwrap_or(None).unwrap_or_default();
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(ConsumableTemplate { user_name }.render().unwrap())
+}
+
+pub async fn scrap_page(session: Session) -> impl Responder {
+    let user_name = session.get::<String>("user_name").unwrap_or(None).unwrap_or_default();
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(ScrapTemplate { user_name }.render().unwrap())
+}
+
+pub async fn lookup_page(session: Session) -> impl Responder {
+    let user_name = session.get::<String>("user_name").unwrap_or(None).unwrap_or_default();
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(LookUpTemplate { user_name }.render().unwrap())
+}
+
+pub async fn machine_page(session: Session) -> impl Responder {
+    let user_name = session.get::<String>("user_name").unwrap_or(None).unwrap_or_default();
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(MachineTemplate { user_name }.render().unwrap())
+}
+
+pub async fn production_page(session: Session) -> impl Responder {
+    let user_name = session.get::<String>("user_name").unwrap_or(None).unwrap_or_default();
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(ProductionTemplate { user_name }.render().unwrap())
+}
+
+pub async fn rolls_page(session: Session) -> impl Responder {
+    let user_name = session.get::<String>("user_name").unwrap_or(None).unwrap_or_default();
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(RollsTemplate { user_name }.render().unwrap())
+}
+
+pub async fn jobs_page(session: Session) -> impl Responder {
+    let user_name = session.get::<String>("user_name").unwrap_or(None).unwrap_or_default();
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(JobsTemplate { user_name }.render().unwrap())
 }
 
 
-pub async fn settings_page(session: Session) -> impl Responder {
-    let user_name = session.get::<String>("user_name").unwrap_or(None).unwrap_or_default();
+pub async fn settings_page() -> impl Responder {
     HttpResponse::Ok()
         .content_type("text/html")
-        .body(SettingsTemplate { user_name }.render().unwrap())
+        .body(SettingsTemplate.render().unwrap())
 }
 
 pub async fn home_page(session: Session) -> impl Responder {
