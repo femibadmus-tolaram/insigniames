@@ -2,13 +2,20 @@ use actix_web::{web, HttpResponse, Responder};
 use r2d2_sqlite::SqliteConnectionManager;
 use r2d2::Pool;
 use actix_session::Session;
-use crate::backend::models::{User, UserPayload, UserCreatePayload, SigninPayload, IdPayload};
+use crate::backend::models::{User, UserPayload, UserCreatePayload, SigninPayload, IdPayload, UserFilterPayload};
 
 
 pub async fn create_user(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<UserCreatePayload>) -> impl Responder {
     let conn = conn_data.get().unwrap();
-    match User::create(&conn, &data) {
-        Ok(u) => HttpResponse::Ok().json(u),
+    
+    match User::staffid_exists(&conn, &data.staffid) {
+        Ok(true) => return HttpResponse::BadRequest().body("Staff ID already exists"),
+        Ok(false) => {
+            match User::create(&conn, &data) {
+                Ok(u) => HttpResponse::Ok().json(u),
+                Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+            }
+        }
         Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
     }
 }
@@ -31,7 +38,7 @@ pub async fn delete_user(conn_data: web::Data<Pool<SqliteConnectionManager>>, da
             match User::count_linked_records(&conn, data.id) {
                 Ok(count) => {
                     if count > 0 {
-                        return HttpResponse::Conflict().body("Cannot delete user. It is linked to weigh logs, contractors, or plans.");
+                        return HttpResponse::Conflict().body("Cannot delete user. It is linked");
                     }
                 },
                 Err(e) => {
@@ -83,3 +90,13 @@ pub async fn signout_user(session: Session) -> impl Responder {
     HttpResponse::Ok().body("Signed out")
 }
 
+pub async fn filter_users(
+    conn_data: web::Data<Pool<SqliteConnectionManager>>,
+    web::Query(filter): web::Query<UserFilterPayload>
+) -> impl Responder {
+    let conn = conn_data.get().unwrap();
+    match User::filter(&conn, &filter) {
+        Ok(users) => HttpResponse::Ok().json(users),
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+    }
+}
