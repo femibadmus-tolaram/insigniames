@@ -1,0 +1,142 @@
+/** @format */
+
+:root {
+	--primary: #1e3a8a;
+	--primary-dark: #172554;
+	--secondary: #64748b;
+	--light: #f8fafc;
+	--success: #10b981;
+	--warning: #f59e0b;
+	--danger: #ef4444;
+	--border-light: #e2e8f0;
+	--text-secondary: #475569;
+	--hover-light: #cbd5e1;
+	--border-medium: #d1d5db;
+	--border-soft: #e5e7eb;
+	--bg-light: #f9fafb;
+	--bg-hover: #f3f4f6;
+	--text-muted: #6b7280;
+}
+
+body {
+	font-family: "Inter", sans-serif;
+	background-color: #f1f5f9;
+}
+
+.expand-btn {
+	color: var(--secondary);
+}
+
+.expand-btn:hover,
+.expand-btn.expanded {
+	color: var(--primary);
+}
+
+.btn-primary {
+	background: var(--primary);
+	color: white;
+}
+
+.btn-primary:hover {
+	background: var(--primary-dark);
+}
+
+.btn-secondary {
+	background: #e2e8f0;
+	color: var(--secondary);
+}
+
+.btn-success {
+	background: var(--success);
+	color: white;
+}
+
+.btn-success:hover {
+	background: #059669;
+}
+
+.btn-warning {
+	background: var(--warning);
+	color: white;
+}
+
+.btn-danger {
+	background: var(--danger);
+	color: white;
+}
+
+.status-active {
+	background: #ecfdf5;
+	color: var(--success);
+}
+
+.status-inactive {
+	background: #fef2f2;
+	color: var(--danger);
+}
+
+.table th {
+	color: var(--secondary);
+	background: var(--light);
+}
+
+.nested-row {
+	background: var(--light);
+}
+
+.last-update {
+	color: var(--secondary);
+	background: var(--light);
+}
+
+.last-update i {
+	color: var(--primary);
+}
+
+.last-update {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.4rem 0.8rem;
+	background-color: var(--light);
+	border-radius: 8px;
+	border: 1px solid var(--border-light);
+	font-size: 0.875rem;
+	color: var(--secondary);
+}
+
+.last-update i {
+	margin-right: 0.4rem;
+	color: var(--primary);
+}
+
+.last-update.updating {
+	animation: pulse 1.5s infinite;
+}
+
+.group:hover .dropdown-menu {
+	opacity: 1;
+	visibility: visible;
+	transform: translateY(0);
+}
+
+.dropdown-menu {
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(-10px);
+	transition: all 0.2s ease-in-out;
+}
+
+.notification {
+	animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+	from {
+		transform: translateX(100%);
+		opacity: 0;
+	}
+	to {
+		transform: translateX(0);
+		opacity: 1;
+	}
+}
