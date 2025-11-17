@@ -1,0 +1,239 @@
+<!-- @format -->
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Weigh & Print - Insignia</title>
+		<script src="/static/scripts/downloads/tailwind.js"></script>
+		<link rel="stylesheet" href="/static/styles/downloads/fa.css" />
+		<link rel="stylesheet" href="/static/styles/theme.css" />
+		<link rel="stylesheet" href="/static/styles/weigh.css" />
+		<script src="/static/scripts/script.js?v=1.8"></script>
+	</head>
+	<body class="bg-gray-50 min-h-screen">
+		<header class="bg-white shadow-sm sticky top-0 z-40">
+			<div class="max-w-7xl mx-auto px-6 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
+				<div class="flex items-center gap-3">
+					<div class="bg-blue-100 p-2 rounded-lg">
+						<i class="fas fa-cogs text-blue-600 text-xl"></i>
+					</div>
+					<h1 class="text-xl font-bold text-gray-800">Machines Management</h1>
+				</div>
+				<nav>
+					<ul id="main-nav" class="flex flex-wrap gap-1 text-gray-600 font-medium">
+						<li class="relative group">
+							<a href="/" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+								><i class="fas fa-chart-simple"></i> Dashboard <i class="fas fa-chevron-down text-xs ml-1"></i
+							></a>
+							<div
+								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
+							>
+								<div class="py-2">
+									<a href="/jobs" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-briefcase"></i> Jobs
+									</a>
+									<a href="/rolls" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-layer-group"></i> Rolls
+									</a>
+								</div>
+							</div>
+						</li>
+
+						<li class="relative group">
+							<a href="/production" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+								><i class="fas fa-industry"></i> Production <i class="fas fa-chevron-down text-xs ml-1"></i
+							></a>
+							<div
+								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
+							>
+								<div class="py-2">
+									<a href="/downtime" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-clock"></i> Downtime
+									</a>
+									<a href="/scrap" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-trash"></i> Scrap
+									</a>
+									<a href="/consumables" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-flask"></i> Actual Consumable
+									</a>
+								</div>
+							</div>
+						</li>
+
+						<li class="relative group">
+							<a href="/settings" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+								><i class="fas fa-cog"></i> Settings <i class="fas fa-chevron-down text-xs ml-1"></i
+							></a>
+							<div
+								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
+							>
+								<div class="py-2">
+									<a href="/machines" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-cogs"></i> Manage Machines
+									</a>
+									<a href="/lookups" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-list"></i> Manage Lookups
+									</a>
+									<div class="border-t border-gray-200 my-1"></div>
+									<a href="/roles" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-users"></i> Users Management
+									</a>
+									<a href="/roles" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-user-tag"></i> Roles & Permissions
+									</a>
+									<div class="border-t border-gray-200 my-1"></div>
+									<a href="/logout" class="px-4 py-2 hover:bg-red-50 hover:text-red-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-sign-out-alt"></i> Logout
+									</a>
+								</div>
+							</div>
+						</li>
+					</ul>
+				</nav>
+			</div>
+		</header>
+
+		<main class="max-w-7xl mx-auto px-4 py-6">
+			<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+				<div class="lg:col-span-1">
+					<div class="card p-6">
+						<h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+							<i class="fas fa-user-circle"></i> User Information
+						</h2>
+						<div class="space-y-3">
+							<div class="info-item">
+								<span class="info-label">Name:</span>
+								<span class="info-value" id="user-name">Loading...</span>
+							</div>
+							<div class="info-item">
+								<span class="info-label">Staff ID:</span>
+								<span class="info-value" id="user-staffid">Loading...</span>
+							</div>
+							<div class="info-item">
+								<span class="info-label">Phone:</span>
+								<span class="info-value" id="user-phone">Loading...</span>
+							</div>
+							<div class="info-item">
+								<span class="info-label">Plan:</span>
+								<span class="info-value" id="user-plan">Loading...</span>
+							</div>
+							<!-- <div class="info-item">
+								<span class="info-label">Sections:</span>
+								<span class="info-value" id="user-sections">Loading...</span>
+							</div> -->
+						</div>
+
+						<div id="sku-info" class="hidden mt-6 pt-6 border-t border-gray-200">
+							<h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+								<i class="fas fa-barcode"></i> Selected SKU Information
+							</h2>
+							<div class="space-y-3">
+								<div class="info-item">
+									<span class="info-label">SKU Name:</span>
+									<span class="info-value" id="sku-name">-</span>
+								</div>
+								<div class="info-item">
+									<span class="info-label">SKU Code:</span>
+									<span class="info-value" id="sku-code">-</span>
+								</div>
+								<div class="info-item">
+									<span class="info-label">Color:</span>
+									<span class="info-value" id="sku-color">-</span>
+								</div>
+								<div class="info-item">
+									<span class="info-label">Category:</span>
+									<span class="info-value" id="sku-category">-</span>
+								</div>
+								<div class="info-item">
+									<span class="info-label">Product:</span>
+									<span class="info-value" id="sku-product">-</span>
+								</div>
+								<div class="info-item">
+									<span class="info-label">Type:</span>
+									<span class="info-value" id="sku-type">-</span>
+								</div>
+								<div class="info-item">
+									<span class="info-label">LSL:</span>
+									<span class="info-value" id="sku-lsl">-</span>
+								</div>
+								<div class="info-item">
+									<span class="info-label">USL:</span>
+									<span class="info-value" id="sku-usl">-</span>
+								</div>
+								<div class="info-item">
+									<span class="info-label">Grammage:</span>
+									<span class="info-value" id="sku-grammage">-</span>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="lg:col-span-2">
+					<div class="card p-6 space-y-6">
+						<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+							<h2 class="text-xl font-semibold text-gray-800"><i class="fas fa-weight-scale"></i> Create Weigh Log</h2>
+							<div class="flex items-center gap-2">
+								<button id="filter-yesterday" class="btn btn-primary"><i class="fas fa-calendar-day"></i> Yesterday</button>
+								<button id="filter-today" class="btn btn-primary"><i class="fas fa-calendar"></i> Today</button>
+							</div>
+						</div>
+
+						<div id="alert-container"></div>
+						<form id="weigh-log-form" class="space-y-4">
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div class="form-group">
+									<label for="plan" class="form-label">Shift *</label>
+									<select id="plan" class="form-input" required>
+										<option value="">Select a shift</option>
+									</select>
+								</div>
+								<div class="form-group">
+									<label for="section" class="form-label">Section *</label>
+									<select id="section" class="form-input" required>
+										<option value="">Select a section</option>
+									</select>
+								</div>
+								<div class="form-group">
+									<label for="schedule" class="form-label">SKU *</label>
+									<select id="schedule" class="form-input" required>
+										<option value="">Select a SKU</option>
+									</select>
+								</div>
+								<div class="form-group">
+									<label for="contractor" class="form-label">Contractor *</label>
+									<select id="contractor" class="form-input" required>
+										<option value="">Select a contractor</option>
+									</select>
+								</div>
+							</div>
+							<div class="flex justify-end">
+								<button type="submit" class="btn btn-primary"><i class="fas fa-plus-circle mr-2"></i> Create Weigh Log</button>
+							</div>
+						</form>
+					</div>
+
+					<div class="card p-6 mt-6">
+						<h2 class="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+							<i class="fas fa-history"></i> Last Created Weigh Log
+							<span class="last-update"> <i class="fas fa-clock"></i> <span id="last-update"></span> </span>
+						</h2>
+						<div id="history-list">
+							<div class="no-history">No weigh logs created yet</div>
+						</div>
+					</div>
+					<div class="mt-4 flex justify-center">
+						<button id="clear-history-btn" class="btn btn-secondary hidden"><i class="fas fa-times mr-2"></i> Clear History</button>
+					</div>
+				</div>
+			</div>
+		</main>
+		<div class="h-[25vh]"></div>
+
+		<script src="/static/scripts/downloads/qrcode.js"></script>
+		<script src="/static/scripts/downloads/jspdf.js"></script>
+		<script src="/static/scripts/weigh.js?v=3.9.1.2"></script>
+	</body>
+</html>
