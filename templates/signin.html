@@ -1,0 +1,47 @@
+<!-- @format -->
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Insignia MES Login</title>
+		<script src="/static/scripts/downloads/lottie-player.js"></script>
+		<link rel="stylesheet" href="/static/styles/downloads/fa.css" />
+		<link rel="stylesheet" href="/static/styles/signin.css" />
+	</head>
+	<body>
+		<div class="container">
+			<!-- Left Panel -->
+			<div class="left-panel">
+				<div class="content">
+					<div class="workflow-container" id="workflowContainer"></div>
+				</div>
+
+				<div class="footer">
+					<p>Powered by <span class="tolaram">Tolaram</span></p>
+					<p class="tagline">Creating Possibilities, for Generations.</p>
+				</div>
+			</div>
+
+			<!-- Right Panel -->
+			<div class="right-panel">
+				<div class="login-container">
+					<h2>Welcome Back</h2>
+					<p>Please log in to your account</p>
+					<form onsubmit="event.preventDefault(); login();">
+						<div class="input-group">
+							<input type="text" id="staffid" placeholder="Staff ID" required autocomplete="username" />
+						</div>
+						<div class="input-group">
+							<input type="password" id="password" placeholder="Password" required autocomplete="current-password" />
+						</div>
+						<button type="submit" class="btn-login" id="loginBtn">Log In</button>
+					</form>
+					<div class="error-msg" id="error-msg"></div>
+				</div>
+			</div>
+		</div>
+		<script src="/static/scripts/signin.js?v=1.0"></script>
+	</body>
+</html>
