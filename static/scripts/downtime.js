@@ -1,11 +1,14 @@
 /** @format */
 let downtimes = [];
 let downtimeReasons = [];
-let shifts = [];
 let users = [];
 let currentPage = 1;
 let itemsPerPage = 10;
 let totalCount = 0;
+let shifts = [
+	{ id: 1, name: "Day" },
+	{ id: 2, name: "Night" },
+];
 
 document.addEventListener("DOMContentLoaded", function () {
 	initializePage();
@@ -19,69 +22,32 @@ async function initializePage() {
 
 async function loadFilterOptions() {
 	try {
-		const [reasonsResponse, shiftsResponse, usersResponse] = await Promise.all([
-			fetch("/api/lookups/downtime-reasons"),
-			fetch("/api/lookups/shifts"),
-			fetch("/api/users"),
+		const [reasonsResponse, usersResponse] = await Promise.all([
+			fetch("/api/lookups/downtime-reasons").then(handleApiResponse),
+			fetch("/api/users").then(handleApiResponse),
 		]);
 
-		if (!reasonsResponse.ok) throw new Error("Downtime reasons API response was not ok");
-		if (!shiftsResponse.ok) throw new Error("Shifts API response was not ok");
-		if (!usersResponse.ok) throw new Error("Users API response was not ok");
+		downtimeReasons = reasonsResponse;
+		users = usersResponse;
 
-		downtimeReasons = await reasonsResponse.json();
-		shifts = await shiftsResponse.json();
-		users = await usersResponse.json();
-
-		populateSelect("filter-shift", shifts, "name", "All Shifts");
 		populateSelect("filter-reason", downtimeReasons, "name", "All Reasons");
 		populateSelect("filter-user", users, "full_name", "All Users");
-		populateSelect("shift", shifts, "name", "Select Shift");
 		populateSelect("downtime-reason", downtimeReasons, "name", "Select Reason");
 	} catch (error) {
-		showNotification(error.message || "Failed to load filter options. Please try again later.", "error");
-	}
-}
-
-function showLoading(show) {
-	const loadingMessage = document.getElementById("loading-message");
-	const table = document.getElementById("downtime-table");
-
-	if (show) {
-		loadingMessage.style.display = "block";
-		table.style.display = "none";
-	} else {
-		loadingMessage.style.display = "none";
-		table.style.display = "table";
-	}
-}
-
-function setButtonLoading(button, loading) {
-	if (loading) {
-		button.disabled = true;
-		const originalHTML = button.innerHTML;
-		button.setAttribute("data-original-html", originalHTML);
-		button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
-	} else {
-		button.disabled = false;
-		const originalHTML = button.getAttribute("data-original-html");
-		if (originalHTML) {
-			button.innerHTML = originalHTML;
-		}
+		showNotification(error.message, "error");
 	}
 }
 
 async function loadDowntimes() {
-	showLoading(true);
+	showLoading(true, "downtime-table");
 	try {
 		const params = new URLSearchParams();
 		params.append("page", currentPage);
 		params.append("per_page", itemsPerPage);
 
 		const response = await fetch(`/api/downtimes/filter?${params}`);
-		if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+		const result = await handleApiResponse(response);
 
-		const result = await response.json();
 		downtimes = result.data;
 		totalCount = result.total_count;
 		updateDowntimeStats(downtimes);
@@ -91,12 +57,11 @@ async function loadDowntimes() {
 	} catch (error) {
 		document.getElementById("downtime-table-body").innerHTML =
 			'<tr><td colspan="8" class="text-center text-red-500 py-4">Failed to load downtime records</td></tr>';
-		showNotification(error.message || "Failed to load downtime records. Please try again later.", "error");
+		showNotification(error.message, "error");
 	} finally {
-		showLoading(false);
+		showLoading(false, "downtime-table");
 	}
 }
-
 function updateDowntimeStats(downtimes) {
 	const totalRecords = downtimes.length;
 	const totalMinutes = downtimes.reduce((sum, downtime) => sum + (downtime.duration_minutes || 0), 0);
@@ -107,16 +72,6 @@ function updateDowntimeStats(downtimes) {
 	document.getElementById("total-downtime").textContent = formatMinutes(totalMinutes);
 	document.getElementById("day-downtime").textContent = formatMinutes(dayDowntime);
 	document.getElementById("night-downtime").textContent = formatMinutes(nightDowntime);
-}
-
-function formatMinutes(minutes) {
-	if (minutes < 60) {
-		return `${minutes}m`;
-	} else {
-		const hours = Math.floor(minutes / 60);
-		const mins = minutes % 60;
-		return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-	}
 }
 
 function renderDowntimes(downtimesToRender) {
@@ -217,7 +172,7 @@ function renderPagination() {
 async function applyFilters() {
 	const applyBtn = document.getElementById("apply-filter");
 	setButtonLoading(applyBtn, true);
-	showLoading(true);
+	showLoading(true, "downtime-table");
 
 	try {
 		const params = new URLSearchParams();
@@ -236,9 +191,8 @@ async function applyFilters() {
 		params.append("per_page", itemsPerPage);
 
 		const response = await fetch(`/api/downtimes/filter?${params}`);
-		if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+		const result = await handleApiResponse(response);
 
-		const result = await response.json();
 		downtimes = result.data;
 		totalCount = result.total_count;
 		updateDowntimeStats(downtimes);
@@ -246,10 +200,10 @@ async function applyFilters() {
 		renderPagination();
 		updatePerPageOptions(result.total_count);
 	} catch (error) {
-		showNotification(error.message || "Failed to apply filters. Please try again.", "error");
+		showNotification(error.message, "error");
 	} finally {
 		setButtonLoading(applyBtn, false);
-		showLoading(false);
+		showLoading(false, "downtime-table");
 	}
 }
 
@@ -274,19 +228,44 @@ function openModal(downtimeId = null) {
 		const downtime = downtimes.find((d) => d.id === parseInt(downtimeId));
 		if (downtime) {
 			populateForm(downtime);
+			const downtimeTime = new Date(downtime.start_time);
+			const now = new Date();
+			const hoursDiff = (now - downtimeTime) / (1000 * 60 * 60);
+
+			if (hoursDiff > 24) {
+				document.getElementById("shift").disabled = true;
+				document.getElementById("downtime-reason").disabled = true;
+				document.getElementById("start-time").disabled = true;
+				document.getElementById("end-time").disabled = true;
+				document.getElementById("duration").disabled = true;
+				document.querySelector('button[type="submit"]').disabled = true;
+				document.querySelector('button[type="submit"]').innerHTML = "Editing Disabled (Over 24 hours)";
+			}
 		}
 	} else {
 		title.textContent = "Add Downtime";
 		form.reset();
 		document.getElementById("downtime-id").value = "";
-		document.getElementById("duration").value = "";
+		enableDowntimeForm();
 	}
 
 	modal.style.display = "flex";
 }
 
+function enableDowntimeForm() {
+	document.getElementById("shift").disabled = false;
+	document.getElementById("downtime-reason").disabled = false;
+	document.getElementById("start-time").disabled = false;
+	document.getElementById("end-time").disabled = false;
+	document.getElementById("duration").disabled = false;
+	const submitBtn = document.querySelector('button[type="submit"]');
+	submitBtn.disabled = false;
+	submitBtn.innerHTML = "Save";
+}
+
 function closeModal() {
 	document.getElementById("downtime-modal").style.display = "none";
+	enableDowntimeForm();
 }
 
 function populateForm(downtime) {
@@ -346,17 +325,13 @@ async function createDowntime(downtimeData) {
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(downtimeData),
 		});
-
-		if (!response.ok) {
-			const errorData = await response.json();
-			throw new Error(errorData.message || "Failed to create downtime record");
-		}
+		await handleApiResponse(response);
 
 		showNotification("Downtime record created successfully!", "success");
 		closeModal();
 		await applyFilters();
 	} catch (error) {
-		showNotification(error.message || "Error creating downtime record. Please try again.", "error");
+		showNotification(error.message, "error");
 	}
 }
 
@@ -367,17 +342,13 @@ async function updateDowntime(downtimeData) {
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(downtimeData),
 		});
-
-		if (!response.ok) {
-			const errorData = await response.json();
-			throw new Error(errorData.message || "Failed to update downtime record");
-		}
+		await handleApiResponse(response);
 
 		showNotification("Downtime record updated successfully!", "success");
 		closeModal();
 		await applyFilters();
 	} catch (error) {
-		showNotification(error.message || "Error updating downtime record. Please try again.", "error");
+		showNotification(error.message, "error");
 	}
 }
 
@@ -397,22 +368,12 @@ async function deleteDowntime(downtimeId) {
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ id: parseInt(downtimeId) }),
 		});
-
-		if (!response.ok) {
-			let errorText;
-			const text = await response.text();
-			try {
-				errorText = JSON.parse(text).message;
-			} catch {
-				errorText = text;
-			}
-			throw new Error(errorText);
-		}
+		await handleApiResponse(response);
 
 		showNotification("Downtime record deleted successfully!", "success");
 		await applyFilters();
 	} catch (error) {
-		showNotification(error.message || "Error deleting downtime record. Please try again.", "error");
+		showNotification(error.message, "error");
 	} finally {
 		if (deleteBtn) setButtonLoading(deleteBtn, false);
 	}
@@ -437,9 +398,7 @@ async function exportToExcel() {
 		if (userFilter) params.append("created_by", userFilter);
 
 		const response = await fetch(`/api/downtimes/filter?${params}`);
-		if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-		const result = await response.json();
+		const result = await handleApiResponse(response);
 		const filteredDowntimes = result.data;
 
 		if (filteredDowntimes.length === 0) {
@@ -471,21 +430,10 @@ async function exportToExcel() {
 
 		showNotification("Downtime records exported successfully!", "success");
 	} catch (error) {
-		showNotification("Error exporting downtime records. Please try again.", "error");
+		showNotification(error.message, "error");
 	} finally {
 		setButtonLoading(exportBtn, false);
 	}
-}
-
-function populateSelect(id, items, key, defaultText) {
-	const sel = document.getElementById(id);
-	sel.innerHTML = `<option value="">${defaultText}</option>`;
-	items.forEach((i) => {
-		const opt = document.createElement("option");
-		opt.value = i.id;
-		opt.textContent = i[key];
-		sel.appendChild(opt);
-	});
 }
 
 function setupEventListeners() {
@@ -509,4 +457,6 @@ function setupEventListeners() {
 		currentPage = 1;
 		applyFilters();
 	});
+
+	setupShiftTimeRestrictions();
 }

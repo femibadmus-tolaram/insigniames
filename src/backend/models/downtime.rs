@@ -1,6 +1,7 @@
 use chrono::Local;
 use rusqlite::{params, Connection, Result};
 use serde::{Serialize, Deserialize};
+use crate::backend::models::FilterResponse;
 
 #[derive(Debug, Serialize)]
 pub struct Downtime {
@@ -43,12 +44,6 @@ pub struct DowntimeFilterPayload {
     pub created_by: Option<String>,
     pub per_page: Option<String>,
     pub page: Option<String>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct FilterResponse<T> {
-    pub total_count: i32,
-    pub data: Vec<T>,
 }
 
 impl Downtime {
