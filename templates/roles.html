@@ -1,0 +1,258 @@
+<!-- @format -->
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Roles & Permissions - Insignia</title>
+		<script src="/static/scripts/downloads/tailwind.js"></script>
+		<link rel="stylesheet" href="/static/styles/downloads/fa.css" />
+		<link rel="stylesheet" href="/static/styles/theme.css" />
+		<link rel="stylesheet" href="/static/styles/styles.css" />
+		<script src="/static/scripts/script.js?v=1.8"></script>
+	</head>
+	<body class="bg-gray-50 min-h-screen">
+		<header class="bg-white shadow-sm sticky top-0 z-40">
+			<div class="max-w-7xl mx-auto px-6 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
+				<div class="flex items-center gap-3">
+					<div class="bg-blue-100 p-2 rounded-lg">
+						<i class="fas fa-user-tag text-blue-600 text-xl"></i>
+					</div>
+					<h1 class="text-xl font-bold text-gray-800">Roles & Permissions</h1>
+				</div>
+				<nav>
+					<ul id="main-nav" class="flex flex-wrap gap-1 text-gray-600 font-medium">
+						<li class="relative group">
+							<a href="/" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+								><i class="fas fa-chart-simple"></i> Dashboard <i class="fas fa-chevron-down text-xs ml-1"></i
+							></a>
+							<div
+								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
+							>
+								<div class="py-2">
+									<a href="/jobs" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-briefcase"></i> Jobs
+									</a>
+									<a href="/rolls" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-layer-group"></i> Rolls
+									</a>
+								</div>
+							</div>
+						</li>
+
+						<li class="relative group">
+							<a href="/production" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+								><i class="fas fa-industry"></i> Production <i class="fas fa-chevron-down text-xs ml-1"></i
+							></a>
+							<div
+								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
+							>
+								<div class="py-2">
+									<a href="/downtime" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-clock"></i> Downtime
+									</a>
+									<a href="/scrap" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-trash"></i> Scrap
+									</a>
+									<a href="/consumables" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-flask"></i> Actual Consumable
+									</a>
+								</div>
+							</div>
+						</li>
+
+						<li class="relative group">
+							<a href="/settings" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+								><i class="fas fa-cog"></i> Settings <i class="fas fa-chevron-down text-xs ml-1"></i
+							></a>
+							<div
+								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
+							>
+								<div class="py-2">
+									<a href="/machines" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-cogs"></i> Manage Machines
+									</a>
+									<a href="/lookups" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-list"></i> Manage Lookups
+									</a>
+									<div class="border-t border-gray-200 my-1"></div>
+									<a href="/roles" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-users"></i> Users Management
+									</a>
+									<a href="/roles" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-user-tag"></i> Roles & Permissions
+									</a>
+									<div class="border-t border-gray-200 my-1"></div>
+									<a href="/logout" class="px-4 py-2 hover:bg-red-50 hover:text-red-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-sign-out-alt"></i> Logout
+									</a>
+								</div>
+							</div>
+						</li>
+					</ul>
+				</nav>
+			</div>
+		</header>
+
+		<main class="max-w-7xl mx-auto px-4 py-6">
+			<section class="card p-6 space-y-6 mb-6">
+				<!-- Header -->
+				<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+					<div>
+						<h2 class="text-2xl font-bold text-gray-800">Roles & Permissions Management</h2>
+					</div>
+					<div class="flex items-center gap-3">
+						<!-- <span class="last-update" id="last-update">
+							<i class="fas fa-clock"></i>Last updated: <span id="update-time">Just now</span>
+						</span> -->
+						<button class="btn btn-primary" id="add-role-btn"><i class="fas fa-plus"></i> Add New Role</button>
+					</div>
+				</div>
+
+				<!-- Quick Stats -->
+				<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+					<div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+						<div class="flex items-center gap-3">
+							<div class="bg-blue-100 p-3 rounded-lg">
+								<i class="fas fa-user-tag text-blue-600"></i>
+							</div>
+							<div>
+								<h3 class="text-sm font-medium text-blue-600">Total Roles</h3>
+								<p class="text-2xl font-bold text-gray-800" id="total-roles">0</p>
+							</div>
+						</div>
+					</div>
+					<div class="bg-green-50 p-4 rounded-xl border border-green-100">
+						<div class="flex items-center gap-3">
+							<div class="bg-green-100 p-3 rounded-lg">
+								<i class="fas fa-shield-alt text-green-600"></i>
+							</div>
+							<div>
+								<h3 class="text-sm font-medium text-green-600">Admin Roles</h3>
+								<p class="text-2xl font-bold text-gray-800" id="admin-roles">0</p>
+							</div>
+						</div>
+					</div>
+					<div class="bg-purple-50 p-4 rounded-xl border border-purple-100">
+						<div class="flex items-center gap-3">
+							<div class="bg-purple-100 p-3 rounded-lg">
+								<i class="fas fa-eye text-purple-600"></i>
+							</div>
+							<div>
+								<h3 class="text-sm font-medium text-purple-600">Read-Only Roles</h3>
+								<p class="text-2xl font-bold text-gray-800" id="readonly-roles">0</p>
+							</div>
+						</div>
+					</div>
+					<div class="bg-amber-50 p-4 rounded-xl border border-amber-100">
+						<div class="flex items-center gap-3">
+							<div class="bg-amber-100 p-3 rounded-lg">
+								<i class="fas fa-key text-amber-600"></i>
+							</div>
+							<div>
+								<h3 class="text-sm font-medium text-amber-600">Total Permissions</h3>
+								<p class="text-2xl font-bold text-gray-800" id="total-permissions">0</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Roles Table -->
+				<div class="bg-white rounded-xl border border-gray-200">
+					<div class="table-container">
+						<table id="roles-table" class="table" style="display: none">
+							<thead>
+								<tr>
+									<th class="w-20">ID</th>
+									<th>Role Name</th>
+									<th>Description</th>
+									<th>Permissions</th>
+									<th class="w-40">Actions</th>
+								</tr>
+							</thead>
+							<tbody id="roles-table-body" class="divide-y divide-gray-200">
+								<tr>
+									<td colspan="6" class="text-center text-gray-500 py-4">Loading roles...</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+
+					<div id="loading-message" class="text-center text-gray-500 py-8">
+						<i class="fas fa-spinner fa-spin mr-2"></i> Loading roles...
+					</div>
+				</div>
+			</section>
+
+			<!-- Permissions Section -->
+			<section class="card p-6 space-y-6">
+				<div class="flex justify-between items-center">
+					<h3 class="text-lg font-semibold text-gray-800">Role Permissions Matrix</h3>
+					<button class="btn btn-primary" id="manage-permissions-btn"><i class="fas fa-edit"></i> Manage Permissions</button>
+				</div>
+
+				<div class="overflow-x-auto">
+					<table id="permissions-table" class="permissions-matrix">
+						<thead>
+							<tr>
+								<th>Module</th>
+								<!-- Role headers will be populated by JavaScript -->
+							</tr>
+						</thead>
+						<tbody id="permissions-table-body">
+							<!-- Permissions will be populated by JavaScript -->
+						</tbody>
+					</table>
+				</div>
+			</section>
+		</main>
+		<div class="h-[25vh]"></div>
+
+		<!-- Add/Edit Role Modal -->
+		<div id="role-modal" class="modal">
+			<div class="modal-content max-w-md">
+				<div class="flex justify-between items-center mb-4">
+					<h3 class="text-lg font-semibold" id="modal-title">Add New Role</h3>
+					<button id="close-modal" class="text-gray-400 hover:text-gray-600">
+						<i class="fas fa-times"></i>
+					</button>
+				</div>
+				<form id="role-form">
+					<div class="space-y-4">
+						<div class="form-group">
+							<label for="role-name" class="form-label">Role Name *</label>
+							<input type="text" id="role-name" class="form-input" placeholder="Enter role name" required />
+						</div>
+						<div class="form-group">
+							<label for="role-description" class="form-label">Description *</label>
+							<textarea id="role-description" class="form-input" rows="3" placeholder="Enter role description" required></textarea>
+						</div>
+					</div>
+					<div class="flex justify-end gap-3 mt-6">
+						<button type="button" id="cancel-btn" class="btn btn-secondary">Cancel</button>
+						<button type="submit" id="submit-btn" class="btn btn-primary">Create Role</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<!-- Permissions Management Modal -->
+		<div id="permissions-modal" class="modal">
+			<div class="modal-content max-w-4xl">
+				<div class="flex justify-between items-center mb-4">
+					<h3 class="text-lg font-semibold" id="permissions-modal-title">Manage Permissions</h3>
+					<button id="close-permissions-modal" class="text-gray-400 hover:text-gray-600">
+						<i class="fas fa-times"></i>
+					</button>
+				</div>
+				<div id="permissions-content">
+					<!-- Permissions will be populated by JavaScript -->
+				</div>
+			</div>
+		</div>
+
+		<script src="/static/scripts/downloads/xlsx.js"></script>
+		<script src="/static/scripts/roles.js"></script>
+	</body>
+</html>
