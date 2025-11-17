@@ -1,0 +1,109 @@
+/** @format */
+
+.card {
+	background: white;
+	border-radius: 12px;
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem 1rem;
+	border-radius: 8px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.btn-primary {
+	background-color: #1e3a8a;
+	color: white;
+}
+
+.btn-primary:hover {
+	background-color: #wait;
+}
+
+.btn-secondary {
+	background-color: #e2e8f0;
+	color: #475569;
+}
+
+.btn-secondary:hover {
+	background-color: #cbd5e1;
+}
+
+.btn-danger {
+	background-color: #ef4444;
+	color: white;
+}
+
+.btn-danger:hover {
+	background-color: #dc2626;
+}
+
+.form-group {
+	margin-bottom: 1rem;
+}
+
+.form-label {
+	display: block;
+	margin-bottom: 0.5rem;
+	font-weight: 500;
+	color: #374151;
+}
+
+.form-input {
+	width: 100%;
+	padding: 0.5rem 1rem;
+	border: 1px solid #d1d5db;
+	border-radius: 6px;
+	transition: border-color 0.2s;
+}
+
+.form-input:focus {
+	outline: none;
+	border-color: #1e3a8a;
+	box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.1);
+}
+
+.warning-field {
+	border-color: #f59e0b;
+	background-color: #fffbeb;
+}
+
+.warning-text {
+	display: block;
+	font-size: 0.75rem;
+	color: #d97706;
+	margin-top: 0.25rem;
+}
+
+.btn-loading {
+	opacity: 0.7;
+	cursor: not-allowed;
+}
+
+.btn-loading i:not(.fa-spinner) {
+	display: none;
+}
+
+.btn-loading .fa-spinner {
+	display: inline-block;
+}
+
+.fa-spinner {
+	display: none;
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
