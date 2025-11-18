@@ -44,7 +44,7 @@ pub async fn process_order(search: web::Query<std::collections::HashMap<String, 
     }
 }
 
-fn format_order_data(json: &serde_json::Value) -> serde_json::Value {
+fn _format_order_data(json: &serde_json::Value) -> serde_json::Value {
     let orders = json["d"]["results"]
         .as_array()
         .unwrap_or(&vec![])
