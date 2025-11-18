@@ -9,12 +9,12 @@ pub async fn process_order(search: web::Query<std::collections::HashMap<String, 
     let mut url = format!("{}?$format=json&$top=10", base_url);
 
     let mut filters = Vec::new();
-    // filters.push("Plant eq 'A710'".to_string());
+    filters.push("Plant eq 'A710'".to_string());
     if let Some(order) = search.get("order") { filters.push(format!("ManufacturingOrder eq '{}'", order)); }
     if let Some(machine) = search.get("machine") { filters.push(format!("WorkCenter eq '{}'", machine)); }
     if !filters.is_empty() { url.push_str(&format!("&$filter={}", filters.join(" and "))); }
 
-    url.push_str("&$expand=to_ProcessOrderComponent,to_ProcessOrderOperation");
+    url.push_str("&$expand=to_ProductionOrderComponent,to_ProductionOrderOperation");
 
     let client = Client::new();
     let mut headers = reqwest::header::HeaderMap::new();

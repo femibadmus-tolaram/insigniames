@@ -1,3 +1,295 @@
 <!-- @format -->
 
-{{ user_name }}
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Dashboard - Insignia</title>
+		<script src="/static/scripts/downloads/tailwind.js"></script>
+		<link rel="stylesheet" href="/static/styles/theme.css" />
+		<link rel="stylesheet" href="/static/styles/downloads/fa.css" />
+		<link rel="stylesheet" href="/static/styles/styles.css?v=1.0" />
+		<script src="/static/scripts/script.js?v=1.8"></script>
+	</head>
+	<body class="bg-gray-50 min-h-screen">
+		<header class="bg-white shadow-sm sticky top-0 z-40">
+			<div class="max-w-7xl mx-auto px-6 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
+				<div class="flex items-center gap-3">
+					<div class="bg-blue-100 p-2 rounded-lg">
+						<i class="fas fa-chart-simple text-blue-600 text-xl"></i>
+					</div>
+					<h1 class="text-xl font-bold text-gray-800">Dashboard</h1>
+				</div>
+				<nav>
+					<ul id="main-nav" class="flex flex-wrap gap-1 text-gray-600 font-medium">
+						<li class="relative group">
+							<a href="/" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+								><i class="fas fa-chart-simple"></i> Dashboard <i class="fas fa-chevron-down text-xs ml-1"></i
+							></a>
+							<div
+								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
+							>
+								<div class="py-2">
+									<a href="/jobs" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-briefcase"></i> Jobs
+									</a>
+									<a href="/rolls" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-layer-group"></i> Rolls
+									</a>
+								</div>
+							</div>
+						</li>
+
+						<li class="relative group">
+							<a href="/production" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+								><i class="fas fa-industry"></i> Production <i class="fas fa-chevron-down text-xs ml-1"></i
+							></a>
+							<div
+								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
+							>
+								<div class="py-2">
+									<a href="/downtime" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-clock"></i> Downtime
+									</a>
+									<a href="/scrap" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-trash"></i> Scrap
+									</a>
+									<a href="/consumables" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-flask"></i> Actual Consumable
+									</a>
+								</div>
+							</div>
+						</li>
+
+						<li class="relative group">
+							<a href="/settings" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+								><i class="fas fa-cog"></i> Settings <i class="fas fa-chevron-down text-xs ml-1"></i
+							></a>
+							<div
+								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
+							>
+								<div class="py-2">
+									<a href="/machines" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-cogs"></i> Manage Machines
+									</a>
+									<a href="/lookups" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-list"></i> Manage Lookups
+									</a>
+									<div class="border-t border-gray-200 my-1"></div>
+									<a href="/users" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-users"></i> Users Management
+									</a>
+									<a href="/roles" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-user-tag"></i> Roles & Permissions
+									</a>
+									<div class="border-t border-gray-200 my-1"></div>
+									<a href="/logout" class="px-4 py-2 hover:bg-red-50 hover:text-red-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-sign-out-alt"></i> Logout
+									</a>
+								</div>
+							</div>
+						</li>
+					</ul>
+				</nav>
+			</div>
+		</header>
+
+		<main class="max-w-7xl mx-auto px-4 py-6">
+			<!-- Shift Overview -->
+			<section class="card p-6 mb-6">
+				<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+					<h2 class="text-xl font-semibold text-gray-800">Current Shift Overview</h2>
+					<div class="flex items-center gap-2">
+						<a href="/logout"
+							><span class="last-update" id="last-update"> <i class="fas fa-user"></i>{{ user_name }}</span></a
+						>
+						<span id="current-shift" class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">Day Shift</span>
+						<button id="open-roll-lookup" class="btn btn-primary"><i class="fas fa-search mr-2"></i> Lookup Roll</button>
+					</div>
+				</div>
+
+				<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+					<div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+						<div class="flex items-center gap-3">
+							<div class="bg-blue-100 p-3 rounded-lg">
+								<i class="fas fa-briefcase text-blue-600"></i>
+							</div>
+							<div>
+								<h3 class="text-sm font-medium text-blue-600">Shift Jobs</h3>
+								<p class="text-2xl font-bold text-gray-800" id="shift-jobs">0</p>
+							</div>
+						</div>
+					</div>
+					<div class="bg-green-50 p-4 rounded-xl border border-green-100">
+						<div class="flex items-center gap-3">
+							<div class="bg-green-100 p-3 rounded-lg">
+								<i class="fas fa-layer-group text-green-600"></i>
+							</div>
+							<div>
+								<h3 class="text-sm font-medium text-green-600">Shift Rolls</h3>
+								<p class="text-2xl font-bold text-gray-800" id="shift-rolls">0</p>
+							</div>
+						</div>
+					</div>
+					<div class="bg-orange-50 p-4 rounded-xl border border-orange-100">
+						<div class="flex items-center gap-3">
+							<div class="bg-orange-100 p-3 rounded-lg">
+								<i class="fas fa-clock text-orange-600"></i>
+							</div>
+							<div>
+								<h3 class="text-sm font-medium text-orange-600">Downtime</h3>
+								<p class="text-2xl font-bold text-gray-800" id="shift-downtime">0 min</p>
+							</div>
+						</div>
+					</div>
+					<div class="bg-red-50 p-4 rounded-xl border border-red-100">
+						<div class="flex items-center gap-3">
+							<div class="bg-red-100 p-3 rounded-lg">
+								<i class="fas fa-trash text-red-600"></i>
+							</div>
+							<div>
+								<h3 class="text-sm font-medium text-red-600">Scrap Weight</h3>
+								<p class="text-2xl font-bold text-gray-800" id="shift-scrap">0 kg</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+
+			<div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+				<!-- Recent Jobs -->
+				<section class="card p-6">
+					<div class="flex items-center justify-between mb-4">
+						<h3 class="text-lg font-semibold text-gray-800">Recent Jobs</h3>
+						<a href="/jobs" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</a>
+					</div>
+					<div class="space-y-4">
+						<div id="recent-jobs">
+							<div class="text-center text-gray-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i> Loading recent jobs...</div>
+						</div>
+					</div>
+				</section>
+
+				<!-- Recent Rolls -->
+				<section class="card p-6">
+					<div class="flex items-center justify-between mb-4">
+						<h3 class="text-lg font-semibold text-gray-800">Recent Rolls</h3>
+						<a href="/rolls" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</a>
+					</div>
+					<div class="space-y-4">
+						<div id="recent-rolls">
+							<div class="text-center text-gray-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i> Loading recent rolls...</div>
+						</div>
+					</div>
+				</section>
+
+				<!-- Recent Downtimes -->
+				<section class="card p-6">
+					<div class="flex items-center justify-between mb-4">
+						<h3 class="text-lg font-semibold text-gray-800">Recent Downtimes</h3>
+						<a href="/downtime" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</a>
+					</div>
+					<div class="space-y-4">
+						<div id="recent-downtimes">
+							<div class="text-center text-gray-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i> Loading recent downtimes...</div>
+						</div>
+					</div>
+				</section>
+
+				<!-- Recent Scraps -->
+				<section class="card p-6">
+					<div class="flex items-center justify-between mb-4">
+						<h3 class="text-lg font-semibold text-gray-800">Recent Scraps</h3>
+						<a href="/scrap" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</a>
+					</div>
+					<div class="space-y-4">
+						<div id="recent-scraps">
+							<div class="text-center text-gray-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i> Loading recent scraps...</div>
+						</div>
+					</div>
+				</section>
+			</div>
+		</main>
+
+		<!-- Roll Lookup Modal -->
+		<div id="roll-lookup-modal" class="modal">
+			<div class="modal-content max-w-md">
+				<div class="flex justify-between items-center mb-4">
+					<h3 class="text-lg font-semibold">Lookup Roll Details</h3>
+					<button id="close-lookup-modal" class="text-gray-400 hover:text-gray-600">
+						<i class="fas fa-times"></i>
+					</button>
+				</div>
+				<div class="space-y-4">
+					<div class="form-group">
+						<label for="roll-lookup-input" class="form-label">Enter Roll Number</label>
+						<input type="text" id="roll-lookup-input" class="form-input" placeholder="Enter output roll number" />
+					</div>
+					<button id="search-roll-btn" class="btn btn-primary w-full"><i class="fas fa-search mr-2"></i> Search Roll</button>
+				</div>
+			</div>
+		</div>
+
+		<!-- Roll Details Modal -->
+		<div id="roll-details-modal" class="modal">
+			<div class="modal-content max-w-2xl">
+				<div class="flex justify-between items-center mb-4">
+					<h3 class="text-lg font-semibold">Roll Details</h3>
+					<button id="close-roll-modal" class="text-gray-400 hover:text-gray-600">
+						<i class="fas fa-times"></i>
+					</button>
+				</div>
+				<div class="space-y-4">
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Output Roll No</label>
+							<p id="detail-roll-no" class="text-gray-900 font-medium">-</p>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+							<p id="detail-status" class="text-gray-900">-</p>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Weight</label>
+							<p id="detail-weight" class="text-gray-900">-</p>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Meters</label>
+							<p id="detail-meters" class="text-gray-900">-</p>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Job ID</label>
+							<p id="detail-job-id" class="text-gray-900">-</p>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Shift</label>
+							<p id="detail-shift" class="text-gray-900">-</p>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Created By</label>
+							<p id="detail-created-by" class="text-gray-900">-</p>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Created Time</label>
+							<p id="detail-created-time" class="text-gray-900">-</p>
+						</div>
+						<div class="md:col-span-2">
+							<label class="block text-sm font-medium text-gray-700 mb-1">Flag Reason</label>
+							<p id="detail-flag-reason" class="text-gray-900">-</p>
+						</div>
+						<div class="md:col-span-2">
+							<label class="block text-sm font-medium text-gray-700 mb-1">SAP Status</label>
+							<p id="detail-sap-status" class="text-gray-900">-</p>
+						</div>
+					</div>
+				</div>
+				<div class="flex justify-end gap-3 mt-6">
+					<button id="close-roll-details" class="btn btn-secondary">Close</button>
+				</div>
+			</div>
+		</div>
+
+		<script src="/static/scripts/home.js?v=1.0"></script>
+	</body>
+</html>

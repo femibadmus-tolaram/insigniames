@@ -63,7 +63,13 @@ function showNotification(message, type = "info") {
 
 	const notification = document.createElement("div");
 	notification.className = `notification fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 ${
-		type === "success" ? "bg-green-500 text-white" : type === "error" ? "bg-red-500 text-white" : "bg-blue-500 text-white"
+		type === "success"
+			? "bg-green-500 text-white"
+			: type === "error"
+			? "bg-red-500 text-white"
+			: type === "warning"
+			? "bg-red-500 text-white"
+			: "bg-blue-500 text-white"
 	}`;
 	notification.textContent = message;
 
@@ -551,7 +557,12 @@ function updateTimeRestrictions(shiftId) {
 }
 
 function autoSelectShift() {
-	const shiftSelects = [document.getElementById("shift"), document.getElementById("ink-shift"), document.getElementById("solvent-shift")];
+	const shiftSelects = [
+		document.getElementById("shift"),
+		document.getElementById("current-shift"),
+		document.getElementById("ink-shift"),
+		document.getElementById("solvent-shift"),
+	];
 
 	const now = new Date();
 	const hours = now.getHours();
@@ -573,4 +584,31 @@ function formatWeight(kg) {
 		i++;
 	}
 	return `${kg.toFixed(2)} ${units[i]}`;
+}
+
+function formatTime(dateTimeString) {
+	if (!dateTimeString) return "-";
+
+	const date = new Date(dateTimeString);
+	if (isNaN(date.getTime())) return "-";
+
+	const day = date.getDate().toString().padStart(2, "0");
+	const month = (date.getMonth() + 1).toString().padStart(2, "0");
+	const year = date.getFullYear();
+	const hours = date.getHours().toString().padStart(2, "0");
+	const minutes = date.getMinutes().toString().padStart(2, "0");
+
+	return `${day}/${month}/${year} ${hours}:${minutes}`;
+}
+
+function formatDowntime(minutes) {
+	if (!minutes || minutes === 0) return "0 min";
+
+	if (minutes < 60) {
+		return `${minutes} min`;
+	} else {
+		const hours = Math.floor(minutes / 60);
+		const remainingMinutes = minutes % 60;
+		return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
+	}
 }

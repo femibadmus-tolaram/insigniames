@@ -69,9 +69,9 @@ function updateDowntimeStats(downtimes) {
 	const nightDowntime = downtimes.filter((d) => d.shift_id === 2).reduce((sum, d) => sum + (d.duration_minutes || 0), 0);
 
 	document.getElementById("total-records").textContent = totalRecords;
-	document.getElementById("total-downtime").textContent = formatMinutes(totalMinutes);
-	document.getElementById("day-downtime").textContent = formatMinutes(dayDowntime);
-	document.getElementById("night-downtime").textContent = formatMinutes(nightDowntime);
+	document.getElementById("total-downtime").textContent = formatDowntime(totalMinutes);
+	document.getElementById("day-downtime").textContent = formatDowntime(dayDowntime);
+	document.getElementById("night-downtime").textContent = formatDowntime(nightDowntime);
 }
 
 function renderDowntimes(downtimesToRender) {
@@ -95,7 +95,7 @@ function renderDowntimes(downtimesToRender) {
 			<td class="py-3 px-4">${escapeHtml(shift?.name || "Unknown")}</td>
 			<td class="py-3 px-4">${formatDateTime(downtime.start_time)}</td>
 			<td class="py-3 px-4">${formatDateTime(downtime.end_time)}</td>
-			<td class="py-3 px-4 text-center">${downtime.duration_minutes || 0}</td>
+            <td class="py-3 px-4 text-center">${formatDowntime(downtime.duration_minutes || 0)}</td>
 			<td class="py-3 px-4">${escapeHtml(reason?.name || "Unknown")}</td>
 			<td class="py-3 px-4">${escapeHtml(createdBy?.full_name || "System")}</td>
 			<td class="py-3 px-4">${formatDate(downtime.created_at)}</td>
@@ -415,7 +415,7 @@ async function exportToExcel() {
 				Shift: shift?.name || "Unknown",
 				"Start Time": formatDateTime(downtime.start_time),
 				"End Time": formatDateTime(downtime.end_time),
-				"Duration (minutes)": downtime.duration_minutes || 0,
+				Duration: formatDowntime(downtime.duration_minutes || 0),
 				Reason: reason?.name || "Unknown",
 				"Created By": createdBy?.full_name || "System",
 				"Created At": formatDate(downtime.created_at),
