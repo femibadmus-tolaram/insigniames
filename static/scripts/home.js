@@ -150,7 +150,7 @@ function renderRecentJobs(jobs) {
                     <div class="flex items-center gap-3 text-xs text-gray-600">
                         <span class="inline-flex items-center gap-1">
                             <i class="fas fa-cogs"></i>
-                            ${machine?.name || "Unknown"}
+                            ${machine?.label || "Unknown"}
                         </span>
                         <span class="inline-flex items-center gap-1">
                             <i class="fas fa-clock"></i>

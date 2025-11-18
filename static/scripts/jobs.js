@@ -28,7 +28,7 @@ async function loadFilterOptions() {
 		machines = machinesResponse;
 
 		populateSelect("filter-user", users, "full_name", "All Users");
-		populateSelect("filter-machine", machines, "name", "All Machines");
+		populateSelect("filter-machine", machines, "label", "All Machines");
 		populateSelect("machine", machines, "name", "Select Machine");
 	} catch (error) {
 		showNotification(error.message, "error");
@@ -103,7 +103,7 @@ function renderJobs(jobsToRender) {
 			<td class="py-3 px-4">${escapeHtml(job.production_order)}</td>
 			<td class="py-3 px-4">${escapeHtml(job.batch_roll_no)}</td>
 			<td class="py-3 px-4">${job.shift_id === 1 ? "Day" : "Night"}</td>
-			<td class="py-3 px-4">${escapeHtml(machine?.name || "Unknown")}</td>
+			<td class="py-3 px-4">${escapeHtml(machine?.label || "Unknown")}</td>
 			<td class="py-3 px-4 text-center">
 				<span class="inline-flex items-center gap-1">
 					<i class="fas fa-layer-group text-blue-600"></i>
@@ -405,7 +405,7 @@ async function exportToExcel() {
 				"Production Order": job.production_order,
 				"Batch Roll No": job.batch_roll_no,
 				Shift: job.shift_id === 1 ? "Day" : "Night",
-				Machine: machine?.name || "Unknown",
+				Machine: machine?.label || "Unknown",
 				"Total Rolls": job.total_rolls || 0,
 				"Pending Rolls": job.pending_rolls || 0,
 				"Total Weight": formatWeight(job.total_weight || 0),

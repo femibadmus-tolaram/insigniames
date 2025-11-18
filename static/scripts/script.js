@@ -586,6 +586,16 @@ function formatWeight(kg) {
 	return `${kg.toFixed(2)} ${units[i]}`;
 }
 
+function formatMeter(m) {
+	const units = ["m", "km", "Mm", "Gm", "Tm"];
+	let i = 0;
+	while (m >= 1000 && i < units.length - 1) {
+		m /= 1000;
+		i++;
+	}
+	return `${m.toFixed(2)} ${units[i]}`;
+}
+
 function formatTime(dateTimeString) {
 	if (!dateTimeString) return "-";
 

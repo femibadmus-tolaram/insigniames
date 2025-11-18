@@ -83,7 +83,7 @@ function populateMachineSelect() {
 		userMachines.forEach((machine) => {
 			const option = document.createElement("option");
 			option.value = machine.id;
-			option.textContent = machine.name;
+			option.textContent = machine.label;
 			machineSelect.appendChild(option);
 		});
 	}
@@ -112,7 +112,7 @@ function setupEventListeners() {
 	document.getElementById("start-new-btn").addEventListener("click", startNewProduction);
 }
 
-function handleMachineChange(e) {
+async function handleMachineChange(e) {
 	const machineId = e.target.value;
 	const poSection = document.getElementById("po-section");
 	const inputSection = document.getElementById("input-section");
@@ -123,8 +123,8 @@ function handleMachineChange(e) {
 	if (machineId) {
 		if (poSection) poSection.style.display = "block";
 		clearProcessOrderDetails();
-		loadProcessOrders();
-		loadActiveJobs(machineId);
+		await loadProcessOrders();
+		await loadActiveJobs(machineId);
 	} else {
 		if (poSection) poSection.style.display = "none";
 		if (inputSection) inputSection.style.display = "none";
@@ -205,13 +205,14 @@ async function loadActiveJobs(machineId) {
 			});
 			activeJobSelect.disabled = false;
 
-			if (activeJobsList.length === 1) {
-				currentJob = activeJobsList[0];
-				activeJobSelect.value = currentJob.id;
-				populateActiveJobDetails(currentJob);
-				enableOutputForm();
-				loadJobRolls(currentJob.id);
-			}
+			// if (activeJobsList.length === 1) {
+			currentJob = activeJobsList[0];
+			activeJobSelect.value = currentJob.id;
+			populateActiveJobDetails(currentJob);
+			enableOutputForm();
+			loadJobRolls(currentJob.id);
+			activeJobSelect.dispatchEvent(new Event("change"));
+			// }
 		} else {
 			currentJob = null;
 			activeJobSelect.disabled = true;
@@ -228,9 +229,17 @@ function handleActiveJobChange(e) {
 	if (selectedOption.value) {
 		const jobData = JSON.parse(selectedOption.getAttribute("data-job"));
 		currentJob = jobData;
-		populateActiveJobDetails(jobData);
-		enableOutputForm();
-		loadJobRolls(jobData.id);
+
+		const processOrderSelect = document.getElementById("process-order");
+		const matchingOption = Array.from(processOrderSelect.options).find((opt) => opt.value === jobData.production_order);
+		if (matchingOption) {
+			processOrderSelect.value = jobData.production_order;
+			processOrderSelect.dispatchEvent(new Event("change"));
+		} else {
+			populateActiveJobDetails(jobData);
+			enableOutputForm();
+			loadJobRolls(jobData.id);
+		}
 	} else {
 		currentJob = null;
 		disableOutputForm();
@@ -430,7 +439,7 @@ function renderRollsTable(rolls) {
 	const tbody = document.getElementById("rolls-table-body");
 
 	if (!rolls || rolls.length === 0) {
-		tbody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-500 py-4">No rolls found</td></tr>';
+		tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500 py-4">No rolls found</td></tr>';
 		return;
 	}
 
@@ -450,10 +459,10 @@ function renderRollsTable(rolls) {
                     ${roll.final_weight === 0 ? "Pending" : roll.number_of_flags > 0 ? "Flagged" : "Completed"}
                 </span>
             </td>
-            <td class="py-3 px-4 text-center">${(roll.final_weight || 0).toFixed(2)}</td>
-            <td class="py-3 px-4 text-center">${(roll.final_meter || 0).toFixed(2)}</td>
-            <td class="py-3 px-4">${escapeHtml(currentJob?.batch_roll_no || "-")}</td>
-            <td class="py-3 px-4">${escapeHtml(flagReasons.find((r) => r.id === roll.flag_reason_id)?.name || "-")}</td>
+            <td class="py-3 px-4 text-center">${formatWeight(roll.final_weight || 0)}</td>
+            <td class="py-3 px-4 text-center">${formatMeter(roll.final_meter || 0)}</td>
+            <!--<td class="py-3 px-4">${escapeHtml(currentJob?.batch_roll_no || "-")}</td>-->
+            <!--<td class="py-3 px-4">${escapeHtml(flagReasons.find((r) => r.id === roll.flag_reason_id)?.name || "-")}</td>-->
             <td class="py-3 px-4 text-center">${roll.number_of_flags || 0}</td>
         </tr>
     `

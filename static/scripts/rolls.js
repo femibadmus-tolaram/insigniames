@@ -101,8 +101,8 @@ function renderRolls(rollsToRender) {
 					${roll.final_weight === 0 ? "Pending" : roll.number_of_flags > 0 ? "Flagged" : "Completed"}
 				</span>
 			</td>
-			<td class="py-3 px-4 text-center">${(roll.final_weight || 0).toFixed(2)}</td>
-			<td class="py-3 px-4 text-center">${(roll.final_meter || 0).toFixed(2)}</td>
+			<td class="py-3 px-4 text-center">${formatWeight(roll.final_weight || 0)}</td>
+			<td class="py-3 px-4 text-center">${formatMeter(roll.final_meter || 0)}</td>
 			<td class="py-3 px-4 text-center">${roll.job_id}</td>
 			<td class="py-3 px-4 text-center">${roll.number_of_flags || 0}</td>
 			<td class="py-3 px-4">${formatDateTime(roll.created_at)}</td>
@@ -385,8 +385,8 @@ async function exportToExcel() {
 			return {
 				"Output Roll No": roll.output_roll_no,
 				Status: roll.final_weight === 0 ? "Pending" : roll.number_of_flags > 0 ? "Flagged" : "Completed",
-				"Weight (kg)": (roll.final_weight || 0).toFixed(2),
-				Meters: (roll.final_meter || 0).toFixed(2),
+				Weight: formatWeight(roll.final_weight || 0),
+				Meters: formatMeter(roll.final_meter || 0),
 				"Job ID": roll.job_id,
 				"Flag Reason": reason?.name || "-",
 				"Flag Count": roll.number_of_flags || 0,

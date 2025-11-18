@@ -14,7 +14,7 @@ pub async fn process_order(search: web::Query<std::collections::HashMap<String, 
     if let Some(machine) = search.get("machine") { filters.push(format!("WorkCenter eq '{}'", machine)); }
     if !filters.is_empty() { url.push_str(&format!("&$filter={}", filters.join(" and "))); }
 
-    url.push_str("&$expand=to_ProductionOrderComponent,to_ProductionOrderOperation");
+    // url.push_str("&$expand=to_ProductionOrderComponent,to_ProductionOrderOperation");
 
     let client = Client::new();
     let mut headers = reqwest::header::HeaderMap::new();
@@ -34,8 +34,8 @@ pub async fn process_order(search: web::Query<std::collections::HashMap<String, 
                 HttpResponse::NotFound().body("No data found")
             } else {
                 match serde_json::from_str::<serde_json::Value>(&text) {
-                    Ok(json) => HttpResponse::Ok().json(format_order_data(&json)),
-                    // Ok(json) => HttpResponse::Ok().json(&json),
+                    // Ok(json) => HttpResponse::Ok().json(format_order_data(&json)),
+                    Ok(json) => HttpResponse::Ok().json(&json),
                     Err(_) => HttpResponse::BadGateway().body(text),
                 }
             }
