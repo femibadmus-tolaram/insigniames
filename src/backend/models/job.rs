@@ -1,6 +1,7 @@
 use chrono::Local;
 use rusqlite::{params, Connection, Result};
 use serde::{Serialize, Deserialize};
+use crate::backend::models::FilterResponse;
 
 #[derive(Debug, Serialize)]
 pub struct Job {
@@ -141,8 +142,9 @@ impl Job {
         Ok(jobs)
     }
 
-    pub fn filter(conn: &Connection, filter: &JobFilterPayload) -> Result<Vec<Self>> {
-        let mut query = "SELECT * FROM jobs WHERE 1=1".to_string();
+    pub fn filter(conn: &Connection, filter: &JobFilterPayload) -> Result<FilterResponse<Self>> {
+        let mut count_query = "SELECT COUNT(*) FROM jobs WHERE 1=1".to_string();
+        let mut data_query = "SELECT * FROM jobs WHERE 1=1".to_string();
         let mut params_vec: Vec<&dyn rusqlite::ToSql> = vec![];
 
         let mut shift_ids: Vec<i32> = vec![];
@@ -159,7 +161,8 @@ impl Job {
             if let Ok(parsed) = val.parse::<i32>() {
                 shift_ids.push(parsed);
                 params_vec.push(shift_ids.last().unwrap());
-                query.push_str(" AND shift_id = ?");
+                count_query.push_str(" AND shift_id = ?");
+                data_query.push_str(" AND shift_id = ?");
             }
         }
 
@@ -167,7 +170,8 @@ impl Job {
             if !val.is_empty() {
                 production_orders.push(format!("%{}%", val));
                 params_vec.push(production_orders.last().unwrap());
-                query.push_str(" AND production_order LIKE ?");
+                count_query.push_str(" AND production_order LIKE ?");
+                data_query.push_str(" AND production_order LIKE ?");
             }
         }
 
@@ -175,7 +179,8 @@ impl Job {
             if !val.is_empty() {
                 batch_roll_nos.push(format!("%{}%", val));
                 params_vec.push(batch_roll_nos.last().unwrap());
-                query.push_str(" AND batch_roll_no LIKE ?");
+                count_query.push_str(" AND batch_roll_no LIKE ?");
+                data_query.push_str(" AND batch_roll_no LIKE ?");
             }
         }
 
@@ -183,7 +188,8 @@ impl Job {
             if let Ok(parsed) = val.parse::<i32>() {
                 created_bys.push(parsed);
                 params_vec.push(created_bys.last().unwrap());
-                query.push_str(" AND created_by = ?");
+                count_query.push_str(" AND created_by = ?");
+                data_query.push_str(" AND created_by = ?");
             }
         }
 
@@ -191,7 +197,8 @@ impl Job {
             if let Ok(parsed) = val.parse::<i32>() {
                 machine_ids.push(parsed);
                 params_vec.push(machine_ids.last().unwrap());
-                query.push_str(" AND machine_id = ?");
+                count_query.push_str(" AND machine_id = ?");
+                data_query.push_str(" AND machine_id = ?");
             }
         }
 
@@ -199,7 +206,8 @@ impl Job {
             if !val.is_empty() {
                 start_dates.push(val.clone());
                 params_vec.push(start_dates.last().unwrap());
-                query.push_str(" AND date(created_at) >= date(?)");
+                count_query.push_str(" AND date(created_at) >= date(?)");
+                data_query.push_str(" AND date(created_at) >= date(?)");
             }
         }
 
@@ -207,9 +215,14 @@ impl Job {
             if !val.is_empty() {
                 end_dates.push(val.clone());
                 params_vec.push(end_dates.last().unwrap());
-                query.push_str(" AND date(created_at) <= date(?)");
+                count_query.push_str(" AND date(created_at) <= date(?)");
+                data_query.push_str(" AND date(created_at) <= date(?)");
             }
         }
+
+        let total_count: i32 = conn.query_row(&count_query, params_vec.as_slice(), |row| row.get(0))?;
+
+        data_query.push_str(" ORDER BY created_at DESC");
 
         if let (Some(page), Some(per_page)) = (&filter.page, &filter.per_page) {
             if let (Ok(page_val), Ok(per_page_val)) = (page.parse::<i32>(), per_page.parse::<i32>()) {
@@ -217,14 +230,14 @@ impl Job {
                     let offset = (page_val - 1) * per_page_val;
                     pages.push(offset);
                     per_pages.push(per_page_val);
-                    query.push_str(" ORDER BY created_at DESC LIMIT ? OFFSET ?");
+                    data_query.push_str(" LIMIT ? OFFSET ?");
                     params_vec.push(per_pages.last().unwrap());
                     params_vec.push(pages.last().unwrap());
                 }
             }
         }
 
-        let mut stmt = conn.prepare(&query)?;
+        let mut stmt = conn.prepare(&data_query)?;
         let rows = stmt.query_map(params_vec.as_slice(), |row| {
             Ok(Job {
                 id: row.get(0)?,
@@ -240,6 +253,11 @@ impl Job {
             })
         })?;
 
-        rows.collect()
+        let data = rows.collect::<Result<Vec<_>, _>>()?;
+
+        Ok(FilterResponse {
+            total_count,
+            data,
+        })
     }
 }

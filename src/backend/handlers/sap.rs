@@ -9,7 +9,7 @@ pub async fn process_order(search: web::Query<std::collections::HashMap<String, 
     let mut url = format!("{}?$format=json&$top=10", base_url);
 
     let mut filters = Vec::new();
-    filters.push("Plant eq 'A710'".to_string());
+    // filters.push("Plant eq 'A710'".to_string());
     if let Some(order) = search.get("order") { filters.push(format!("ManufacturingOrder eq '{}'", order)); }
     if let Some(machine) = search.get("machine") { filters.push(format!("WorkCenter eq '{}'", machine)); }
     if !filters.is_empty() { url.push_str(&format!("&$filter={}", filters.join(" and "))); }
@@ -34,8 +34,8 @@ pub async fn process_order(search: web::Query<std::collections::HashMap<String, 
                 HttpResponse::NotFound().body("No data found")
             } else {
                 match serde_json::from_str::<serde_json::Value>(&text) {
-                    // Ok(json) => HttpResponse::Ok().json(format_order_data(&json)),
-                    Ok(json) => HttpResponse::Ok().json(&json),
+                    Ok(json) => HttpResponse::Ok().json(format_order_data(&json)),
+                    // Ok(json) => HttpResponse::Ok().json(&json),
                     Err(_) => HttpResponse::BadGateway().body(text),
                 }
             }
@@ -114,5 +114,20 @@ fn format_order_data(json: &serde_json::Value) -> serde_json::Value {
         .collect::<Vec<_>>();
 
     serde_json::json!(orders)
+}
+
+pub async fn static_data() -> impl Responder {
+    HttpResponse::Ok().json(serde_json::json!([
+        { "po": "PO001", "sku": "SKU-BF-280G", "materials": "20mic 1840mm Bopp", "planned_films": "Yellow, Black, Magenta, MEK, EA" },
+        { "po": "PO002", "sku": "SKU-CH-500G", "materials": "25mic 1620mm Bopp", "planned_films": "Cyan, Black, Yellow" },
+        { "po": "PO003", "sku": "SKU-TM-120G", "materials": "18mic 1500mm Bopp", "planned_films": "Red, Yellow, Black" },
+        { "po": "PO004", "sku": "SKU-PR-900G", "materials": "30mic 2000mm Bopp", "planned_films": "Magenta, Cyan" },
+        { "po": "PO005", "sku": "SKU-KD-70G", "materials": "22mic 1400mm Bopp", "planned_films": "Black, Yellow" },
+        { "po": "PO006", "sku": "SKU-LX-300G", "materials": "20mic 1300mm Bopp", "planned_films": "Magenta, Yellow" },
+        { "po": "PO007", "sku": "SKU-WF-1KG", "materials": "28mic 2100mm Bopp", "planned_films": "Black, Cyan" },
+        { "po": "PO008", "sku": "SKU-SN-45G", "materials": "24mic 1550mm Bopp", "planned_films": "Yellow, Cyan" },
+        { "po": "PO009", "sku": "SKU-CR-800G", "materials": "26mic 1700mm Bopp", "planned_films": "Black, Magenta" },
+        { "po": "PO010", "sku": "SKU-MF-250G", "materials": "19mic 1480mm Bopp", "planned_films": "Yellow, Red, Black" }
+    ]))
 }
 

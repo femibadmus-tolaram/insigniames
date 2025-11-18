@@ -1,6 +1,7 @@
 use chrono::Local;
 use rusqlite::{params, Connection, Result};
 use serde::{Serialize, Deserialize};
+use crate::backend::models::FilterResponse;
 
 #[derive(Debug, Serialize)]
 pub struct Roll {
@@ -40,6 +41,7 @@ pub struct RollPayload {
 #[derive(Deserialize)]
 pub struct RollFilterPayload {
     pub job_id: Option<String>,
+    pub shift_id: Option<String>,
     pub output_roll_no: Option<String>,
     pub flag_reason_id: Option<String>,
     pub created_by: Option<String>,
@@ -140,8 +142,9 @@ impl Roll {
         Ok(rolls)
     }
 
-    pub fn filter(conn: &Connection, filter: &RollFilterPayload) -> Result<Vec<Self>> {
-        let mut query = "SELECT * FROM rolls WHERE 1=1".to_string();
+    pub fn filter(conn: &Connection, filter: &RollFilterPayload) -> Result<FilterResponse<Roll>> {
+        let mut count_query = "SELECT COUNT(*) FROM rolls r JOIN jobs j ON r.job_id = j.id WHERE 1=1".to_string();
+        let mut data_query = "SELECT r.* FROM rolls r JOIN jobs j ON r.job_id = j.id WHERE 1=1".to_string();
         let mut params_vec: Vec<&dyn rusqlite::ToSql> = vec![];
 
         let mut job_ids: Vec<i32> = vec![];
@@ -150,6 +153,7 @@ impl Roll {
         let mut output_roll_nos: Vec<String> = vec![];
         let mut start_dates: Vec<String> = vec![];
         let mut end_dates: Vec<String> = vec![];
+        let mut shift_ids: Vec<i32> = vec![];
         let mut pages: Vec<i32> = vec![];
         let mut per_pages: Vec<i32> = vec![];
 
@@ -157,7 +161,8 @@ impl Roll {
             if let Ok(parsed) = val.parse::<i32>() {
                 job_ids.push(parsed);
                 params_vec.push(job_ids.last().unwrap());
-                query.push_str(" AND job_id = ?");
+                count_query.push_str(" AND r.job_id = ?");
+                data_query.push_str(" AND r.job_id = ?");
             }
         }
 
@@ -165,7 +170,8 @@ impl Roll {
             if !val.is_empty() {
                 output_roll_nos.push(format!("%{}%", val));
                 params_vec.push(output_roll_nos.last().unwrap());
-                query.push_str(" AND output_roll_no LIKE ?");
+                count_query.push_str(" AND r.output_roll_no LIKE ?");
+                data_query.push_str(" AND r.output_roll_no LIKE ?");
             }
         }
 
@@ -173,7 +179,8 @@ impl Roll {
             if let Ok(parsed) = val.parse::<i32>() {
                 flag_reason_ids.push(parsed);
                 params_vec.push(flag_reason_ids.last().unwrap());
-                query.push_str(" AND flag_reason_id = ?");
+                count_query.push_str(" AND r.flag_reason_id = ?");
+                data_query.push_str(" AND r.flag_reason_id = ?");
             }
         }
 
@@ -181,7 +188,17 @@ impl Roll {
             if let Ok(parsed) = val.parse::<i32>() {
                 created_bys.push(parsed);
                 params_vec.push(created_bys.last().unwrap());
-                query.push_str(" AND created_by = ?");
+                count_query.push_str(" AND r.created_by = ?");
+                data_query.push_str(" AND r.created_by = ?");
+            }
+        }
+
+        if let Some(val) = &filter.shift_id {
+            if let Ok(parsed) = val.parse::<i32>() {
+                shift_ids.push(parsed);
+                params_vec.push(shift_ids.last().unwrap());
+                count_query.push_str(" AND j.shift_id = ?");
+                data_query.push_str(" AND j.shift_id = ?");
             }
         }
 
@@ -189,7 +206,8 @@ impl Roll {
             if !val.is_empty() {
                 start_dates.push(val.clone());
                 params_vec.push(start_dates.last().unwrap());
-                query.push_str(" AND date(created_at) >= date(?)");
+                count_query.push_str(" AND date(r.created_at) >= date(?)");
+                data_query.push_str(" AND date(r.created_at) >= date(?)");
             }
         }
 
@@ -197,9 +215,14 @@ impl Roll {
             if !val.is_empty() {
                 end_dates.push(val.clone());
                 params_vec.push(end_dates.last().unwrap());
-                query.push_str(" AND date(created_at) <= date(?)");
+                count_query.push_str(" AND date(r.created_at) <= date(?)");
+                data_query.push_str(" AND date(r.created_at) <= date(?)");
             }
         }
+
+        let total_count: i32 = conn.query_row(&count_query, params_vec.as_slice(), |row| row.get(0))?;
+
+        data_query.push_str(" ORDER BY r.created_at DESC");
 
         if let (Some(page), Some(per_page)) = (&filter.page, &filter.per_page) {
             if let (Ok(page_val), Ok(per_page_val)) = (page.parse::<i32>(), per_page.parse::<i32>()) {
@@ -207,14 +230,14 @@ impl Roll {
                     let offset = (page_val - 1) * per_page_val;
                     pages.push(offset);
                     per_pages.push(per_page_val);
-                    query.push_str(" ORDER BY created_at DESC LIMIT ? OFFSET ?");
+                    data_query.push_str(" LIMIT ? OFFSET ?");
                     params_vec.push(per_pages.last().unwrap());
                     params_vec.push(pages.last().unwrap());
                 }
             }
         }
 
-        let mut stmt = conn.prepare(&query)?;
+        let mut stmt = conn.prepare(&data_query)?;
         let rows = stmt.query_map(params_vec.as_slice(), |row| {
             Ok(Roll {
                 id: row.get(0)?,
@@ -230,7 +253,12 @@ impl Roll {
             })
         })?;
 
-        rows.collect()
+        let data = rows.collect::<Result<Vec<_>, _>>()?;
+
+        Ok(FilterResponse {
+            total_count,
+            data,
+        })
     }
 
 }

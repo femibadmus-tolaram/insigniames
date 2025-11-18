@@ -1,3 +1,338 @@
 <!-- @format -->
 
-{{ user_name }}
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Rolls - Insignia</title>
+		<script src="/static/scripts/downloads/tailwind.js"></script>
+		<link rel="stylesheet" href="/static/styles/theme.css" />
+		<link rel="stylesheet" href="/static/styles/downloads/fa.css" />
+		<link rel="stylesheet" href="/static/styles/styles.css?v=1.0" />
+		<script src="/static/scripts/downloads/xlsx.js"></script>
+		<script src="/static/scripts/script.js?v=1.8"></script>
+	</head>
+	<body class="bg-gray-50 min-h-screen">
+		<header class="bg-white shadow-sm sticky top-0 z-40">
+			<div class="max-w-7xl mx-auto px-6 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
+				<div class="flex items-center gap-3">
+					<div class="bg-blue-100 p-2 rounded-lg">
+						<i class="fas fa-layer-group text-blue-600 text-xl"></i>
+					</div>
+					<h1 class="text-xl font-bold text-gray-800">Rolls</h1>
+				</div>
+				<nav>
+					<ul id="main-nav" class="flex flex-wrap gap-1 text-gray-600 font-medium">
+						<li class="relative group">
+							<a href="/" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+								><i class="fas fa-chart-simple"></i> Dashboard <i class="fas fa-chevron-down text-xs ml-1"></i
+							></a>
+							<div
+								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
+							>
+								<div class="py-2">
+									<a href="/jobs" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-briefcase"></i> Jobs
+									</a>
+									<a href="/rolls" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-layer-group"></i> Rolls
+									</a>
+								</div>
+							</div>
+						</li>
+
+						<li class="relative group">
+							<a href="/production" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+								><i class="fas fa-industry"></i> Production <i class="fas fa-chevron-down text-xs ml-1"></i
+							></a>
+							<div
+								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
+							>
+								<div class="py-2">
+									<a href="/downtime" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-clock"></i> Downtime
+									</a>
+									<a href="/scrap" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-trash"></i> Scrap
+									</a>
+									<a href="/consumables" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-flask"></i> Actual Consumable
+									</a>
+								</div>
+							</div>
+						</li>
+
+						<li class="relative group">
+							<a href="/settings" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+								><i class="fas fa-cog"></i> Settings <i class="fas fa-chevron-down text-xs ml-1"></i
+							></a>
+							<div
+								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
+							>
+								<div class="py-2">
+									<a href="/machines" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-cogs"></i> Manage Machines
+									</a>
+									<a href="/lookups" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-list"></i> Manage Lookups
+									</a>
+									<div class="border-t border-gray-200 my-1"></div>
+									<a href="/users" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-users"></i> Users Management
+									</a>
+									<a href="/roles" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-user-tag"></i> Roles & Permissions
+									</a>
+									<div class="border-t border-gray-200 my-1"></div>
+									<a href="/logout" class="px-4 py-2 hover:bg-red-50 hover:text-red-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-sign-out-alt"></i> Logout
+									</a>
+								</div>
+							</div>
+						</li>
+					</ul>
+				</nav>
+			</div>
+		</header>
+
+		<main class="max-w-7xl mx-auto px-4 py-6">
+			<section class="card p-6 space-y-6 mb-6">
+				<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+					<h2 class="text-xl font-semibold text-gray-800">Roll Records</h2>
+					<div class="flex items-center gap-2">
+						<a href="/logout"
+							><span class="last-update" id="last-update"> <i class="fas fa-user"></i>{{ user_name }}</span></a
+						>
+					</div>
+				</div>
+
+				<div class="bg-gray-50 p-5 rounded-xl border border-gray-200 space-y-5">
+					<h3 class="text-lg font-medium text-gray-700 flex items-center gap-2"><i class="fas fa-filter"></i> Filters</h3>
+
+					<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Job ID</label>
+							<input type="number" id="filter-job-id" class="filter-input" placeholder="Enter Job ID" />
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Output Roll No</label>
+							<input type="text" id="filter-output-roll-no" class="filter-input" placeholder="Enter roll number" />
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Shift</label>
+							<select id="filter-shift" class="filter-select">
+								<option value="">All Shifts</option>
+								<option value="1">Day</option>
+								<option value="2">Night</option>
+							</select>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Flag Reason</label>
+							<select id="filter-flag-reason" class="filter-select">
+								<option value="">All Reasons</option>
+							</select>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Created By</label>
+							<select id="filter-user" class="filter-select">
+								<option value="">All Users</option>
+							</select>
+						</div>
+					</div>
+
+					<div class="flex flex-wrap gap-3 items-center pt-2">
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+							<div class="flex gap-2">
+								<input type="date" id="filter-start-date" class="filter-input" />
+								<input type="date" id="filter-end-date" class="filter-input" />
+							</div>
+						</div>
+						<div>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Items per page</label>
+							<select id="per-page" class="filter-select">
+								<option value="10" selected>10 per page</option>
+								<option value="20">20 per page</option>
+								<option value="50">50 per page</option>
+								<option value="100">100 per page</option>
+							</select>
+						</div>
+						<button id="apply-filter" class="btn btn-success"><i class="fas fa-check"></i> Apply Filters</button>
+						<button id="clear-filter" class="btn btn-secondary"><i class="fas fa-times"></i> Clear Filters</button>
+					</div>
+				</div>
+
+				<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+					<div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+						<div class="flex items-center gap-3">
+							<div class="bg-blue-100 p-3 rounded-lg">
+								<i class="fas fa-layer-group text-blue-600"></i>
+							</div>
+							<div>
+								<h3 class="text-sm font-medium text-blue-600">Total Rolls</h3>
+								<p class="text-2xl font-bold text-gray-800" id="total-rolls">0</p>
+							</div>
+						</div>
+					</div>
+					<div class="bg-green-50 p-4 rounded-xl border border-green-100">
+						<div class="flex items-center gap-3">
+							<div class="bg-green-100 p-3 rounded-lg">
+								<i class="fas fa-check-circle text-green-600"></i>
+							</div>
+							<div>
+								<h3 class="text-sm font-medium text-green-600">Completed</h3>
+								<p class="text-2xl font-bold text-gray-800" id="completed-rolls">0</p>
+							</div>
+						</div>
+					</div>
+					<div class="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
+						<div class="flex items-center gap-3">
+							<div class="bg-yellow-100 p-3 rounded-lg">
+								<i class="fas fa-clock text-yellow-600"></i>
+							</div>
+							<div>
+								<h3 class="text-sm font-medium text-yellow-600">Pending</h3>
+								<p class="text-2xl font-bold text-gray-800" id="pending-rolls">0</p>
+							</div>
+						</div>
+					</div>
+					<div class="bg-red-50 p-4 rounded-xl border border-red-100">
+						<div class="flex items-center gap-3">
+							<div class="bg-red-100 p-3 rounded-lg">
+								<i class="fas fa-flag text-red-600"></i>
+							</div>
+							<div>
+								<h3 class="text-sm font-medium text-red-600">Flagged</h3>
+								<p class="text-2xl font-bold text-gray-800" id="flagged-rolls">0</p>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="mt-6">
+					<div class="flex justify-between items-center mb-4">
+						<h3 class="text-lg font-medium text-gray-700">Roll Records</h3>
+						<div class="flex items-center gap-2">
+							<button class="btn btn-secondary" id="export-btn"><i class="fas fa-file-export"></i> Export</button>
+						</div>
+					</div>
+
+					<div class="table-container">
+						<table id="rolls-table" class="table" style="display: none">
+							<thead>
+								<tr>
+									<th class="cursor-pointer">
+										<div class="flex items-center gap-1">
+											<span>Output Roll No</span>
+											<i class="fas fa-sort text-gray-400"></i>
+										</div>
+									</th>
+									<th class="cursor-pointer">
+										<div class="flex items-center gap-1">
+											<span>Status</span>
+											<i class="fas fa-sort text-gray-400"></i>
+										</div>
+									</th>
+									<th class="cursor-pointer">
+										<div class="flex items-center gap-1">
+											<span>Weight (kg)</span>
+											<i class="fas fa-sort text-gray-400"></i>
+										</div>
+									</th>
+									<th class="cursor-pointer">
+										<div class="flex items-center gap-1">
+											<span>Meters</span>
+											<i class="fas fa-sort text-gray-400"></i>
+										</div>
+									</th>
+									<th class="cursor-pointer">
+										<div class="flex items-center gap-1">
+											<span>Job ID</span>
+											<i class="fas fa-sort text-gray-400"></i>
+										</div>
+									</th>
+									<th class="cursor-pointer">
+										<div class="flex items-center gap-1">
+											<span>Flag Count</span>
+											<i class="fas fa-sort text-gray-400"></i>
+										</div>
+									</th>
+									<th class="cursor-pointer">
+										<div class="flex items-center gap-1">
+											<span>Created Date</span>
+											<i class="fas fa-sort text-gray-400"></i>
+										</div>
+									</th>
+									<th>Actions</th>
+								</tr>
+							</thead>
+							<tbody id="rolls-table-body" class="divide-y divide-gray-200">
+								<tr>
+									<td colspan="8" class="text-center text-gray-500 py-4">Loading roll records...</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+
+					<div id="loading-message" class="text-center text-gray-500 py-8">
+						<i class="fas fa-spinner fa-spin mr-2"></i> Loading roll records...
+					</div>
+				</div>
+
+				<div id="pagination" class="flex justify-center items-center space-x-2 my-4">
+					<span id="page-info" class="text-sm text-gray-700"></span>
+				</div>
+			</section>
+		</main>
+		<div class="h-[25vh]"></div>
+
+		<div id="roll-modal" class="modal">
+			<div class="modal-content max-w-2xl">
+				<div class="flex justify-between items-center mb-4">
+					<h3 class="text-lg font-semibold" id="modal-title">Update Roll</h3>
+					<button id="close-modal" class="text-gray-400 hover:text-gray-600">
+						<i class="fas fa-times"></i>
+					</button>
+				</div>
+				<form id="roll-form">
+					<input type="hidden" id="roll-id" />
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+						<div class="form-group">
+							<label for="output-roll-no" class="form-label">Output Roll No *</label>
+							<input type="text" id="output-roll-no" class="form-input" required />
+						</div>
+						<div class="form-group">
+							<label for="final-meter" class="form-label">Final Meters *</label>
+							<input type="number" id="final-meter" class="form-input" step="0.01" min="0" required />
+						</div>
+						<div class="form-group">
+							<label for="final-weight" class="form-label">Weight (kg) *</label>
+							<input type="number" id="final-weight" class="form-input" step="0.01" min="0" required />
+						</div>
+						<div class="form-group">
+							<label for="job-id" class="form-label">Job ID *</label>
+							<input type="number" id="job-id" class="form-input" required />
+						</div>
+						<div class="form-group">
+							<label for="flag-count" class="form-label">No. of Flags</label>
+							<input type="number" id="flag-count" class="form-input" min="0" value="0" />
+						</div>
+						<div class="form-group">
+							<label for="flag-reason" class="form-label">Flag Reason</label>
+							<select id="flag-reason" class="form-input">
+								<option value="">Select Reason</option>
+							</select>
+						</div>
+					</div>
+					<div class="flex justify-end gap-3 mt-6">
+						<button type="button" id="cancel-btn" class="btn btn-secondary">Cancel</button>
+						<button type="submit" id="submit-btn" class="btn btn-primary">Update Roll</button>
+					</div>
+				</form>
+			</div>
+		</div>
+
+		<script src="/static/scripts/rolls.js?v=1.0"></script>
+	</body>
+</html>

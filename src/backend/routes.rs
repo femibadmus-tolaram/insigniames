@@ -95,6 +95,7 @@ pub fn init_routes(cfg: &mut web::ServiceConfig, conn_data: web::Data<Pool<Sqlit
     // SAP routes
     cfg.service(
         web::scope("/api/sap")
+            .service(web::resource("/test").wrap(CheckRead { model: "rolls", conn_data: conn_data.clone() }).route(web::get().to(static_data)))
             .service(web::resource("/process_order").wrap(CheckRead { model: "rolls", conn_data: conn_data.clone() }).route(web::get().to(process_order)))
     );
 

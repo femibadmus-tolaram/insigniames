@@ -43,27 +43,18 @@ async function loadProcessOrders() {
 	setSelectLoading(processOrderSelect, true);
 
 	try {
-		const response = await fetch("/api/sap/process_order");
-		processOrders = await handleApiResponse(response);
-		console.log(processOrders);
+		const response = await fetch("/api/sap/test");
+		const poData = await handleApiResponse(response);
 
 		processOrderSelect.innerHTML = '<option value="">Select Process Order</option>';
-		processOrders.forEach((po, index) => {
-			console.log(`Creating option ${index}:`, po.ManufacturingOrder);
+
+		poData.forEach((po) => {
 			const option = document.createElement("option");
-			option.value = po.ManufacturingOrder;
-			option.textContent = `${po.ManufacturingOrder} - ${po.TotalQuantity} ${po.Unit}`;
+			option.value = po.po;
+			option.textContent = `${po.po} - ${po.sku}`;
 			option.setAttribute("data-po", JSON.stringify(po));
-			console.log("Option created:", option);
 			processOrderSelect.appendChild(option);
 		});
-		// processOrders.forEach((po) => {
-		// 	const option = document.createElement("option");
-		// 	option.value = po.ManufacturingOrder;
-		// 	option.textContent = `${po.ManufacturingOrder} - ${po.TotalQuantity} ${po.Unit}`;
-		// 	option.setAttribute("data-po", JSON.stringify(po));
-		// 	processOrderSelect.appendChild(option);
-		// });
 	} catch (error) {
 		showNotification(error.message, "error");
 		processOrderSelect.innerHTML = '<option value="">Failed to load POs</option>';
@@ -118,47 +109,79 @@ function setupEventListeners() {
 	document.getElementById("output-form").addEventListener("submit", handleOutputSubmit);
 	document.getElementById("refresh-btn").addEventListener("click", refreshProductionData);
 	document.getElementById("active-job").addEventListener("change", handleActiveJobChange);
+	document.getElementById("start-new-btn").addEventListener("click", startNewProduction);
 }
 
 function handleMachineChange(e) {
 	const machineId = e.target.value;
+	const poSection = document.getElementById("po-section");
+	const inputSection = document.getElementById("input-section");
+	const outputSection = document.getElementById("output-section");
+	const activeProduction = document.getElementById("active-production");
+	const jobDetails = document.getElementById("job-details");
+
 	if (machineId) {
-		document.getElementById("po-section").style.display = "block";
+		if (poSection) poSection.style.display = "block";
+		clearProcessOrderDetails();
 		loadProcessOrders();
 		loadActiveJobs(machineId);
 	} else {
-		document.getElementById("po-section").style.display = "none";
-		document.getElementById("production-forms").style.display = "none";
-		document.getElementById("active-production").style.display = "none";
+		if (poSection) poSection.style.display = "none";
+		if (inputSection) inputSection.style.display = "none";
+		if (outputSection) outputSection.style.display = "none";
+		if (activeProduction) activeProduction.style.display = "none";
+		if (jobDetails) jobDetails.style.display = "none";
+		clearProcessOrderDetails();
+	}
+}
+
+function clearProcessOrderDetails() {
+	const processOrderSelect = document.getElementById("process-order");
+	const jobDetails = document.getElementById("job-details");
+	const inputForm = document.getElementById("input-form");
+
+	if (processOrderSelect) {
+		processOrderSelect.innerHTML = '<option value="">Select Process Order</option>';
+		processOrderSelect.disabled = false;
+	}
+	if (jobDetails) jobDetails.style.display = "none";
+	if (inputForm) {
+		inputForm.reset();
+		inputForm.querySelectorAll("input, select").forEach((el) => {
+			el.disabled = false;
+		});
+		document.querySelector("#input-form button[type='submit']").disabled = true;
+		document.getElementById("start-new-btn").style.display = "none";
 	}
 }
 
 function handleProcessOrderChange(e) {
 	const selectedOption = e.target.options[e.target.selectedIndex];
 	const jobDetails = document.getElementById("job-details");
+	const inputSection = document.getElementById("input-section");
+	const startNewBtn = document.getElementById("start-new-btn");
 
 	if (selectedOption.value) {
 		const poData = JSON.parse(selectedOption.getAttribute("data-po"));
 		displayJobDetails(poData);
-		jobDetails.style.display = "block";
-		document.getElementById("production-forms").style.display = "grid";
+		if (jobDetails) jobDetails.style.display = "block";
+		if (inputSection) inputSection.style.display = "block";
+		if (startNewBtn) startNewBtn.style.display = "block";
 	} else {
-		jobDetails.style.display = "none";
-		document.getElementById("production-forms").style.display = "none";
+		if (jobDetails) jobDetails.style.display = "none";
+		if (inputSection) inputSection.style.display = "none";
+		if (startNewBtn) startNewBtn.style.display = "none";
 	}
 }
 
 function displayJobDetails(poData) {
-	document.getElementById("job-sku").textContent = poData.ManufacturingOrder || "-";
-	document.getElementById("job-film").textContent = "20mic 1840mm Bopp"; // This would come from PO data
-	document.getElementById("job-materials").textContent = extractMaterials(poData);
-}
+	const jobSku = document.getElementById("job-sku");
+	const jobFilm = document.getElementById("job-film");
+	const jobMaterials = document.getElementById("job-materials");
 
-function extractMaterials(poData) {
-	if (poData.Components && poData.Components.length > 0) {
-		return poData.Components.map((comp) => `${comp.Material} (${comp.RequiredQuantity})`).join(", ");
-	}
-	return "No materials specified";
+	if (jobSku) jobSku.textContent = poData.sku || "-";
+	if (jobFilm) jobFilm.textContent = poData.materials || "-";
+	if (jobMaterials) jobMaterials.textContent = poData.planned_films || "-";
 }
 
 async function loadActiveJobs(machineId) {
@@ -170,13 +193,25 @@ async function loadActiveJobs(machineId) {
 		const activeJobSelect = document.getElementById("active-job");
 		activeJobSelect.innerHTML = '<option value="">No active job</option>';
 
-		const activeJob = activeJobs.find((job) => !job.completed_at);
-		if (activeJob) {
-			currentJob = activeJob;
-			activeJobSelect.innerHTML = `<option value="${activeJob.id}">Job #${activeJob.id} - ${activeJob.batch_roll_no}</option>`;
+		const activeJobsList = activeJobs.filter((job) => !job.completed_at);
+
+		if (activeJobsList.length > 0) {
+			activeJobsList.forEach((job) => {
+				const option = document.createElement("option");
+				option.value = job.id;
+				option.textContent = `Job #${job.id} - ${job.batch_roll_no}`;
+				option.setAttribute("data-job", JSON.stringify(job));
+				activeJobSelect.appendChild(option);
+			});
 			activeJobSelect.disabled = false;
-			enableOutputForm();
-			loadJobRolls(activeJob.id);
+
+			if (activeJobsList.length === 1) {
+				currentJob = activeJobsList[0];
+				activeJobSelect.value = currentJob.id;
+				populateActiveJobDetails(currentJob);
+				enableOutputForm();
+				loadJobRolls(currentJob.id);
+			}
 		} else {
 			currentJob = null;
 			activeJobSelect.disabled = true;
@@ -188,27 +223,100 @@ async function loadActiveJobs(machineId) {
 }
 
 function handleActiveJobChange(e) {
-	const jobId = e.target.value;
-	if (jobId) {
-		currentJob = activeJobs.find((job) => job.id == jobId);
+	const selectedOption = e.target.options[e.target.selectedIndex];
+
+	if (selectedOption.value) {
+		const jobData = JSON.parse(selectedOption.getAttribute("data-job"));
+		currentJob = jobData;
+		populateActiveJobDetails(jobData);
 		enableOutputForm();
-		loadJobRolls(jobId);
+		loadJobRolls(jobData.id);
 	} else {
 		currentJob = null;
 		disableOutputForm();
 	}
 }
 
+function populateActiveJobDetails(jobData) {
+	const processOrderSelect = document.getElementById("process-order");
+	const jobDetails = document.getElementById("job-details");
+	const inputForm = document.getElementById("input-form");
+	const inputSection = document.getElementById("input-section");
+	const startNewBtn = document.getElementById("start-new-btn");
+
+	if (processOrderSelect) {
+		processOrderSelect.value = jobData.production_order;
+		processOrderSelect.disabled = true;
+	}
+
+	if (jobDetails && inputSection) {
+		jobDetails.style.display = "block";
+		inputSection.style.display = "block";
+	}
+
+	if (inputForm) {
+		document.getElementById("batch-roll-no").value = jobData.batch_roll_no || "";
+		document.getElementById("start-weight").value = jobData.start_weight || "";
+		document.getElementById("start-meter").value = jobData.start_meter || "";
+		document.getElementById("shift").value = jobData.shift_id || "";
+
+		inputForm.querySelectorAll("input, select").forEach((el) => {
+			el.disabled = true;
+		});
+		document.querySelector("#input-form button[type='submit']").disabled = true;
+	}
+
+	if (startNewBtn) startNewBtn.style.display = "block";
+}
+
+function startNewProduction() {
+	const inputForm = document.getElementById("input-form");
+	const processOrderSelect = document.getElementById("process-order");
+	const startNewBtn = document.getElementById("start-new-btn");
+
+	if (inputForm) {
+		inputForm.reset();
+		inputForm.querySelectorAll("input, select").forEach((el) => {
+			el.disabled = false;
+		});
+		document.querySelector("#input-form button[type='submit']").disabled = false;
+	}
+
+	if (processOrderSelect) {
+		processOrderSelect.disabled = false;
+	}
+
+	if (startNewBtn) startNewBtn.style.display = "none";
+
+	currentJob = null;
+	disableOutputForm();
+
+	const activeJobSelect = document.getElementById("active-job");
+	if (activeJobSelect) activeJobSelect.value = "";
+}
+
 function enableOutputForm() {
-	document.getElementById("output-roll-no").value = generateOutputRollNo();
-	document.querySelector("#output-form button[type='submit']").disabled = false;
-	document.getElementById("active-production").style.display = "block";
+	const outputRollNo = document.getElementById("output-roll-no");
+	const outputSubmitBtn = document.querySelector("#output-form button[type='submit']");
+	const outputSection = document.getElementById("output-section");
+	const activeProduction = document.getElementById("active-production");
+
+	if (outputRollNo) outputRollNo.value = generateOutputRollNo();
+	if (outputSubmitBtn) outputSubmitBtn.disabled = false;
+	if (outputSection) outputSection.style.display = "block";
+	if (activeProduction) activeProduction.style.display = "block";
 }
 
 function disableOutputForm() {
-	document.getElementById("output-roll-no").value = "";
-	document.querySelector("#output-form button[type='submit']").disabled = true;
-	document.getElementById("active-production").style.display = "none";
+	const outputRollNo = document.getElementById("output-roll-no");
+	const outputSubmitBtn = document.querySelector("#output-form button[type='submit']");
+	const outputSection = document.getElementById("output-section");
+	const activeProduction = document.getElementById("active-production");
+
+	if (outputRollNo) outputRollNo.value = "";
+	if (outputSubmitBtn) outputSubmitBtn.disabled = true;
+	if (outputSection) outputSection.style.display = "none";
+	if (activeProduction) activeProduction.style.display = "none";
 }
 
 function generateOutputRollNo() {
@@ -236,25 +344,20 @@ async function handleInputSubmit(e) {
 		currentJob = newJob;
 
 		showNotification("Job started successfully!", "success");
-		e.target.reset();
 		autoSelectShift();
 
-		// Update active job dropdown
 		const activeJobSelect = document.getElementById("active-job");
-		activeJobSelect.innerHTML = `<option value="${newJob.id}">Job #${newJob.id} - ${newJob.batch_roll_no}</option>`;
+		const option = document.createElement("option");
+		option.value = newJob.id;
+		option.textContent = `Job #${newJob.id} - ${newJob.batch_roll_no}`;
+		option.setAttribute("data-job", JSON.stringify(newJob));
+		activeJobSelect.appendChild(option);
 		activeJobSelect.disabled = false;
+		activeJobSelect.value = newJob.id;
 
+		populateActiveJobDetails(newJob);
 		enableOutputForm();
 		loadJobRolls(newJob.id);
-
-		// Disable PO selection and input form
-		document.getElementById("process-order").disabled = true;
-		document
-			.getElementById("input-form")
-			.querySelectorAll("input, select, button")
-			.forEach((el) => {
-				if (el.type !== "submit") el.disabled = true;
-			});
 	} catch (error) {
 		showNotification(error.message, "error");
 	} finally {
@@ -277,7 +380,7 @@ async function handleOutputSubmit(e) {
 		final_meter: parseFloat(document.getElementById("final-meter").value),
 		number_of_flags: parseInt(document.getElementById("flag-count").value) || 0,
 		flag_reason_id: document.getElementById("flag-reason").value ? parseInt(document.getElementById("flag-reason").value) : null,
-		final_weight: parseFloat(document.getElementById("final-weight").value),
+		final_weight: 0,
 		job_id: currentJob.id,
 	};
 
@@ -338,9 +441,13 @@ function renderRollsTable(rolls) {
             <td class="py-3 px-4 font-medium">${escapeHtml(roll.output_roll_no)}</td>
             <td class="py-3 px-4">
                 <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-					roll.number_of_flags > 0 ? "bg-red-100 text-red-800" : "bg-green-100 text-green-800"
+					roll.final_weight === 0
+						? "bg-yellow-100 text-yellow-800"
+						: roll.number_of_flags > 0
+						? "bg-red-100 text-red-800"
+						: "bg-green-100 text-green-800"
 				}">
-                    ${roll.number_of_flags > 0 ? "Flagged" : "Completed"}
+                    ${roll.final_weight === 0 ? "Pending" : roll.number_of_flags > 0 ? "Flagged" : "Completed"}
                 </span>
             </td>
             <td class="py-3 px-4 text-center">${(roll.final_weight || 0).toFixed(2)}</td>
@@ -355,21 +462,21 @@ function renderRollsTable(rolls) {
 }
 
 function resetToMachineSelection() {
-	document.getElementById("machine").value = "";
-	document.getElementById("po-section").style.display = "none";
-	document.getElementById("production-forms").style.display = "none";
-	document.getElementById("active-production").style.display = "none";
-	document.getElementById("job-details").style.display = "none";
+	const machineSelect = document.getElementById("machine");
+	const poSection = document.getElementById("po-section");
+	const inputSection = document.getElementById("input-section");
+	const outputSection = document.getElementById("output-section");
+	const activeProduction = document.getElementById("active-production");
+	const jobDetails = document.getElementById("job-details");
 
-	// Re-enable PO selection and input form
-	document.getElementById("process-order").disabled = false;
-	document
-		.getElementById("input-form")
-		.querySelectorAll("input, select, button")
-		.forEach((el) => {
-			el.disabled = false;
-		});
+	if (machineSelect) machineSelect.value = "";
+	if (poSection) poSection.style.display = "none";
+	if (inputSection) inputSection.style.display = "none";
+	if (outputSection) outputSection.style.display = "none";
+	if (activeProduction) activeProduction.style.display = "none";
+	if (jobDetails) jobDetails.style.display = "none";
 
+	clearProcessOrderDetails();
 	currentJob = null;
 }
 
@@ -396,11 +503,4 @@ function setSelectLoading(selectElement, loading) {
 			selectElement.innerHTML = originalHTML;
 		}
 	}
-}
-
-function autoSelectShift() {
-	const now = new Date();
-	const hours = now.getHours();
-	const shiftValue = hours >= 7 && hours < 19 ? "1" : "2";
-	document.getElementById("shift").value = shiftValue;
 }

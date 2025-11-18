@@ -438,29 +438,15 @@ function formatDbError(errorMessage) {
 	return errorMessage;
 }
 
-// async function handleApiResponse(response) {
-// 	const text = await response.text();
-// 	if (response.ok) {
-// 		try {
-// 			return JSON.parse(text);
-// 		} catch {
-// 			return text;
-// 		}
-// 	} else {
-// 		let errorText;
-// 		try {
-// 			const errorData = JSON.parse(text);
-// 			errorText = errorData.message || errorData.error || text;
-// 		} catch {
-// 			errorText = text;
-// 		}
-// 		throw new Error(formatDbError(errorText));
-// 	}
-// }
-
 async function handleApiResponse(response) {
-	if (!response.ok) {
-		const text = await response.text();
+	const text = await response.text();
+	if (response.ok) {
+		try {
+			return JSON.parse(text);
+		} catch {
+			return text;
+		}
+	} else {
 		let errorText;
 		try {
 			const errorData = JSON.parse(text);
@@ -470,9 +456,23 @@ async function handleApiResponse(response) {
 		}
 		throw new Error(formatDbError(errorText));
 	}
-
-	return await response.json();
 }
+
+// async function handleApiResponse(response) {
+// 	if (!response.ok) {
+// 		const text = await response.text();
+// 		let errorText;
+// 		try {
+// 			const errorData = JSON.parse(text);
+// 			errorText = errorData.message || errorData.error || text;
+// 		} catch {
+// 			errorText = text;
+// 		}
+// 		throw new Error(formatDbError(errorText));
+// 	}
+
+// 	return await response.json();
+// }
 
 function populateSelect(id, items, key, defaultText) {
 	const sel = document.getElementById(id);
