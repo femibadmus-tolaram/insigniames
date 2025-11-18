@@ -29,9 +29,16 @@ pub async fn update_job(conn_data: web::Data<Pool<SqliteConnectionManager>>, dat
 
 pub async fn delete_job(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<IdPayload>) -> impl Responder {
     let conn = conn_data.get().unwrap();
+    
+    if Job::has_rolls(&conn, data.id).unwrap_or(false) {
+        return HttpResponse::BadRequest().body("Cannot delete job - it has associated rolls");
+    }
+    
     match Job::find_by_id(&conn, data.id) {
         Ok(job) => {
-            if let Err(e) = job.delete(&conn) { return HttpResponse::InternalServerError().body(e.to_string()); }
+            if let Err(e) = job.delete(&conn) { 
+                return HttpResponse::InternalServerError().body(e.to_string()); 
+            }
             HttpResponse::Ok().body("Job deleted successfully")
         }
         Err(_) => HttpResponse::NotFound().body("Job not found")
