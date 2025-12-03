@@ -1,39 +1,178 @@
 /** @format */
 
-let currentUserRoleId = null;
+let currentUserRole = null;
 
-let lastPath = window.location.pathname.split("/").filter(Boolean).pop() || "weigh_log";
-
-// document.querySelectorAll("th").forEach((th, i) => {
-// 	th.addEventListener("click", () => {
-// 		const table = th.closest("table");
-// 		const rows = Array.from(table.querySelectorAll("tbody tr"));
-// 		const asc = th.classList.toggle("asc");
-// 		rows.sort((a, b) => {
-// 			const A = a.children[i].innerText.trim();
-// 			const B = b.children[i].innerText.trim();
-// 			return asc ? A.localeCompare(B, undefined, { numeric: true }) : B.localeCompare(A, undefined, { numeric: true });
-// 		});
-// 		rows.forEach((r) => table.querySelector("tbody").appendChild(r));
-// 	});
-// });
-
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
 	document.body.style.zoom = "90%";
-	const host = window.location.host;
-	if (host != "localhost") loadUserPermissions();
-	const forms = document.querySelectorAll("form");
-	forms.forEach((form) => {
-		form.addEventListener("reset", function () {
-			setTimeout(autoSelectShift, 0);
-		});
-	});
+	await loadUserRole();
+	transformNavBasedOnRole();
+	highlightActiveLink();
 });
 
-function escapeHtml(str) {
-	if (str === null || str === undefined) return "";
-	return String(str).replace(/[&<>"']/g, function (c) {
-		return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+async function loadUserRole() {
+	try {
+		const userResponse = await fetch("/api/users/me");
+		if (!userResponse.ok) throw new Error("Failed to load user data");
+		const userData = await userResponse.json();
+
+		const rolesResponse = await fetch("/api/roles");
+		if (!rolesResponse.ok) throw new Error("Failed to load roles");
+		const roles = await rolesResponse.json();
+
+		const userRole = roles.find((r) => r.id === userData.role_id);
+		currentUserRole = userRole ? userRole.name : null;
+	} catch (error) {
+		console.error("Error loading role:", error);
+	}
+}
+
+function transformNavBasedOnRole() {
+	const nav = document.querySelector("#main-nav");
+	if (!nav) return;
+
+	const roleNavMap = {
+		Dashboard: ["Dashboard", "Jobs", "Rolls"],
+		Production: ["Production", "Downtime", "Scrap", "Actual Consumable"],
+		Settings: ["Settings", "Machines", "Sections", "Manage Lookups", "Users Management", "Roles & Permissions", "Logout"],
+	};
+
+	const defaultNav = `
+        <li class="relative group">
+            <a href="/" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+                ><i class="fas fa-chart-simple"></i> Dashboard <i class="fas fa-chevron-down text-xs ml-1"></i
+            ></a>
+            <div class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div class="py-2">
+                    <a href="/jobs" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+                        <i class="fas fa-briefcase"></i> Jobs
+                    </a>
+                    <a href="/rolls" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+                        <i class="fas fa-layer-group"></i> Rolls
+                    </a>
+                </div>
+            </div>
+        </li>
+
+        <li class="relative group">
+            <a href="/production" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+                ><i class="fas fa-industry"></i> Production <i class="fas fa-chevron-down text-xs ml-1"></i
+            ></a>
+            <div class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div class="py-2">
+                    <a href="/downtime" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+                        <i class="fas fa-clock"></i> Downtime
+                    </a>
+                    <a href="/scrap" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+                        <i class="fas fa-trash"></i> Scrap
+                    </a>
+                    <a href="/consumables" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+                        <i class="fas fa-flask"></i> Actual Consumable
+                    </a>
+                </div>
+            </div>
+        </li>
+
+        <li class="relative group">
+            <a href="/settings" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
+                ><i class="fas fa-cog"></i> Settings <i class="fas fa-chevron-down text-xs ml-1"></i
+            ></a>
+            <div class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div class="py-2">
+                    <a href="/machines" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+                        <i class="fas fa-cogs"></i> Machines
+                    </a>
+                    <a href="/sections" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+                        <i class="fas fa-building"></i> Sections
+                    </a>
+                    <a href="/lookups" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+                        <i class="fas fa-list"></i> Manage Lookups
+                    </a>
+                    <div class="border-t border-gray-200 my-1"></div>
+                    <a href="/users" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+                        <i class="fas fa-users"></i> Users Management
+                    </a>
+                    <a href="/roles" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+                        <i class="fas fa-user-tag"></i> Roles & Permissions
+                    </a>
+                    <div class="border-t border-gray-200 my-1"></div>
+                    <a href="/logout" class="px-4 py-2 hover:bg-red-50 hover:text-red-600 flex items-center gap-2 text-sm">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+        </li>
+    `;
+
+	let roleFound = false;
+	for (const [dropdownName, dropdownItems] of Object.entries(roleNavMap)) {
+		if (dropdownItems.some((item) => item === currentUserRole)) {
+			nav.innerHTML = "";
+			dropdownItems.forEach((item) => {
+				const navItemHTML = createNavItemHTML(item);
+				nav.innerHTML += navItemHTML;
+			});
+			roleFound = true;
+			break;
+		}
+	}
+
+	if (!roleFound) {
+		nav.innerHTML = defaultNav;
+	}
+}
+
+function createNavItemHTML(itemName) {
+	const hrefMap = {
+		Dashboard: "/",
+		Jobs: "/jobs",
+		Rolls: "/rolls",
+		Production: "/production",
+		Downtime: "/downtime",
+		Scrap: "/scrap",
+		"Actual Consumable": "/consumables",
+		Settings: "/settings",
+		Machines: "/machines",
+		Sections: "/sections",
+		"Manage Lookups": "/lookups",
+		"Users Management": "/users",
+		"Roles & Permissions": "/roles",
+		Logout: "/logout",
+	};
+
+	const iconMap = {
+		Dashboard: "fa-chart-simple",
+		Jobs: "fa-briefcase",
+		Rolls: "fa-layer-group",
+		Production: "fa-industry",
+		Downtime: "fa-clock",
+		Scrap: "fa-trash",
+		"Actual Consumable": "fa-flask",
+		Settings: "fa-cog",
+		Machines: "fa-cogs",
+		Sections: "fa-building",
+		"Manage Lookups": "fa-list",
+		"Users Management": "fa-users",
+		"Roles & Permissions": "fa-user-tag",
+		Logout: "fa-sign-out-alt",
+	};
+
+	return `
+        <li>
+            <a href="${hrefMap[itemName]}" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+                <i class="fas ${iconMap[itemName]}"></i> ${itemName}
+            </a>
+        </li>
+    `;
+}
+
+function highlightActiveLink() {
+	const currentPath = window.location.pathname;
+	const navLinks = document.querySelectorAll("#main-nav a[href]");
+
+	navLinks.forEach((link) => {
+		if (link.getAttribute("href") === currentPath) {
+			link.classList.add("bg-blue-50", "text-blue-600");
+		}
 	});
 }
 
@@ -78,144 +217,6 @@ function showNotification(message, type = "info") {
 	setTimeout(() => {
 		notification.remove();
 	}, 5000);
-}
-
-if (lastPath !== "settings") {
-	const originalFetch = window.fetch;
-	window.fetch = (url, options = {}) => {
-		const controller = new AbortController();
-		const timeout = setTimeout(() => controller.abort(), 15000);
-		options.signal = controller.signal;
-		return originalFetch(url, options).finally(() => clearTimeout(timeout));
-	};
-}
-
-async function loadUserPermissions() {
-	try {
-		const userResponse = await fetch("/api/users/me");
-		if (!userResponse.ok) throw new Error("Failed to load user data");
-		const userData = await userResponse.json();
-		currentUserRoleId = userData.role_id;
-
-		const [rolesResponse, permissionsResponse] = await Promise.all([fetch("/api/roles"), fetch("/api/permissions")]);
-
-		if (!rolesResponse.ok || !permissionsResponse.ok) {
-			throw new Error("Failed to load permissions data");
-		}
-
-		const allPermissions = await permissionsResponse.json();
-		const userPermissions = allPermissions.filter((permission) => permission.role_id === currentUserRoleId);
-
-		checkAndTransformNav(userPermissions);
-	} catch (error) {
-		console.error("Error loading user permissions:", error);
-	}
-}
-
-async function checkAndTransformNav(userPermissions) {
-	if (await checkCreateDeleteOnlyWeighLogs(userPermissions)) {
-		await transformNavToBasic();
-	} else if (await checkScheduleCreateNoUserDelete(userPermissions)) {
-		await transformNavToSchedulesOnly();
-	}
-	await new Promise((r) => requestAnimationFrame(r));
-	highlightActiveLink();
-}
-
-function highlightActiveLink() {
-	const currentPath = window.location.pathname;
-	const navLinks = document.querySelectorAll("#main-nav a[href]");
-	navLinks.forEach((link) => {
-		if (link.getAttribute("href") === currentPath) {
-			link.classList.add("bg-blue-50", "text-blue-600");
-			const dropdownParent = link.closest(".group");
-			if (dropdownParent) {
-				const mainLink = dropdownParent.querySelector("a[href]:not(.text-sm)");
-				if (mainLink) mainLink.classList.add("bg-blue-50", "text-blue-600");
-			}
-		}
-	});
-}
-
-async function checkCreateDeleteOnlyWeighLogs(userPermissions) {
-	let canCreateOnlyWeighLogs = true;
-	let canDeleteOnlyWeighLogs = true;
-
-	const modules = ["contractors", "sections", "plan", "sku", "schedule", "users", "roles"];
-
-	modules.forEach((module) => {
-		const modulePerms = userPermissions.filter((p) => p.model === module);
-		const canCreate = modulePerms.some((p) => p.can_create);
-		const canDelete = modulePerms.some((p) => p.can_delete);
-
-		if (module === "weigh_log") {
-			if (!canCreate || !canDelete) {
-				canCreateOnlyWeighLogs = false;
-				canDeleteOnlyWeighLogs = false;
-			}
-		} else {
-			if (canCreate) canCreateOnlyWeighLogs = false;
-			if (canDelete) canDeleteOnlyWeighLogs = false;
-		}
-	});
-
-	return canCreateOnlyWeighLogs && canDeleteOnlyWeighLogs;
-}
-
-async function checkScheduleCreateNoUserDelete(userPermissions) {
-	const schedulePerms = userPermissions.filter((p) => p.model === "schedule");
-	const userPerms = userPermissions.filter((p) => p.model === "users");
-
-	const canCreateSchedules = schedulePerms.some((p) => p.can_create);
-	const canDeleteUsers = userPerms.some((p) => p.can_delete);
-
-	return canCreateSchedules && !canDeleteUsers;
-}
-
-async function transformNavToBasic() {
-	const nav = document.querySelector("#main-nav");
-	if (!nav) return;
-
-	nav.innerHTML = `
-        <li>
-            <a href="/" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
-                <i class="fas fa-chart-simple"></i> Dashboard
-            </a>
-        </li>
-        <li>
-            <a href="/weigh" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
-                <i class="fas fa-weight-scale"></i> Weigh & Print
-            </a>
-        </li>
-        <li>
-            <a href="/settings" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
-                <i class="fas fa-cog"></i> Hardware Settings
-            </a>
-        </li>
-    `;
-}
-
-async function transformNavToSchedulesOnly() {
-	const nav = document.querySelector("#main-nav");
-	if (!nav) return;
-
-	nav.innerHTML = `
-        <li>
-            <a href="/schedules" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
-                <i class="fas fa-calendar-day"></i> Schedules
-            </a>
-        </li>
-        <li>
-            <a href="/skus" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
-                <i class="fas fa-barcode"></i> SKUs
-            </a>
-        </li>
-        <li>
-            <a href="/sections" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
-                <i class="fas fa-layer-group"></i> Sections & Contractors
-            </a>
-        </li>
-    `;
 }
 
 function formatDate(dateString) {
@@ -463,22 +464,6 @@ async function handleApiResponse(response) {
 		throw new Error(formatDbError(errorText));
 	}
 }
-
-// async function handleApiResponse(response) {
-// 	if (!response.ok) {
-// 		const text = await response.text();
-// 		let errorText;
-// 		try {
-// 			const errorData = JSON.parse(text);
-// 			errorText = errorData.message || errorData.error || text;
-// 		} catch {
-// 			errorText = text;
-// 		}
-// 		throw new Error(formatDbError(errorText));
-// 	}
-
-// 	return await response.json();
-// }
 
 function populateSelect(id, items, key, defaultText) {
 	const sel = document.getElementById(id);

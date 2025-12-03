@@ -32,6 +32,12 @@ pub struct DowntimeReason {
 }
 
 #[derive(Debug, Serialize)]
+pub struct ManufacturingOrderType {
+    pub id: i32,
+    pub name: String,
+}
+
+#[derive(Debug, Serialize)]
 pub struct FlagReason {
     pub id: i32,
     pub name: String,
@@ -216,6 +222,48 @@ impl ScrapType {
     }
 }
 
+impl ManufacturingOrderType {
+    pub fn has_related_records(conn: &Connection, manufacturing_order_type_id: i32) -> Result<bool> {
+        let count: i32 = conn.query_row(
+            "SELECT COUNT(*) FROM downtimes WHERE manufacturing_order_type_id = ?1",
+            params![manufacturing_order_type_id],
+            |row| row.get(0)
+        )?;
+        Ok(count > 0)
+    }
+
+    pub fn create(conn: &Connection, data: &LookupCreatePayload) -> Result<Self> {
+        conn.execute("INSERT INTO manufacturing_order_types (name) VALUES (?1)", params![data.name])?;
+        let id = conn.last_insert_rowid() as i32;
+        Ok(ManufacturingOrderType { id, name: data.name.clone() })
+    }
+
+    pub fn update(&mut self, conn: &Connection, data: &LookupPayload) -> Result<()> {
+        if let Some(name) = &data.name {
+            conn.execute("UPDATE manufacturing_order_types SET name = ?1 WHERE id = ?2", params![name, self.id])?;
+            self.name = name.clone();
+        }
+        Ok(())
+    }
+
+    pub fn delete(&self, conn: &Connection) -> Result<()> {
+        conn.execute("DELETE FROM manufacturing_order_types WHERE id = ?1", params![self.id])?;
+        Ok(())
+    }
+
+    pub fn find_by_id(conn: &Connection, id: i32) -> Result<Self> {
+        let mut stmt = conn.prepare("SELECT * FROM manufacturing_order_types WHERE id = ?1")?;
+        stmt.query_row(params![id], |row| Ok(ManufacturingOrderType { id: row.get(0)?, name: row.get(1)? }))
+    }
+
+    pub fn all(conn: &Connection) -> Result<Vec<Self>> {
+        let mut stmt = conn.prepare("SELECT * FROM manufacturing_order_types ORDER BY name")?;
+        let manufacturing_order_types = stmt.query_map([], |row| Ok(ManufacturingOrderType { id: row.get(0)?, name: row.get(1)? }))?.collect::<Result<Vec<_>, _>>()?;
+        Ok(manufacturing_order_types)
+    }
+}
+
+
 impl DowntimeReason {
     pub fn has_related_records(conn: &Connection, downtime_reason_id: i32) -> Result<bool> {
         let count: i32 = conn.query_row(
@@ -257,6 +305,7 @@ impl DowntimeReason {
     }
 }
 
+
 impl FlagReason {
     pub fn has_related_records(conn: &Connection, flag_reason_id: i32) -> Result<bool> {
         let count: i32 = conn.query_row(
@@ -297,3 +346,4 @@ impl FlagReason {
         Ok(flag_reasons)
     }
 }
+

@@ -10,6 +10,7 @@ const lookupTypes = {
 	"scrap-types": "Scrap Types",
 	"downtime-reasons": "Downtime Reasons",
 	"flag-reasons": "Flag Reasons",
+	"manufacturing-order-types": "Manufacturing Order Types",
 };
 
 const colorSuggestions = {

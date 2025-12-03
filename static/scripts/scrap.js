@@ -124,7 +124,7 @@ function renderScraps(scrapsToRender) {
             <td class="py-3 px-4">${escapeHtml(shift?.name || "Unknown")}</td>
             <td class="py-3 px-4">${formatDateTime(scrap.time)}</td>
             <td class="py-3 px-4">${escapeHtml(type?.name || "Unknown")}</td>
-            <td class="py-3 px-4 text-center">${(scrap.weight_kg || 0).toFixed(2)}</td>
+            <td class="py-3 px-4 text-center">${(scrap.weight_kg || 0).toFixed(2)}KG</td>
             <!--<td class="py-3 px-4">${escapeHtml(scrap.notes || "N/A")}</td>-->
             <td class="py-3 px-4">${escapeHtml(createdBy?.full_name || "System")}</td>
             <!--<td class="py-3 px-4">${formatDate(scrap.created_at)}</td>-->

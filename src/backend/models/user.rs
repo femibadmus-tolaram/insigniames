@@ -14,7 +14,7 @@ pub struct User {
     pub role_id: i32,
     pub created_at: String,
     pub updated_at: String,
-    pub machine_ids: Vec<i32>,
+    pub section_ids: Vec<i32>,
 }
 
 #[derive(Debug, Serialize)]
@@ -31,7 +31,7 @@ pub struct UserFilterPayload {
     pub staffid: Option<String>,
     pub status: Option<String>,
     pub role_id: Option<String>,
-    pub machine_id: Option<String>,
+    pub section_id: Option<String>,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
     pub per_page: Option<String>,
@@ -104,14 +104,14 @@ impl User {
         )?;
         let id = conn.last_insert_rowid() as i32;
 
-        let mut machine_ids = Vec::new();
-        if let Some(machine_ids_payload) = &u.machine_ids {
-            for &machine_id in machine_ids_payload {
+        let mut section_ids = Vec::new();
+        if let Some(section_ids_payload) = &u.section_ids {
+            for &section_id in section_ids_payload {
                 conn.execute(
-                    "INSERT INTO user_machines (user_id, machine_id) VALUES (?1, ?2)",
-                    params![id, machine_id],
+                    "INSERT INTO user_sections (user_id, section_id) VALUES (?1, ?2)",
+                    params![id, section_id],
                 )?;
-                machine_ids.push(machine_id);
+                section_ids.push(section_id);
             }
         }
 
@@ -125,7 +125,7 @@ impl User {
             role_id: u.role_id,
             created_at: now.clone(),
             updated_at: now.clone(),
-            machine_ids,
+            section_ids,
         })
     }
 
@@ -159,17 +159,17 @@ impl User {
             self.role_id = role_id;
         }
         
-        if let Some(machine_ids) = &u.machine_ids {
-            conn.execute("DELETE FROM user_machines WHERE user_id = ?1", params![self.id])?;
+        if let Some(section_ids) = &u.section_ids {
+            conn.execute("DELETE FROM user_sections WHERE user_id = ?1", params![self.id])?;
             
-            for &machine_id in machine_ids {
+            for &section_id in section_ids {
                 conn.execute(
-                    "INSERT INTO user_machines (user_id, machine_id) VALUES (?1, ?2)",
-                    params![self.id, machine_id],
+                    "INSERT INTO user_sections (user_id, section_id) VALUES (?1, ?2)",
+                    params![self.id, section_id],
                 )?;
             }
             
-            self.machine_ids = machine_ids.clone();
+            self.section_ids = section_ids.clone();
         }
         
         conn.execute("UPDATE users SET updated_at = ?1 WHERE id = ?2", params![now, self.id])?;
@@ -179,7 +179,7 @@ impl User {
     }
 
     pub fn delete(&self, conn: &Connection) -> Result<()> {
-        conn.execute("DELETE FROM user_machines WHERE user_id = ?1", params![self.id])?;
+        conn.execute("DELETE FROM user_sections WHERE user_id = ?1", params![self.id])?;
         conn.execute("DELETE FROM users WHERE id = ?1", params![self.id])?;
         Ok(())
     }
@@ -201,10 +201,10 @@ impl User {
             role_id: row.get(6)?,
             created_at: row.get(7)?,
             updated_at: row.get(8)?,
-            machine_ids: Vec::new(),
+            section_ids: Vec::new(),
         }))?;
         
-        user.machine_ids = user.get_machines(conn)?;
+        user.section_ids = user.get_sections(conn)?;
         Ok(user)
     }
 
@@ -225,11 +225,11 @@ impl User {
             role_id: row.get(6)?,
             created_at: row.get(7)?,
             updated_at: row.get(8)?,
-            machine_ids: Vec::new(),
+            section_ids: Vec::new(),
         }))?.collect::<Result<Vec<_>, _>>()?;
         
         for user in &mut users {
-            user.machine_ids = user.get_machines(conn)?;
+            user.section_ids = user.get_sections(conn)?;
         }
         
         Ok(users)
@@ -264,30 +264,30 @@ impl User {
         Ok(signin_response)
     }
 
-    pub fn add_machine(&self, conn: &Connection, machine_id: i32) -> Result<()> {
+    pub fn add_section(&self, conn: &Connection, section_id: i32) -> Result<()> {
         conn.execute(
-            "INSERT OR IGNORE INTO user_machines (user_id, machine_id) VALUES (?1, ?2)",
-            params![self.id, machine_id],
+            "INSERT OR IGNORE INTO user_sections (user_id, section_id) VALUES (?1, ?2)",
+            params![self.id, section_id],
         )?;
         Ok(())
     }
 
-    pub fn remove_machine(&self, conn: &Connection, machine_id: i32) -> Result<()> {
+    pub fn remove_section(&self, conn: &Connection, section_id: i32) -> Result<()> {
         conn.execute(
-            "DELETE FROM user_machines WHERE user_id = ?1 AND machine_id = ?2",
-            params![self.id, machine_id],
+            "DELETE FROM user_sections WHERE user_id = ?1 AND section_id = ?2",
+            params![self.id, section_id],
         )?;
         Ok(())
     }
 
-    pub fn get_machines(&self, conn: &Connection) -> Result<Vec<i32>> {
+    pub fn get_sections(&self, conn: &Connection) -> Result<Vec<i32>> {
         let mut stmt = conn.prepare(
-            "SELECT machine_id FROM user_machines WHERE user_id = ?1"
+            "SELECT section_id FROM user_sections WHERE user_id = ?1"
         )?;
-        let machine_ids = stmt.query_map(params![self.id], |row| {
+        let section_ids = stmt.query_map(params![self.id], |row| {
             row.get(0)
         })?.collect::<Result<Vec<i32>, _>>()?;
-        Ok(machine_ids)
+        Ok(section_ids)
     }
 
     pub fn filter(conn: &Connection, filter: &UserFilterPayload) -> Result<Vec<Self>> {
@@ -300,7 +300,7 @@ impl User {
         let mut staffids: Vec<String> = vec![];
         let mut statuses: Vec<String> = vec![];
         let mut role_ids: Vec<i32> = vec![];
-        let mut machine_ids: Vec<i32> = vec![];
+        let mut section_ids: Vec<i32> = vec![];
         let mut start_dates: Vec<String> = vec![];
         let mut end_dates: Vec<String> = vec![];
         let mut pages: Vec<i32> = vec![];
@@ -338,11 +338,11 @@ impl User {
             }
         }
 
-        if let Some(val) = &filter.machine_id {
+        if let Some(val) = &filter.section_id {
             if let Ok(parsed) = val.parse::<i32>() {
-                machine_ids.push(parsed);
-                params_vec.push(machine_ids.last().unwrap());
-                query.push_str(" AND u.id IN (SELECT user_id FROM user_machines WHERE machine_id = ?)");
+                section_ids.push(parsed);
+                params_vec.push(section_ids.last().unwrap());
+                query.push_str(" AND u.id IN (SELECT user_id FROM user_sections WHERE section_id = ?)");
             }
         }
 
@@ -389,17 +389,16 @@ impl User {
                 role_id: row.get(6)?,
                 created_at: row.get(7)?,
                 updated_at: row.get(8)?,
-                machine_ids: Vec::new(),
+                section_ids: Vec::new(),
             })
         })?.collect::<Result<Vec<_>, _>>()?;
         
         for user in &mut users {
-            user.machine_ids = user.get_machines(conn)?;
+            user.section_ids = user.get_sections(conn)?;
         }
 
         Ok(users)
     }
-
 }
 
 #[derive(Deserialize)]
@@ -410,7 +409,7 @@ pub struct UserCreatePayload {
     pub phone_number: Option<String>,
     pub status: String,
     pub role_id: i32,
-    pub machine_ids: Option<Vec<i32>>,
+    pub section_ids: Option<Vec<i32>>,
 }
 
 #[derive(Deserialize)]
@@ -422,7 +421,7 @@ pub struct UserPayload {
     pub phone_number: Option<String>,
     pub status: Option<String>,
     pub role_id: Option<i32>,
-    pub machine_ids: Option<Vec<i32>>,
+    pub section_ids: Option<Vec<i32>>,
 }
 
 #[derive(Deserialize)]
@@ -432,7 +431,7 @@ pub struct SigninPayload {
 }
 
 #[derive(Deserialize)]
-pub struct UserMachinePayload {
+pub struct UserSectionPayload {
     pub user_id: i32,
-    pub machine_id: i32,
+    pub section_id: i32,
 }

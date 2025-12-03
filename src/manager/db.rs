@@ -42,10 +42,39 @@ pub fn init_local_db(path: &str) -> Result<()> {
             role_id INTEGER,
             permission_id INTEGER,
             PRIMARY KEY(role_id, permission_id),
-            FOREIGN KEY(role_id) REFERENCES roles(id),
-            FOREIGN KEY(permission_id) REFERENCES permissions(id)
+            FOREIGN KEY (role_id) REFERENCES roles(id),
+            FOREIGN KEY (permission_id) REFERENCES permissions(id)
         );
 
+        CREATE TABLE IF NOT EXISTS sections (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE
+        );
+        CREATE TABLE IF NOT EXISTS machines (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE,
+            label TEXT,
+            section_id INTEGER,
+            FOREIGN KEY (section_id) REFERENCES sections(id)
+        );
+        CREATE TABLE IF NOT EXISTS user_sections (
+            user_id INTEGER,
+            section_id INTEGER,
+            PRIMARY KEY(user_id, section_id),
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(section_id) REFERENCES sections(id)
+        );
+        CREATE TABLE IF NOT EXISTS manufacturing_order_types (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE
+        );
+        CREATE TABLE IF NOT EXISTS section_order_types (
+            section_id INTEGER,
+            order_type_id INTEGER,
+            PRIMARY KEY(section_id, order_type_id),
+            FOREIGN KEY(section_id) REFERENCES sections(id),
+            FOREIGN KEY(order_type_id) REFERENCES manufacturing_order_types(id)
+        );
         CREATE TABLE IF NOT EXISTS shifts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT UNIQUE
@@ -154,18 +183,6 @@ pub fn init_local_db(path: &str) -> Result<()> {
             FOREIGN KEY (solvent_type_id) REFERENCES solvent_types(id),
             FOREIGN KEY (created_by) REFERENCES users(id)
         );
-        CREATE TABLE IF NOT EXISTS machines (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE,
-            label TEXT
-        );
-        CREATE TABLE IF NOT EXISTS user_machines (
-            user_id INTEGER,
-            machine_id INTEGER,
-            PRIMARY KEY(user_id, machine_id),
-            FOREIGN KEY(user_id) REFERENCES users(id),
-            FOREIGN KEY(machine_id) REFERENCES machines(id)
-        );
         ",
     )?;
     Ok(())
@@ -176,4 +193,3 @@ pub fn connect_local_db(path: &str) -> Result<Pool<SqliteConnectionManager>> {
     let pool = Pool::new(manager).unwrap();
     Ok(pool)
 }
-

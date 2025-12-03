@@ -1,7 +1,7 @@
 use actix_web::web;
 use r2d2_sqlite::SqliteConnectionManager;
 use r2d2::Pool;
-use crate::backend::{handlers::*, middlewares::*, templates::*};
+use crate::backend::{handlers::*, middlewares::*, templates::*, api::*};
 
 pub fn init_routes(cfg: &mut web::ServiceConfig, conn_data: web::Data<Pool<SqliteConnectionManager>>) {
 
@@ -137,10 +137,25 @@ pub fn init_routes(cfg: &mut web::ServiceConfig, conn_data: web::Data<Pool<Sqlit
             .service(web::resource("/downtime-reasons/update").wrap(CheckUpdate { model: "downtime_reasons", conn_data: conn_data.clone() }).route(web::put().to(update_downtime_reason)))
             .service(web::resource("/downtime-reasons/delete").wrap(CheckDelete { model: "downtime_reasons", conn_data: conn_data.clone() }).route(web::delete().to(delete_downtime_reason)))
             
+            .service(web::resource("/manufacturing-order-types").wrap(CheckRead { model: "manufacturing_order_types", conn_data: conn_data.clone() }).route(web::get().to(all_manufacturing_order_type)))
+            .service(web::resource("/manufacturing-order-types/create").wrap(CheckCreate { model: "manufacturing_order_types", conn_data: conn_data.clone() }).route(web::post().to(create_manufacturing_order_type)))
+            .service(web::resource("/manufacturing-order-types/update").wrap(CheckUpdate { model: "manufacturing_order_types", conn_data: conn_data.clone() }).route(web::put().to(update_manufacturing_order_type)))
+            .service(web::resource("/manufacturing-order-types/delete").wrap(CheckDelete { model: "manufacturing_order_types", conn_data: conn_data.clone() }).route(web::delete().to(delete_manufacturing_order_type)))
+            
             .service(web::resource("/flag-reasons").wrap(CheckRead { model: "flag_reasons", conn_data: conn_data.clone() }).route(web::get().to(all_flag_reasons)))
             .service(web::resource("/flag-reasons/create").wrap(CheckCreate { model: "flag_reasons", conn_data: conn_data.clone() }).route(web::post().to(create_flag_reason)))
             .service(web::resource("/flag-reasons/update").wrap(CheckUpdate { model: "flag_reasons", conn_data: conn_data.clone() }).route(web::put().to(update_flag_reason)))
             .service(web::resource("/flag-reasons/delete").wrap(CheckDelete { model: "flag_reasons", conn_data: conn_data.clone() }).route(web::delete().to(delete_flag_reason)))
+    );
+    
+    // Section routes
+    cfg.service(
+        web::scope("/api/sections")
+            .service(web::resource("").wrap(CheckRead { model: "sections", conn_data: conn_data.clone() }).route(web::get().to(all_sections)))
+            .service(web::resource("/create").wrap(CheckCreate { model: "sections", conn_data: conn_data.clone() }).route(web::post().to(create_section)))
+            .service(web::resource("/update").wrap(CheckUpdate { model: "sections", conn_data: conn_data.clone() }).route(web::put().to(update_section)))
+            .service(web::resource("/delete").wrap(CheckDelete { model: "sections", conn_data: conn_data.clone() }).route(web::delete().to(delete_section)))
+            .service(web::resource("/filter").wrap(CheckRead { model: "sections", conn_data: conn_data.clone() }).route(web::get().to(filter_sections)))
     );
 
     // Machine routes
@@ -167,6 +182,7 @@ pub fn init_routes(cfg: &mut web::ServiceConfig, conn_data: web::Data<Pool<Sqlit
             .service(web::resource("/downtime").wrap(CheckRead { model: "downtimes", conn_data: conn_data.clone() }).route(web::get().to(downtime_page)))
             .service(web::resource("/production").wrap(CheckRead { model: "rolls", conn_data: conn_data.clone() }).route(web::get().to(production_page)))
             .service(web::resource("/machines").wrap(CheckRead { model: "machines", conn_data: conn_data.clone() }).route(web::get().to(machine_page)))
+            .service(web::resource("/sections").wrap(CheckRead { model: "sections", conn_data: conn_data.clone() }).route(web::get().to(section_page)))
             .service(web::resource("/lookups").wrap(CheckRead { model: "solvent_types", conn_data: conn_data.clone() }).route(web::get().to(lookup_page)))
             .service(web::resource("/consumables").wrap(CheckRead { model: "ink_usages", conn_data: conn_data.clone() }).route(web::get().to(consumable_page)))
             .service(web::resource("/settings").wrap(CheckRead { model: "users", conn_data: conn_data.clone() }).route(web::get().to(settings_page)))
@@ -175,3 +191,5 @@ pub fn init_routes(cfg: &mut web::ServiceConfig, conn_data: web::Data<Pool<Sqlit
             .route("/{_:.*}", web::get().to(signin_page))
     );
 }
+
+

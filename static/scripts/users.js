@@ -3,7 +3,7 @@
 let searchTerm = "";
 let users = [];
 let roles = [];
-let machines = [];
+let sections = [];
 let filteredUsers = [];
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -18,27 +18,27 @@ async function initializePage() {
 
 async function loadFilterOptions() {
 	try {
-		const [rolesResponse, machinesResponse] = await Promise.all([
+		const [rolesResponse, sectionsResponse] = await Promise.all([
 			fetch("/api/roles").then(handleApiResponse),
-			fetch("/api/machines").then(handleApiResponse),
+			fetch("/api/sections").then(handleApiResponse),
 		]);
 		roles = rolesResponse;
-		machines = machinesResponse;
+		sections = sectionsResponse;
 		populateRoleDropdown();
-		populateMachineFilters();
+		populateSectionFilters();
 	} catch (error) {
 		showNotification(error.message, "error");
 	}
 }
 
-function populateMachineFilters() {
-	const machineFilter = document.getElementById("filter-machine");
-	machineFilter.innerHTML = '<option value="">All Machines</option>';
-	machines.forEach((machine) => {
+function populateSectionFilters() {
+	const sectionFilter = document.getElementById("filter-section");
+	sectionFilter.innerHTML = '<option value="">All Sections</option>';
+	sections.forEach((section) => {
 		const option = document.createElement("option");
-		option.value = machine.id;
-		option.textContent = machine.name;
-		machineFilter.appendChild(option);
+		option.value = section.id;
+		option.textContent = section.name;
+		sectionFilter.appendChild(option);
 	});
 }
 
@@ -48,12 +48,12 @@ function applyFilters() {
 
 	const roleFilter = document.getElementById("filter-role").value;
 	const statusFilter = document.getElementById("filter-status").value;
-	const machineFilter = document.getElementById("filter-machine").value;
+	const sectionFilter = document.getElementById("filter-section").value;
 
 	filteredUsers = users.filter((user) => {
 		if (roleFilter && user.role_id !== parseInt(roleFilter)) return false;
 		if (statusFilter && user.status !== statusFilter) return false;
-		if (machineFilter && !user.machine_ids.includes(parseInt(machineFilter))) return false;
+		if (sectionFilter && !user.section_ids.includes(parseInt(sectionFilter))) return false;
 		return true;
 	});
 
@@ -65,7 +65,7 @@ function applyFilters() {
 function clearFilters() {
 	document.getElementById("filter-role").value = "";
 	document.getElementById("filter-status").value = "";
-	document.getElementById("filter-machine").value = "";
+	document.getElementById("filter-section").value = "";
 	filteredUsers = [...users];
 	updateUserStats(filteredUsers);
 	renderUsers();
@@ -109,11 +109,11 @@ function updateUserStats(users) {
 	const totalUsers = users.length;
 	const activeUsers = users.filter((user) => user.status === "active").length;
 	const inactiveUsers = totalUsers - activeUsers;
-	const machineUsers = users.filter((user) => user.machine_ids.length > 0).length;
+	const sectionUsers = users.filter((user) => user.section_ids.length > 0).length;
 	document.getElementById("total-users").textContent = totalUsers;
 	document.getElementById("active-users").textContent = activeUsers;
 	document.getElementById("inactive-users").textContent = inactiveUsers;
-	document.getElementById("machine-users").textContent = machineUsers;
+	document.getElementById("section-users").textContent = sectionUsers;
 }
 
 function renderUsers() {
@@ -140,7 +140,7 @@ function renderUsers() {
                     ${escapeHtml(user.status)}
                 </span>
             </td>
-            <td class="py-3 px-4 text-center">${user.machine_ids.length}</td>
+            <td class="py-3 px-4 text-center">${user.section_ids.length}</td>
             <td class="py-3 px-4">
                 <div class="flex gap-2 justify-center">
                     <button class="text-blue-600 hover:text-blue-800 edit-btn" data-id="${user.id}">
@@ -182,7 +182,7 @@ async function openModal(userId = null) {
 		form.reset();
 		document.getElementById("user-id").value = "";
 		document.getElementById("password").value = "";
-		populateMachineCheckboxes([]);
+		populateSectionCheckboxes([]);
 	}
 	modal.style.display = "flex";
 }
@@ -199,24 +199,24 @@ function populateForm(user) {
 	document.getElementById("status").value = user.status;
 	document.getElementById("role").value = user.role_id;
 	document.getElementById("password").value = "";
-	populateMachineCheckboxes(user.machine_ids);
+	populateSectionCheckboxes(user.section_ids);
 }
 
-function populateMachineCheckboxes(machineIds) {
-	const machinesContainer = document.getElementById("machines-checkboxes");
-	machinesContainer.innerHTML = "";
-	machinesContainer.className = "flex flex-wrap gap-4";
+function populateSectionCheckboxes(sectionIds) {
+	const sectionsContainer = document.getElementById("sections-checkboxes");
+	sectionsContainer.innerHTML = "";
+	sectionsContainer.className = "flex flex-wrap gap-4";
 
-	machines.forEach((machine) => {
+	sections.forEach((section) => {
 		const checkboxDiv = document.createElement("div");
 		checkboxDiv.className = "flex items-center gap-2 min-w-[120px]";
-		const isChecked = machineIds.includes(machine.id);
+		const isChecked = sectionIds.includes(section.id);
 		checkboxDiv.innerHTML = `
-            <input type="checkbox" id="machine-${machine.id}" value="${machine.id}" 
+            <input type="checkbox" id="section-${section.id}" value="${section.id}" 
                    ${isChecked ? "checked" : ""} class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-            <label for="machine-${machine.id}" class="text-sm text-gray-700 whitespace-nowrap">${escapeHtml(machine.name)}</label>
+            <label for="section-${section.id}" class="text-sm text-gray-700 whitespace-nowrap">${escapeHtml(section.name)}</label>
         `;
-		machinesContainer.appendChild(checkboxDiv);
+		sectionsContainer.appendChild(checkboxDiv);
 	});
 }
 
@@ -240,15 +240,8 @@ function populateRoleDropdown() {
 	});
 }
 
-function clearMachineCheckboxes() {
-	const checkboxes = document.querySelectorAll('#machines-checkboxes input[type="checkbox"]');
-	checkboxes.forEach((checkbox) => {
-		checkbox.checked = false;
-	});
-}
-
-function getSelectedMachines() {
-	const checkboxes = document.querySelectorAll('#machines-checkboxes input[type="checkbox"]:checked');
+function getSelectedSections() {
+	const checkboxes = document.querySelectorAll('#sections-checkboxes input[type="checkbox"]:checked');
 	return Array.from(checkboxes).map((checkbox) => parseInt(checkbox.value));
 }
 
@@ -264,7 +257,7 @@ async function handleFormSubmit(e) {
 		phone_number: document.getElementById("phone-number").value,
 		status: document.getElementById("status").value,
 		role_id: parseInt(document.getElementById("role").value),
-		machine_ids: getSelectedMachines(),
+		section_ids: getSelectedSections(),
 	};
 
 	const password = document.getElementById("password").value;
@@ -360,7 +353,7 @@ async function exportToExcel() {
 				"Phone Number": user.phone_number || "N/A",
 				Status: user.status,
 				Role: roles.find((r) => r.id === user.role_id)?.name || "Unknown",
-				"Assigned Machines": user.machine_ids.length,
+				"Assigned Sections": user.section_ids.length,
 				"Created At": formatDate(user.created_at),
 			};
 		});

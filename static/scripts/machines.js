@@ -3,18 +3,20 @@ let machines = [];
 let currentPage = 1;
 let itemsPerPage = 10;
 let totalCount = 0;
+let sections = [];
 
 document.addEventListener("DOMContentLoaded", function () {
 	initializePage();
 });
 
 async function initializePage() {
+	await loadSections();
 	await loadMachines();
 	setupEventListeners();
 }
 
 function showLoading(show) {
-	const loadingMessage = document.getElementById("loading-message");
+	const loadingMessage = document.getElementById("machines-loading-message");
 	const table = document.getElementById("machines-table");
 
 	if (show) {
@@ -41,6 +43,17 @@ function setButtonLoading(button, loading) {
 	}
 }
 
+async function loadSections() {
+	try {
+		const response = await fetch("/api/sections");
+		const result = await handleApiResponse(response);
+		sections = result;
+		populateSectionFilters();
+	} catch (error) {
+		console.error("Failed to load sections:", error);
+	}
+}
+
 async function loadMachines() {
 	showLoading(true);
 	try {
@@ -59,7 +72,7 @@ async function loadMachines() {
 		updatePerPageOptions(totalCount);
 	} catch (error) {
 		document.getElementById("machines-table-body").innerHTML =
-			'<tr><td colspan="4" class="text-center text-red-500 py-4">Failed to load machines</td></tr>';
+			'<tr><td colspan="5" class="text-center text-red-500 py-4">Failed to load machines</td></tr>';
 		showNotification(error.message, "error");
 	} finally {
 		showLoading(false);
@@ -68,28 +81,32 @@ async function loadMachines() {
 
 function updateMachineStats() {
 	const totalMachines = totalCount;
-	const totalUsers = machines.reduce((sum, machine) => sum + machine.user_count, 0);
 	const totalJobs = machines.reduce((sum, machine) => sum + machine.job_count, 0);
+	const activeSections = new Set(machines.map((m) => m.section_id)).size;
 
 	document.getElementById("total-machines").textContent = totalMachines;
-	document.getElementById("total-users").textContent = totalUsers;
-	document.getElementById("total-jobs").textContent = totalJobs;
+	document.getElementById("machines-total-jobs").textContent = totalJobs;
+	document.getElementById("active-sections").textContent = activeSections;
 }
 
 async function applyFilters() {
-	const applyBtn = document.getElementById("apply-filter");
+	const applyBtn = document.getElementById("machines-apply-filter");
 	setButtonLoading(applyBtn, true);
 	showLoading(true);
 
 	try {
 		const params = new URLSearchParams();
-		const usersFilter = document.getElementById("filter-users").value;
-		const jobsFilter = document.getElementById("filter-jobs").value;
+		const nameFilter = document.getElementById("filter-machine-name").value;
+		const labelFilter = document.getElementById("filter-machine-label").value;
+		const sectionFilter = document.getElementById("filter-machine-section").value;
+		const hasJobs = document.getElementById("filter-has-jobs").value;
 
-		if (usersFilter === "yes") params.append("has_users", "true");
-		if (usersFilter === "no") params.append("has_users", "false");
-		if (jobsFilter === "yes") params.append("has_jobs", "true");
-		if (jobsFilter === "no") params.append("has_jobs", "false");
+		if (nameFilter) params.append("name", nameFilter);
+		if (labelFilter) params.append("label", labelFilter);
+		if (sectionFilter) params.append("section_id", sectionFilter);
+		if (hasJobs === "yes") params.append("has_jobs", "true");
+		if (hasJobs === "no") params.append("has_jobs", "false");
+
 		params.append("page", currentPage);
 		params.append("per_page", itemsPerPage);
 
@@ -111,18 +128,36 @@ async function applyFilters() {
 }
 
 function clearFilters() {
-	document.getElementById("filter-users").value = "";
-	document.getElementById("filter-jobs").value = "";
+	document.getElementById("filter-machine-name").value = "";
+	document.getElementById("filter-machine-label").value = "";
+	document.getElementById("filter-machine-section").value = "";
+	document.getElementById("filter-has-jobs").value = "";
 
 	currentPage = 1;
 	applyFilters();
+}
+
+function populateSectionFilters() {
+	const filterSelect = document.getElementById("filter-machine-section");
+	const modalSelect = document.getElementById("machine-section");
+
+	let filterOptions = '<option value="">All Sections</option>';
+	let modalOptions = '<option value="">Select Section</option>';
+
+	sections.forEach((section) => {
+		filterOptions += `<option value="${section.id}">${escapeHtml(section.name)}</option>`;
+		modalOptions += `<option value="${section.id}">${escapeHtml(section.name)}</option>`;
+	});
+
+	filterSelect.innerHTML = filterOptions;
+	modalSelect.innerHTML = modalOptions;
 }
 
 function renderMachines() {
 	const tbody = document.getElementById("machines-table-body");
 
 	if (machines.length === 0) {
-		tbody.innerHTML = '<tr><td colspan="4" class="text-center text-gray-500 py-4">No machines found</td></tr>';
+		tbody.innerHTML = '<tr><td colspan="5" class="text-center text-gray-500 py-4">No machines found</td></tr>';
 		return;
 	}
 
@@ -133,20 +168,21 @@ function renderMachines() {
 		row.className = "hover:bg-gray-50";
 
 		row.innerHTML = `
-            <td class="py-3 px-4 font-medium">${escapeHtml(machine.name)}</td>
-            <td class="py-3 px-4">${escapeHtml(machine.label)}</td>
-            <td class="py-3 px-4 text-center">${machine.job_count}</td>
-            <td class="py-3 px-4">
-                <div class="flex gap-2">
-                    <button class="text-blue-600 hover:text-blue-800 edit-btn" data-id="${machine.id}">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="text-red-600 hover:text-red-800 delete-btn" data-id="${machine.id}">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </td>
-        `;
+			<td class="py-3 px-4 font-medium">${escapeHtml(machine.name)}</td>
+			<td class="py-3 px-4">${escapeHtml(machine.label)}</td>
+			<td class="py-3 px-4">${escapeHtml(machine.section_name)}</td>
+			<td class="py-3 px-4 text-center">${machine.job_count}</td>
+			<td class="py-3 px-4">
+				<div class="flex gap-2 justify-center">
+					<button class="text-blue-600 hover:text-blue-800 edit-btn" data-id="${machine.id}">
+						<i class="fas fa-edit"></i>
+					</button>
+					<button class="text-red-600 hover:text-red-800 delete-btn" data-id="${machine.id}">
+						<i class="fas fa-trash"></i>
+					</button>
+				</div>
+			</td>
+		`;
 
 		tbody.appendChild(row);
 	});
@@ -168,7 +204,7 @@ function renderMachines() {
 
 function renderPagination() {
 	const totalPages = Math.ceil(totalCount / itemsPerPage);
-	const paginationContainer = document.getElementById("pagination");
+	const paginationContainer = document.getElementById("machines-pagination");
 
 	if (totalPages <= 1) {
 		paginationContainer.innerHTML = "";
@@ -239,6 +275,7 @@ function populateMachineForm(machine) {
 	document.getElementById("machine-id").value = machine.id;
 	document.getElementById("machine-name").value = machine.name;
 	document.getElementById("machine-label").value = machine.label;
+	document.getElementById("machine-section").value = machine.section_id;
 }
 
 function handleMachineFormSubmit(e) {
@@ -251,6 +288,7 @@ function handleMachineFormSubmit(e) {
 	const formData = {
 		name: document.getElementById("machine-name").value,
 		label: document.getElementById("machine-label").value,
+		section_id: parseInt(document.getElementById("machine-section").value),
 	};
 
 	if (machineId) {
@@ -327,18 +365,21 @@ function editMachine(machineId) {
 }
 
 async function exportToExcel() {
-	const exportBtn = document.getElementById("export-btn");
+	const exportBtn = document.getElementById("machines-export-btn");
 	setButtonLoading(exportBtn, true);
 
 	try {
 		const params = new URLSearchParams();
-		const usersFilter = document.getElementById("filter-users").value;
-		const jobsFilter = document.getElementById("filter-jobs").value;
+		const nameFilter = document.getElementById("filter-machine-name").value;
+		const labelFilter = document.getElementById("filter-machine-label").value;
+		const sectionFilter = document.getElementById("filter-machine-section").value;
+		const hasJobs = document.getElementById("filter-has-jobs").value;
 
-		if (usersFilter === "yes") params.append("has_users", "true");
-		if (usersFilter === "no") params.append("has_users", "false");
-		if (jobsFilter === "yes") params.append("has_jobs", "true");
-		if (jobsFilter === "no") params.append("has_jobs", "false");
+		if (nameFilter) params.append("name", nameFilter);
+		if (labelFilter) params.append("label", labelFilter);
+		if (sectionFilter) params.append("section_id", sectionFilter);
+		if (hasJobs === "yes") params.append("has_jobs", "true");
+		if (hasJobs === "no") params.append("has_jobs", "false");
 
 		const response = await fetch(`/api/machines/filter?${params}`);
 		const result = await handleApiResponse(response);
@@ -353,8 +394,8 @@ async function exportToExcel() {
 			return {
 				Name: machine.name,
 				Label: machine.label,
+				Section: machine.section_name,
 				"Total Jobs": machine.job_count,
-				"Assigned Users": machine.user_count,
 			};
 		});
 
@@ -373,14 +414,14 @@ async function exportToExcel() {
 }
 
 function setupEventListeners() {
-	document.getElementById("apply-filter").addEventListener("click", applyFilters);
-	document.getElementById("clear-filter").addEventListener("click", clearFilters);
+	document.getElementById("machines-apply-filter").addEventListener("click", applyFilters);
+	document.getElementById("machines-clear-filter").addEventListener("click", clearFilters);
 	document.getElementById("add-machine-btn").addEventListener("click", () => openMachineModal());
 	document.getElementById("close-machine-modal").addEventListener("click", closeMachineModal);
 	document.getElementById("cancel-machine-btn").addEventListener("click", closeMachineModal);
 	document.getElementById("machine-form").addEventListener("submit", handleMachineFormSubmit);
 
-	const exportBtn = document.getElementById("export-btn");
+	const exportBtn = document.getElementById("machines-export-btn");
 	if (exportBtn) {
 		exportBtn.addEventListener("click", exportToExcel);
 	}

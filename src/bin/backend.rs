@@ -1,9 +1,9 @@
 use actix_web::web;
 use insignia_mes::manager::db::{connect_local_db, init_local_db};
 use insignia_mes::backend::app::start_backend;
+use insignia_mes::backend::api::sync_scrap_data;
 use std::{fs, process};
 use dotenvy::dotenv;
-
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -23,6 +23,17 @@ async fn main() -> std::io::Result<()> {
     fs::write(pid_file, process::id().to_string())?;
     init_local_db(db_file).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
     let local_pool = connect_local_db(db_file).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+    
+    let local_pool_clone = local_pool.clone();
+    tokio::spawn(async move {
+        loop {
+            if let Err(e) = sync_scrap_data(&local_pool_clone).await {
+                eprintln!("Warning: Failed to sync scrap data: {}", e);
+            }
+            tokio::time::sleep(tokio::time::Duration::from_secs(300)).await;
+        }
+    });
+    
     let local_pool_data = web::Data::new(local_pool);
     start_backend(local_pool_data, 911)
         .await

@@ -1,7 +1,8 @@
 use actix_web::{web, HttpResponse, Responder};
 use r2d2_sqlite::SqliteConnectionManager;
 use r2d2::Pool;
-use crate::backend::models::{Shift, Colour, SolventType, ScrapType, DowntimeReason, FlagReason, LookupCreatePayload, LookupPayload, IdPayload};
+use crate::backend::models::{Shift, Colour, SolventType, ScrapType, DowntimeReason, FlagReason, LookupCreatePayload, LookupPayload, IdPayload, ManufacturingOrderType};
+
 
 pub async fn create_shift(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<LookupCreatePayload>) -> impl Responder {
     let conn = conn_data.get().unwrap();
@@ -47,6 +48,7 @@ pub async fn all_shifts(conn_data: web::Data<Pool<SqliteConnectionManager>>) -> 
     }
 }
 
+
 pub async fn create_colour(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<LookupCreatePayload>) -> impl Responder {
     let conn = conn_data.get().unwrap();
     match Colour::create(&conn, &data) {
@@ -91,6 +93,7 @@ pub async fn all_colours(conn_data: web::Data<Pool<SqliteConnectionManager>>) ->
     }
 }
 
+
 pub async fn create_solvent_type(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<LookupCreatePayload>) -> impl Responder {
     let conn = conn_data.get().unwrap();
     match SolventType::create(&conn, &data) {
@@ -126,6 +129,7 @@ pub async fn delete_solvent_type(conn_data: web::Data<Pool<SqliteConnectionManag
         Err(_) => HttpResponse::NotFound().body("Solvent type not found")
     }
 }
+
 
 pub async fn all_solvent_types(conn_data: web::Data<Pool<SqliteConnectionManager>>) -> impl Responder {
     let conn = conn_data.get().unwrap();
@@ -179,6 +183,7 @@ pub async fn all_scrap_types(conn_data: web::Data<Pool<SqliteConnectionManager>>
     }
 }
 
+
 pub async fn create_downtime_reason(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<LookupCreatePayload>) -> impl Responder {
     let conn = conn_data.get().unwrap();
     match DowntimeReason::create(&conn, &data) {
@@ -223,6 +228,52 @@ pub async fn all_downtime_reasons(conn_data: web::Data<Pool<SqliteConnectionMana
     }
 }
 
+
+pub async fn create_manufacturing_order_type(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<LookupCreatePayload>) -> impl Responder {
+    let conn = conn_data.get().unwrap();
+    match ManufacturingOrderType::create(&conn, &data) {
+        Ok(manufacturing_order_type) => HttpResponse::Ok().json(manufacturing_order_type),
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+    }
+}
+
+pub async fn update_manufacturing_order_type(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<LookupPayload>) -> impl Responder {
+    let conn = conn_data.get().unwrap();
+    match ManufacturingOrderType::find_by_id(&conn, data.id) {
+        Ok(mut manufacturing_order_type) => {
+            if let Err(e) = manufacturing_order_type.update(&conn, &data) { return HttpResponse::InternalServerError().body(e.to_string()); }
+            HttpResponse::Ok().json(manufacturing_order_type)
+        }
+        Err(_) => HttpResponse::NotFound().body("Order type not found"),
+    }
+}
+
+pub async fn delete_manufacturing_order_type(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<IdPayload>) -> impl Responder {
+    let conn = conn_data.get().unwrap();
+    match ManufacturingOrderType::find_by_id(&conn, data.id) {
+        Ok(manufacturing_order_type) => {
+            match ManufacturingOrderType::has_related_records(&conn, data.id) {
+                Ok(true) => return HttpResponse::BadRequest().body("Cannot delete Order type with existing records"),
+                Ok(false) => {
+                    if let Err(e) = manufacturing_order_type.delete(&conn) { return HttpResponse::InternalServerError().body(e.to_string()); }
+                    HttpResponse::Ok().body("Order type deleted successfully")
+                }
+                Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+            }
+        }
+        Err(_) => HttpResponse::NotFound().body("Order type not found")
+    }
+}
+
+pub async fn all_manufacturing_order_type(conn_data: web::Data<Pool<SqliteConnectionManager>>) -> impl Responder {
+    let conn = conn_data.get().unwrap();
+    match ManufacturingOrderType::all(&conn) {
+        Ok(manufacturing_order_types) => HttpResponse::Ok().json(manufacturing_order_types),
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+    }
+}
+
+
 pub async fn create_flag_reason(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<LookupCreatePayload>) -> impl Responder {
     let conn = conn_data.get().unwrap();
     match FlagReason::create(&conn, &data) {
@@ -266,3 +317,4 @@ pub async fn all_flag_reasons(conn_data: web::Data<Pool<SqliteConnectionManager>
         Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
     }
 }
+

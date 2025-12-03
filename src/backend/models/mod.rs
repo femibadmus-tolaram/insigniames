@@ -7,6 +7,7 @@ pub mod downtime;
 pub mod scrap;
 pub mod ink_usage;
 pub mod machine;
+pub mod section;
 pub mod solvent_usage;
 pub mod lookup;
 
@@ -19,6 +20,7 @@ pub use downtime::*;
 pub use scrap::*;
 pub use ink_usage::*;
 pub use machine::*;
+pub use section::*;
 pub use solvent_usage::*;
 pub use lookup::*;
 

@@ -115,7 +115,7 @@ impl Scrap {
     }
 
     pub fn all(conn: &Connection) -> Result<Vec<Self>> {
-        let mut stmt = conn.prepare("SELECT * FROM scraps ORDER BY created_at DESC")?;
+        let mut stmt = conn.prepare("SELECT * FROM scraps ORDER BY time DESC")?;
         let scraps = stmt.query_map([], |row| Ok(Scrap {
             id: row.get(0)?,
             shift_id: row.get(1)?,
@@ -190,7 +190,7 @@ impl Scrap {
 
         let total_count: i32 = conn.query_row(&count_query, params_vec.as_slice(), |row| row.get(0))?;
 
-        data_query.push_str(" ORDER BY created_at DESC");
+        data_query.push_str(" ORDER BY time DESC");
 
         if let (Some(page), Some(per_page)) = (&filter.page, &filter.per_page) {
             if let (Ok(page_val), Ok(per_page_val)) = (page.parse::<i32>(), per_page.parse::<i32>()) {
