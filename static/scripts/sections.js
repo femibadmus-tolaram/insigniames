@@ -1,6 +1,7 @@
 /** @format */
+
 let sections = [];
-let orderTypes = [];
+let poCodes = [];
 let currentPage = 1;
 let itemsPerPage = 10;
 let totalCount = 0;
@@ -12,8 +13,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
 async function initializePage() {
 	setupEventListeners();
+	await loadPoCodes();
 	await loadSections();
-	await loadOrderTypes();
 }
 
 function showLoading(show) {
@@ -69,25 +70,25 @@ async function loadSections() {
 	}
 }
 
-async function loadOrderTypes() {
+async function loadPoCodes() {
 	try {
-		const response = await fetch("/api/lookups/manufacturing-order-types");
+		const response = await fetch("/api/lookups/po-codes");
 		const result = await handleApiResponse(response);
-		orderTypes = result;
+		poCodes = result;
 	} catch (error) {
-		console.error("Failed to load order types:", error);
+		console.error("Failed to load PO codes:", error);
 	}
 }
 
 function updateSectionStats() {
 	const totalSections = totalCount;
 	const totalMachines = sections.reduce((sum, section) => sum + (section.machine_count || 0), 0);
-	const totalOrderTypeCount = sections.reduce((sum, section) => sum + (section.order_type_ids.length || 0), 0);
+	const totalPoCodes = sections.reduce((sum, section) => sum + (section.po_code_ids?.length || 0), 0);
 	const totalJobs = sections.reduce((sum, section) => sum + (section.job_count || 0), 0);
 
 	document.getElementById("total-sections").textContent = totalSections;
 	document.getElementById("sections-total-machines").textContent = totalMachines;
-	document.getElementById("total-order-types").textContent = totalOrderTypeCount;
+	document.getElementById("total-po-codes").textContent = totalPoCodes;
 	document.getElementById("sections-total-jobs").textContent = totalJobs;
 }
 
@@ -100,13 +101,13 @@ async function applyFilters() {
 		const params = new URLSearchParams();
 		const nameFilter = document.getElementById("filter-section-name").value;
 		const hasMachines = document.getElementById("filter-has-machines").value;
-		const hasOrderTypes = document.getElementById("filter-has-order-types").value;
+		const hasPoCodes = document.getElementById("filter-po-codes-types").value;
 
 		if (nameFilter) params.append("name", nameFilter);
 		if (hasMachines === "yes") params.append("has_machines", "true");
 		if (hasMachines === "no") params.append("has_machines", "false");
-		if (hasOrderTypes === "yes") params.append("has_order_types", "true");
-		if (hasOrderTypes === "no") params.append("has_order_types", "false");
+		if (hasPoCodes === "yes") params.append("has_po_codes", "true");
+		if (hasPoCodes === "no") params.append("has_po_codes", "false");
 
 		params.append("page", currentPage);
 		params.append("per_page", itemsPerPage);
@@ -131,7 +132,7 @@ async function applyFilters() {
 function clearFilters() {
 	document.getElementById("filter-section-name").value = "";
 	document.getElementById("filter-has-machines").value = "";
-	document.getElementById("filter-has-order-types").value = "";
+	document.getElementById("filter-po-codes-types").value = "";
 
 	currentPage = 1;
 	applyFilters();
@@ -151,20 +152,37 @@ function renderSections() {
 		const row = document.createElement("tr");
 		row.className = "hover:bg-gray-50";
 
-		const orderTypeCount = section.order_type_ids ? section.order_type_ids.length : 0;
+		const poCodeNames =
+			section.po_code_ids
+				?.map((id) => {
+					const poCode = poCodes.find((pc) => pc.id === id);
+					return poCode ? poCode.name : "";
+				})
+				.filter((name) => name !== "") || [];
 
 		row.innerHTML = `
 			<td class="py-3 px-4 font-medium">${escapeHtml(section.name)}</td>
 			<td class="py-3 px-4 text-center">${section.machine_count || 0}</td>
-			<td class="py-3 px-4 text-center">${orderTypeCount}</td>
+			<td class="py-3 px-4">
+				<div class="text-center">
+					${
+						poCodeNames.length > 0
+							? `<span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mr-1">${escapeHtml(
+									poCodeNames[0]
+							  )}</span>` +
+							  (poCodeNames.length > 1 ? `<span class="text-gray-500 text-xs">+${poCodeNames.length - 1} more</span>` : "")
+							: '<span class="text-gray-400">None</span>'
+					}
+				</div>
+			</td>
 			<td class="py-3 px-4 text-center">${section.job_count || 0}</td>
 			<td class="py-3 px-4">
 				<div class="flex gap-2 justify-center">
 					<button class="text-blue-600 hover:text-blue-800 edit-btn" data-id="${section.id}">
 						<i class="fas fa-edit"></i>
 					</button>
-					<button class="text-green-600 hover:text-green-800 order-types-btn" data-id="${section.id}" data-name="${escapeHtml(section.name)}">
-						<i class="fas fa-clipboard-list"></i>
+					<button class="text-green-600 hover:text-green-800 po-codes-btn" data-id="${section.id}" data-name="${escapeHtml(section.name)}">
+						<i class="fas fa-tags"></i>
 					</button>
 					<button class="text-red-600 hover:text-red-800 delete-btn" data-id="${section.id}">
 						<i class="fas fa-trash"></i>
@@ -183,11 +201,11 @@ function renderSections() {
 		});
 	});
 
-	document.querySelectorAll(".order-types-btn").forEach((btn) => {
+	document.querySelectorAll(".po-codes-btn").forEach((btn) => {
 		btn.addEventListener("click", function () {
 			const id = this.dataset.id;
 			const name = this.dataset.name;
-			manageOrderTypes(id, name);
+			managePoCodes(id, name);
 		});
 	});
 
@@ -269,43 +287,16 @@ function closeSectionModal() {
 }
 
 function openOrderTypesModal() {
-	document.getElementById("order-types-modal").style.display = "flex";
+	document.getElementById("po-codes-modal").style.display = "flex";
 }
 
 function closeOrderTypesModal() {
-	document.getElementById("order-types-modal").style.display = "none";
+	document.getElementById("po-codes-modal").style.display = "none";
 }
 
 function populateSectionForm(section) {
 	document.getElementById("section-id").value = section.id;
 	document.getElementById("section-name").value = section.name;
-}
-
-function manageOrderTypes(sectionId, sectionName) {
-	currentSectionId = sectionId;
-	const modalTitle = document.getElementById("order-types-modal-title");
-	modalTitle.textContent = `Manage Order Types - ${sectionName}`;
-
-	const section = sections.find((s) => s.id === parseInt(sectionId));
-	if (!section) return;
-
-	const orderTypesList = document.getElementById("order-types-list");
-	orderTypesList.innerHTML = "";
-
-	const sectionOrderTypeIds = section.order_type_ids || [];
-
-	orderTypes.forEach((orderType) => {
-		const isChecked = sectionOrderTypeIds.includes(orderType.id);
-		const checkbox = document.createElement("div");
-		checkbox.className = "flex items-center";
-		checkbox.innerHTML = `
-			<input type="checkbox" id="order-type-${orderType.id}" value="${orderType.id}" ${isChecked ? "checked" : ""} class="mr-2 h-4 w-4">
-			<label for="order-type-${orderType.id}" class="text-sm text-gray-700">${escapeHtml(orderType.name)}</label>
-		`;
-		orderTypesList.appendChild(checkbox);
-	});
-
-	openOrderTypesModal();
 }
 
 function handleSectionFormSubmit(e) {
@@ -331,38 +322,6 @@ function handleSectionFormSubmit(e) {
 	}
 }
 
-async function saveOrderTypes() {
-	const saveBtn = document.getElementById("save-order-types-btn");
-	setButtonLoading(saveBtn, true);
-
-	try {
-		const checkboxes = document.querySelectorAll('#order-types-list input[type="checkbox"]');
-		const selectedOrderTypes = Array.from(checkboxes)
-			.filter((cb) => cb.checked)
-			.map((cb) => parseInt(cb.value));
-
-		const formData = {
-			id: parseInt(currentSectionId),
-			order_type_ids: selectedOrderTypes,
-		};
-
-		const response = await fetch("/api/sections/update", {
-			method: "PUT",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(formData),
-		});
-		await handleApiResponse(response);
-
-		showNotification("Order types updated successfully!", "success");
-		closeOrderTypesModal();
-		await loadSections();
-	} catch (error) {
-		showNotification(error.message, "error");
-	} finally {
-		setButtonLoading(saveBtn, false);
-	}
-}
-
 async function createSection(sectionData) {
 	try {
 		const response = await fetch("/api/sections/create", {
@@ -373,23 +332,6 @@ async function createSection(sectionData) {
 		await handleApiResponse(response);
 
 		showNotification("Section created successfully!", "success");
-		closeSectionModal();
-		await loadSections();
-	} catch (error) {
-		showNotification(error.message, "error");
-	}
-}
-
-async function updateSection(sectionData) {
-	try {
-		const response = await fetch("/api/sections/update", {
-			method: "PUT",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify(sectionData),
-		});
-		await handleApiResponse(response);
-
-		showNotification("Section updated successfully!", "success");
 		closeSectionModal();
 		await loadSections();
 	} catch (error) {
@@ -424,6 +366,67 @@ function editSection(sectionId) {
 	openSectionModal(sectionId);
 }
 
+function managePoCodes(sectionId, sectionName) {
+	currentSectionId = sectionId;
+	const modalTitle = document.getElementById("po-codes-modal-title");
+	modalTitle.textContent = `Manage PO Codes - ${sectionName}`;
+
+	const section = sections.find((s) => s.id === parseInt(sectionId));
+	if (!section) return;
+
+	const poCodesList = document.getElementById("po-codes-list");
+	poCodesList.innerHTML = "";
+
+	poCodes.forEach((poCode) => {
+		const checkbox = document.createElement("div");
+		checkbox.className = "flex items-center mb-2";
+		checkbox.innerHTML = `
+			<input type="checkbox" id="po-code-${poCode.id}" name="po_codes" 
+				value="${poCode.id}" ${section.po_code_ids?.includes(poCode.id) ? "checked" : ""} 
+				class="mr-2 h-4 w-4">
+			<label for="po-code-${poCode.id}" class="text-sm text-gray-700">${escapeHtml(poCode.name)}</label>
+		`;
+		poCodesList.appendChild(checkbox);
+	});
+
+	openOrderTypesModal();
+}
+
+async function savePoCodes() {
+	const saveBtn = document.getElementById("save-po-codes-btn");
+	setButtonLoading(saveBtn, true);
+
+	try {
+		const selectedCheckboxes = document.querySelectorAll('#po-codes-list input[name="po_codes"]:checked');
+		const selectedPoCodes = Array.from(selectedCheckboxes).map((cb) => parseInt(cb.value));
+
+		const formData = {
+			id: parseInt(currentSectionId),
+			po_code_ids: selectedPoCodes,
+		};
+
+		const response = await fetch("/api/sections/update-po-codes", {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(formData),
+		});
+		await handleApiResponse(response);
+
+		const section = sections.find((s) => s.id === parseInt(currentSectionId));
+		if (section) {
+			section.po_code_ids = selectedPoCodes;
+		}
+
+		showNotification("PO codes updated successfully!", "success");
+		closeOrderTypesModal();
+		renderSections();
+	} catch (error) {
+		showNotification(error.message, "error");
+	} finally {
+		setButtonLoading(saveBtn, false);
+	}
+}
+
 async function exportToExcel() {
 	const exportBtn = document.getElementById("sections-export-btn");
 	setButtonLoading(exportBtn, true);
@@ -432,13 +435,13 @@ async function exportToExcel() {
 		const params = new URLSearchParams();
 		const nameFilter = document.getElementById("filter-section-name").value;
 		const hasMachines = document.getElementById("filter-has-machines").value;
-		const hasOrderTypes = document.getElementById("filter-has-order-types").value;
+		const hasPoCodes = document.getElementById("filter-po-codes-types").value;
 
 		if (nameFilter) params.append("name", nameFilter);
 		if (hasMachines === "yes") params.append("has_machines", "true");
 		if (hasMachines === "no") params.append("has_machines", "false");
-		if (hasOrderTypes === "yes") params.append("has_order_types", "true");
-		if (hasOrderTypes === "no") params.append("has_order_types", "false");
+		if (hasPoCodes === "yes") params.append("has_po_codes", "true");
+		if (hasPoCodes === "no") params.append("has_po_codes", "false");
 
 		const response = await fetch(`/api/sections/filter?${params}`);
 		const result = await handleApiResponse(response);
@@ -450,11 +453,11 @@ async function exportToExcel() {
 		}
 
 		const data = filteredSections.map((section) => {
-			const orderTypeCount = section.order_type_ids ? section.order_type_ids.length : 0;
+			const poCodeCount = section.po_code_ids ? section.po_code_ids.length : 0;
 			return {
 				Name: section.name,
 				Machines: section.machine_count || 0,
-				"Order Types": orderTypeCount,
+				"PO Codes": poCodeCount,
 				"Total Jobs": section.job_count || 0,
 			};
 		});
@@ -481,9 +484,9 @@ function setupEventListeners() {
 	document.getElementById("cancel-section-btn").addEventListener("click", closeSectionModal);
 	document.getElementById("section-form").addEventListener("submit", handleSectionFormSubmit);
 
-	document.getElementById("close-order-types-modal").addEventListener("click", closeOrderTypesModal);
-	document.getElementById("cancel-order-types-btn").addEventListener("click", closeOrderTypesModal);
-	document.getElementById("save-order-types-btn").addEventListener("click", saveOrderTypes);
+	document.getElementById("close-po-codes-modal").addEventListener("click", closeOrderTypesModal);
+	document.getElementById("cancel-po-codes-btn").addEventListener("click", closeOrderTypesModal);
+	document.getElementById("save-po-codes-btn").addEventListener("click", savePoCodes);
 
 	const exportBtn = document.getElementById("sections-export-btn");
 	if (exportBtn) {
@@ -495,4 +498,21 @@ function setupEventListeners() {
 		currentPage = 1;
 		applyFilters();
 	});
+}
+
+async function updateSection(formData) {
+	try {
+		const response = await fetch("/api/sections/update", {
+			method: "PUT",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify(formData),
+		});
+		await handleApiResponse(response);
+
+		showNotification("Section updated successfully!", "success");
+		closeSectionModal();
+		await loadSections();
+	} catch (error) {
+		showNotification(error.message, "error");
+	}
 }

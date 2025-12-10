@@ -71,6 +71,9 @@
 								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
 							>
 								<div class="py-2">
+									<a href="/materials" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-industry"></i> Materials
+									</a>
 									<a href="/machines" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
 										<i class="fas fa-cogs"></i> Machines
 									</a>
@@ -129,11 +132,11 @@
 							</select>
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Has Order Types</label>
-							<select id="filter-has-order-types" class="filter-select">
+							<label class="block text-sm font-medium text-gray-700 mb-1">Has Po Codes</label>
+							<select id="filter-po-codes-types" class="filter-select">
 								<option value="">All</option>
-								<option value="yes">Has Order Types</option>
-								<option value="no">No Order Types</option>
+								<option value="yes">Has Po Codes</option>
+								<option value="no">No Po Codes</option>
 							</select>
 						</div>
 						<div>
@@ -183,8 +186,8 @@
 								<i class="fas fa-clipboard-list text-amber-600"></i>
 							</div>
 							<div>
-								<h3 class="text-sm font-medium text-amber-600">Order Types</h3>
-								<p class="text-2xl font-bold text-gray-800" id="total-order-types">0</p>
+								<h3 class="text-sm font-medium text-amber-600">PO Codes</h3>
+								<p class="text-2xl font-bold text-gray-800" id="total-po-codes">0</p>
 							</div>
 						</div>
 					</div>
@@ -228,7 +231,7 @@
 									</th>
 									<th class="cursor-pointer text-center">
 										<div class="flex items-center gap-1 justify-center">
-											<span>Order Types</span>
+											<span>PO Codes</span>
 											<i class="fas fa-sort text-gray-400"></i>
 										</div>
 									</th>
@@ -287,24 +290,24 @@
 			</div>
 		</div>
 
-		<!-- Manage Order Types Modal -->
-		<div id="order-types-modal" class="modal">
+		<!-- Manage PO Codes Modal -->
+		<div id="po-codes-modal" class="modal">
 			<div class="modal-content max-w-3xl">
 				<div class="flex justify-between items-center mb-4">
-					<h3 class="text-lg font-semibold" id="order-types-modal-title">Manage Order Types</h3>
-					<button id="close-order-types-modal" class="text-gray-400 hover:text-gray-600">
+					<h3 class="text-lg font-semibold" id="po-codes-modal-title">Manage PO Codes</h3>
+					<button id="close-po-codes-modal" class="text-gray-400 hover:text-gray-600">
 						<i class="fas fa-times"></i>
 					</button>
 				</div>
 				<div class="mb-4">
-					<h4 class="text-md font-medium text-gray-700 mb-2">Available Order Types</h4>
-					<div id="order-types-list" class="space-y-2 max-h-60 overflow-y-auto p-2 border border-gray-200 rounded">
-						<!-- Order types will be populated here -->
+					<h4 class="text-md font-medium text-gray-700 mb-2">Available PO Codes</h4>
+					<div id="po-codes-list" class="space-y-2 max-h-60 overflow-y-auto p-2 border border-gray-200 rounded">
+						<!-- PO Codes will be populated here -->
 					</div>
 				</div>
 				<div class="flex justify-end gap-3 mt-6">
-					<button type="button" id="cancel-order-types-btn" class="btn btn-secondary">Cancel</button>
-					<button type="button" id="save-order-types-btn" class="btn btn-primary">Save Order Types</button>
+					<button type="button" id="cancel-po-codes-btn" class="btn btn-secondary">Cancel</button>
+					<button type="button" id="save-po-codes-btn" class="btn btn-primary">Save PO Codes</button>
 				</div>
 			</div>
 		</div>

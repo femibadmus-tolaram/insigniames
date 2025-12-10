@@ -8,6 +8,7 @@ const lookupTypes = {
 	colours: "Colours",
 	"solvent-types": "Solvent Types",
 	"scrap-types": "Scrap Types",
+	"po-codes": "Material Description CODE",
 	"downtime-reasons": "Downtime Reasons",
 	"flag-reasons": "Flag Reasons",
 	"manufacturing-order-types": "Manufacturing Order Types",

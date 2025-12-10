@@ -56,6 +56,11 @@ struct MachineTemplate{
     user_name: String,
 }
 #[derive(Template)]
+#[template(path = "material.html")]
+struct MaterialTemplate{
+    user_name: String,
+}
+#[derive(Template)]
 #[template(path = "section.html")]
 struct SectionTemplate{
     user_name: String,
@@ -130,6 +135,14 @@ pub async fn machine_page(session: Session) -> impl Responder {
         .content_type("text/html")
         .body(MachineTemplate { user_name }.render().unwrap())
 }
+
+pub async fn material_page(session: Session) -> impl Responder {
+    let user_name = session.get::<String>("user_name").unwrap_or(None).unwrap_or_default();
+    HttpResponse::Ok()
+        .content_type("text/html")
+        .body(MaterialTemplate { user_name }.render().unwrap())
+}
+
 
 pub async fn section_page(session: Session) -> impl Responder {
     let user_name = session.get::<String>("user_name").unwrap_or(None).unwrap_or_default();

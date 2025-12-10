@@ -42,19 +42,51 @@ async function loadProcessOrders() {
 	const processOrderSelect = document.getElementById("process-order");
 	setSelectLoading(processOrderSelect, true);
 
+	const machineSelect = document.getElementById("machine");
+	const selectedMachineId = machineSelect.value;
+
+	if (!selectedMachineId) {
+		processOrderSelect.innerHTML = '<option value="">Select machine first</option>';
+		setSelectLoading(processOrderSelect, false);
+		return;
+	}
+
+	const selectedMachine = machines.find((m) => m.id == selectedMachineId);
+	if (!selectedMachine || !selectedMachine.section_order_types) {
+		processOrderSelect.innerHTML = '<option value="">No order type configured for section</option>';
+		setSelectLoading(processOrderSelect, false);
+		return;
+	}
+
+	const today = new Date().toISOString().split("T")[0];
+	const orderType = selectedMachine.section_order_types;
+	const routingCode = selectedMachine.label;
+
 	try {
-		const response = await fetch("/api/sap/test");
-		const poData = await handleApiResponse(response);
+		const response = await fetch(`/api/process_order?order_type=${orderType}&routing_code=${routingCode}&posting_date=${today}`);
+		const result = await handleApiResponse(response);
 
 		processOrderSelect.innerHTML = '<option value="">Select Process Order</option>';
 
-		poData.forEach((po) => {
-			const option = document.createElement("option");
-			option.value = po.po;
-			option.textContent = `${po.po} - ${po.sku}`;
-			option.setAttribute("data-po", JSON.stringify(po));
-			processOrderSelect.appendChild(option);
-		});
+		if (result.value && Array.isArray(result.value)) {
+			result.value.forEach((po) => {
+				const option = document.createElement("option");
+				option.value = po.ProductionOrder;
+				option.textContent = `${po.ProductionOrder}`;
+				option.setAttribute(
+					"data-po",
+					JSON.stringify({
+						po: po.ProductionOrder,
+						sku: po.Material || "-",
+						materials: po.MaterialText || "-",
+						planned_films: po.TotalQuantity || "0",
+					})
+				);
+				processOrderSelect.appendChild(option);
+			});
+		} else {
+			processOrderSelect.innerHTML = '<option value="">No process orders found</option>';
+		}
 	} catch (error) {
 		showNotification(error.message, "error");
 		processOrderSelect.innerHTML = '<option value="">Failed to load POs</option>';
@@ -77,15 +109,23 @@ function populateMachineSelect() {
 	const machineSelect = document.getElementById("machine");
 	machineSelect.innerHTML = '<option value="">Select Machine</option>';
 
-	if (currentUser && currentUser.machine_ids) {
-		const userMachines = machines.filter((machine) => currentUser.machine_ids.includes(machine.id));
+	if (currentUser && currentUser.id) {
+		fetch(`/api/machines/filter?user_id=${currentUser.id}&per_page=100`)
+			.then((response) => response.json())
+			.then((result) => {
+				const userMachines = result.data || result;
 
-		userMachines.forEach((machine) => {
-			const option = document.createElement("option");
-			option.value = machine.id;
-			option.textContent = machine.label;
-			machineSelect.appendChild(option);
-		});
+				userMachines.forEach((machine) => {
+					const option = document.createElement("option");
+					option.value = machine.id;
+					option.textContent = machine.name;
+					machineSelect.appendChild(option);
+				});
+			})
+			.catch((error) => {
+				console.error("Error loading machines:", error);
+				showNotification("Failed to load machines", "error");
+			});
 	}
 }
 

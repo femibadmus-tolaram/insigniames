@@ -10,6 +10,8 @@ pub mod machine;
 pub mod section;
 pub mod solvent_usage;
 pub mod lookup;
+pub mod process_order;
+pub mod material;
 
 pub use permission::*;
 pub use role::*;
@@ -23,6 +25,8 @@ pub use machine::*;
 pub use section::*;
 pub use solvent_usage::*;
 pub use lookup::*;
+pub use process_order::*;
+pub use material::*;
 
 
 pub mod id;

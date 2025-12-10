@@ -48,7 +48,44 @@ pub fn init_local_db(path: &str) -> Result<()> {
 
         CREATE TABLE IF NOT EXISTS sections (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE
+            name TEXT UNIQUE,
+            order_type_id INTEGER,
+            FOREIGN KEY (order_type_id) REFERENCES manufacturing_order_types(id)
+        );
+        CREATE TABLE IF NOT EXISTS po_codes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT UNIQUE,
+            created_at DATETIME
+        );
+        CREATE TABLE IF NOT EXISTS po_code_sections (
+            po_code_id INTEGER,
+            section_id INTEGER,
+            PRIMARY KEY(po_code_id, section_id),
+            FOREIGN KEY(po_code_id) REFERENCES po_codes(id) ON DELETE CASCADE,
+            FOREIGN KEY(section_id) REFERENCES sections(id) ON DELETE CASCADE
+        );
+        CREATE TABLE IF NOT EXISTS process_order (
+            process_order TEXT,
+            posting_date TEXT,
+            shift TEXT,
+            description TEXT,
+            line TEXT,
+            po_code_id INTEGER,
+            material_id INTEGER,
+            FOREIGN KEY (po_code_id) REFERENCES po_codes(id)
+            FOREIGN KEY (material_id) REFERENCES materials(id)
+        );
+        CREATE TABLE IF NOT EXISTS materials (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code TEXT UNIQUE,
+            key TEXT,
+            value TEXT,
+            created_at DATETIME
+        );
+        CREATE TABLE IF NOT EXISTS materials_value_description (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            value TEXT UNIQUE,
+            desc TEXT
         );
         CREATE TABLE IF NOT EXISTS machines (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,13 +104,6 @@ pub fn init_local_db(path: &str) -> Result<()> {
         CREATE TABLE IF NOT EXISTS manufacturing_order_types (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT UNIQUE
-        );
-        CREATE TABLE IF NOT EXISTS section_order_types (
-            section_id INTEGER,
-            order_type_id INTEGER,
-            PRIMARY KEY(section_id, order_type_id),
-            FOREIGN KEY(section_id) REFERENCES sections(id),
-            FOREIGN KEY(order_type_id) REFERENCES manufacturing_order_types(id)
         );
         CREATE TABLE IF NOT EXISTS shifts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

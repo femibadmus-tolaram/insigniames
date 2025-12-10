@@ -33,7 +33,7 @@ function transformNavBasedOnRole() {
 	const roleNavMap = {
 		Dashboard: ["Dashboard", "Jobs", "Rolls"],
 		Production: ["Production", "Downtime", "Scrap", "Actual Consumable"],
-		Settings: ["Settings", "Machines", "Sections", "Manage Lookups", "Users Management", "Roles & Permissions", "Logout"],
+		Settings: ["Settings", "Materials", "Machines", "Sections", "Manage Lookups", "Users Management", "Roles & Permissions", "Logout"],
 	};
 
 	const defaultNav = `
@@ -78,6 +78,9 @@ function transformNavBasedOnRole() {
             ></a>
             <div class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                 <div class="py-2">
+                    <a href="/materials" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+                        <i class="fas fa-industry"></i> Materials
+                    </a>
                     <a href="/machines" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
                         <i class="fas fa-cogs"></i> Machines
                     </a>
@@ -131,6 +134,7 @@ function createNavItemHTML(itemName) {
 		Scrap: "/scrap",
 		"Actual Consumable": "/consumables",
 		Settings: "/settings",
+		Materials: "/materials",
 		Machines: "/machines",
 		Sections: "/sections",
 		"Manage Lookups": "/lookups",
@@ -148,6 +152,7 @@ function createNavItemHTML(itemName) {
 		Scrap: "fa-trash",
 		"Actual Consumable": "fa-flask",
 		Settings: "fa-cog",
+		Materials: "fa-industry",
 		Machines: "fa-cogs",
 		Sections: "fa-building",
 		"Manage Lookups": "fa-list",
@@ -323,8 +328,8 @@ function formatMinutes(minutes) {
 function formatDbError(errorMessage) {
 	const errorMap = {
 		// Machines
-		"UNIQUE constraint failed: machines.name": "Machine name already exists",
-		"UNIQUE constraint failed: machines.label": "Machine label already exists",
+		"UNIQUE constraint failed: machines.name": "Routing Name already exists",
+		"UNIQUE constraint failed: machines.label": "Routing Code already exists",
 
 		// Users
 		"UNIQUE constraint failed: users.staffid": "Staff ID already exists",

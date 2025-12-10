@@ -1,7 +1,7 @@
 use actix_web::{web, HttpResponse, Responder};
 use r2d2_sqlite::SqliteConnectionManager;
 use r2d2::Pool;
-use crate::backend::models::{Section, SectionCreatePayload, SectionPayload, IdPayload, SectionFilterPayload};
+use crate::backend::models::*;
 
 pub async fn create_section(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<SectionCreatePayload>) -> impl Responder {
     let conn = conn_data.get().unwrap();
@@ -54,4 +54,16 @@ pub async fn filter_sections(conn_data: web::Data<Pool<SqliteConnectionManager>>
         Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
     }
 }
+
+pub async fn update_po_code_sections(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<SectionPoCodesPayload>) -> impl Responder {
+    let conn = conn_data.get().unwrap();
+    match Section::find_by_id(&conn, data.id) {
+        Ok(section) => {
+            if let Err(e) = section.update_po_codes(&conn, &data) { return HttpResponse::InternalServerError().body(e.to_string()); }
+            HttpResponse::Ok().json("PO codes updated successfully")
+        }
+        Err(_) => HttpResponse::NotFound().body("Section not found"),
+    }
+}
+
 

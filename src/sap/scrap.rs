@@ -9,7 +9,6 @@ use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::params;
 
 
-
 pub async fn sync_scrap_data(local_pool: &Pool<SqliteConnectionManager>) -> Result<(), Box<dyn error::Error>> {
     let server = env::var("SCRAP_SERVER")?;
     let database = env::var("SCRAP_DB")?;
@@ -212,5 +211,4 @@ fn get_or_create_user(conn: &rusqlite::Connection, full_name: &str) -> rusqlite:
         }
     }
 }
-
 

@@ -5,7 +5,7 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Machines - Insignia</title>
+		<title>Routing - Insignia</title>
 		<script src="/static/scripts/downloads/tailwind.js"></script>
 		<link rel="stylesheet" href="/static/styles/theme.css" />
 		<link rel="stylesheet" href="/static/styles/downloads/fa.css" />
@@ -20,7 +20,7 @@
 					<div class="bg-blue-100 p-2 rounded-lg">
 						<i class="fas fa-cogs text-blue-600 text-xl"></i>
 					</div>
-					<h1 class="text-xl font-bold text-gray-800">Machines Management</h1>
+					<h1 class="text-xl font-bold text-gray-800">Routing Management</h1>
 				</div>
 				<nav>
 					<ul id="main-nav" class="flex flex-wrap gap-1 text-gray-600 font-medium">
@@ -71,6 +71,9 @@
 								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
 							>
 								<div class="py-2">
+									<a href="/materials" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
+										<i class="fas fa-industry"></i> Materials
+									</a>
 									<a href="/machines" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
 										<i class="fas fa-cogs"></i> Machines
 									</a>
@@ -117,11 +120,11 @@
 
 					<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Machine Name</label>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Routing Name</label>
 							<input type="text" id="filter-machine-name" class="filter-input" placeholder="Search machines" />
 						</div>
 						<div>
-							<label class="block text-sm font-medium text-gray-700 mb-1">Machine Label</label>
+							<label class="block text-sm font-medium text-gray-700 mb-1">Routing Code</label>
 							<input type="text" id="filter-machine-label" class="filter-input" placeholder="Search labels" />
 						</div>
 						<div>
@@ -163,7 +166,7 @@
 								<i class="fas fa-cogs text-blue-600"></i>
 							</div>
 							<div>
-								<h3 class="text-sm font-medium text-blue-600">Total Machines</h3>
+								<h3 class="text-sm font-medium text-blue-600">Total Routing</h3>
 								<p class="text-2xl font-bold text-gray-800" id="total-machines">0</p>
 							</div>
 						</div>
@@ -195,7 +198,7 @@
 				<!-- Table -->
 				<div class="mt-6">
 					<div class="flex justify-between items-center mb-4">
-						<h3 class="text-lg font-medium text-gray-700">Machines List</h3>
+						<h3 class="text-lg font-medium text-gray-700">Routing List</h3>
 						<div class="flex items-center gap-2">
 							<button class="btn btn-secondary" id="machines-export-btn"><i class="fas fa-file-export"></i> Export</button>
 						</div>
@@ -207,13 +210,13 @@
 								<tr>
 									<th class="cursor-pointer">
 										<div class="flex items-center gap-1">
-											<span>Machine Name</span>
+											<span>Routing Name</span>
 											<i class="fas fa-sort text-gray-400"></i>
 										</div>
 									</th>
 									<th class="cursor-pointer">
 										<div class="flex items-center gap-1">
-											<span>Machine Label</span>
+											<span>Routing Code</span>
 											<i class="fas fa-sort text-gray-400"></i>
 										</div>
 									</th>
@@ -234,14 +237,14 @@
 							</thead>
 							<tbody id="machines-table-body" class="divide-y divide-gray-200">
 								<tr>
-									<td colspan="5" class="text-center text-gray-500 py-4">Loading machines...</td>
+									<td colspan="5" class="text-center text-gray-500 py-4">Loading routes...</td>
 								</tr>
 							</tbody>
 						</table>
 					</div>
 
 					<div id="machines-loading-message" class="text-center text-gray-500 py-8">
-						<i class="fas fa-spinner fa-spin mr-2"></i> Loading machines...
+						<i class="fas fa-spinner fa-spin mr-2"></i> Loading routes...
 					</div>
 				</div>
 
@@ -266,11 +269,11 @@
 					<input type="hidden" id="machine-id" />
 					<div class="grid grid-cols-1 gap-4">
 						<div class="form-group">
-							<label for="machine-name" class="form-label">Machine Name *</label>
+							<label for="machine-name" class="form-label">Routing Name *</label>
 							<input type="text" id="machine-name" class="form-input" required />
 						</div>
 						<div class="form-group">
-							<label for="machine-label" class="form-label">Machine Label *</label>
+							<label for="machine-label" class="form-label">Routing Code *</label>
 							<input type="text" id="machine-label" class="form-input" required />
 						</div>
 						<div class="form-group">

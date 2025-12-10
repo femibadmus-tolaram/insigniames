@@ -1,7 +1,7 @@
 use actix_web::{web, HttpResponse, Responder};
 use r2d2_sqlite::SqliteConnectionManager;
 use r2d2::Pool;
-use crate::backend::models::{Shift, Colour, SolventType, ScrapType, DowntimeReason, FlagReason, LookupCreatePayload, LookupPayload, IdPayload, ManufacturingOrderType};
+use crate::backend::models::*;
 
 
 pub async fn create_shift(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<LookupCreatePayload>) -> impl Responder {
@@ -317,4 +317,75 @@ pub async fn all_flag_reasons(conn_data: web::Data<Pool<SqliteConnectionManager>
         Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
     }
 }
+
+
+pub async fn add_po_code_section(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<POCodeSectionPayload>) -> impl Responder {
+    let conn = conn_data.get().unwrap();
+    match POCodeSection::create(&conn, data.po_code_id, data.section_id) {
+        Ok(_) => HttpResponse::Ok().body("POCode section added successfully"),
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+    }
+}
+
+pub async fn remove_po_code_section(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<POCodeSectionPayload>) -> impl Responder {
+    let conn = conn_data.get().unwrap();
+    match POCodeSection::delete(&conn, data.po_code_id, data.section_id) {
+        Ok(_) => HttpResponse::Ok().body("POCode section removed successfully"),
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+    }
+}
+
+pub async fn get_po_code_sections(conn_data: web::Data<Pool<SqliteConnectionManager>>, info: web::Path<i32>) -> impl Responder {
+    let conn = conn_data.get().unwrap();
+    match POCodeSection::find_by_po_code(&conn, info.into_inner()) {
+        Ok(sections) => HttpResponse::Ok().json(sections),
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+    }
+}
+
+
+pub async fn create_po_code(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<LookupCreatePayload>) -> impl Responder {
+    let conn = conn_data.get().unwrap();
+    match POCode::create(&conn, &data) {
+        Ok(po_code) => HttpResponse::Ok().json(po_code),
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+    }
+}
+
+pub async fn update_po_code(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<LookupPayload>) -> impl Responder {
+    let conn = conn_data.get().unwrap();
+    match POCode::find_by_id(&conn, data.id) {
+        Ok(mut po_code) => {
+            if let Err(e) = po_code.update(&conn, &data) { return HttpResponse::InternalServerError().body(e.to_string()); }
+            HttpResponse::Ok().json(po_code)
+        }
+        Err(_) => HttpResponse::NotFound().body("PO Code not found"),
+    }
+}
+
+pub async fn delete_po_code(conn_data: web::Data<Pool<SqliteConnectionManager>>, data: web::Json<IdPayload>) -> impl Responder {
+    let conn = conn_data.get().unwrap();
+    match POCode::find_by_id(&conn, data.id) {
+        Ok(po_code) => {
+            match POCode::has_related_records(&conn, data.id) {
+                Ok(true) => return HttpResponse::BadRequest().body("Cannot delete PO Code with existing records"),
+                Ok(false) => {
+                    if let Err(e) = po_code.delete(&conn) { return HttpResponse::InternalServerError().body(e.to_string()); }
+                    HttpResponse::Ok().body("PO Code deleted successfully")
+                }
+                Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+            }
+        }
+        Err(_) => HttpResponse::NotFound().body("PO Code not found")
+    }
+}
+
+pub async fn all_po_codes(conn_data: web::Data<Pool<SqliteConnectionManager>>) -> impl Responder {
+    let conn = conn_data.get().unwrap();
+    match POCode::all(&conn) {
+        Ok(po_codes) => HttpResponse::Ok().json(po_codes),
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+    }
+}
+
 

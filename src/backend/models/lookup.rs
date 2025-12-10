@@ -53,6 +53,26 @@ pub struct LookupPayload {
     pub id: i32,
     pub name: Option<String>,
 }
+#[derive(Debug, Serialize)]
+pub struct POCodeSection {
+    pub po_code_id: i32,
+    pub section_id: i32,
+}
+
+#[derive(Deserialize)]
+pub struct POCodeSectionPayload {
+    pub po_code_id: i32,
+    pub section_id: i32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct POCode {
+    pub id: i32,
+    pub name: String,
+    pub created_at: String,
+}
+
+
 
 impl Shift {
     pub fn has_related_records(conn: &Connection, shift_id: i32) -> Result<bool> {
@@ -263,7 +283,6 @@ impl ManufacturingOrderType {
     }
 }
 
-
 impl DowntimeReason {
     pub fn has_related_records(conn: &Connection, downtime_reason_id: i32) -> Result<bool> {
         let count: i32 = conn.query_row(
@@ -305,7 +324,6 @@ impl DowntimeReason {
     }
 }
 
-
 impl FlagReason {
     pub fn has_related_records(conn: &Connection, flag_reason_id: i32) -> Result<bool> {
         let count: i32 = conn.query_row(
@@ -344,6 +362,107 @@ impl FlagReason {
         let mut stmt = conn.prepare("SELECT * FROM flag_reasons ORDER BY name")?;
         let flag_reasons = stmt.query_map([], |row| Ok(FlagReason { id: row.get(0)?, name: row.get(1)? }))?.collect::<Result<Vec<_>, _>>()?;
         Ok(flag_reasons)
+    }
+}
+
+impl POCodeSection {
+    pub fn create(conn: &Connection, po_code_id: i32, section_id: i32) -> Result<()> {
+        conn.execute(
+            "INSERT INTO po_code_sections (po_code_id, section_id) VALUES (?1, ?2)",
+            params![po_code_id, section_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn delete(conn: &Connection, po_code_id: i32, section_id: i32) -> Result<()> {
+        conn.execute(
+            "DELETE FROM po_code_sections WHERE po_code_id = ?1 AND section_id = ?2",
+            params![po_code_id, section_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn find_by_po_code(conn: &Connection, po_code_id: i32) -> Result<Vec<Self>> {
+        let mut stmt = conn.prepare("SELECT * FROM po_code_sections WHERE po_code_id = ?1")?;
+        let sections = stmt
+            .query_map(params![po_code_id], |row| {
+                Ok(POCodeSection {
+                    po_code_id: row.get(0)?,
+                    section_id: row.get(1)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(sections)
+    }
+
+    pub fn find_by_section(conn: &Connection, section_id: i32) -> Result<Vec<Self>> {
+        let mut stmt = conn.prepare("SELECT * FROM po_code_sections WHERE section_id = ?1")?;
+        let po_codes = stmt
+            .query_map(params![section_id], |row| {
+                Ok(POCodeSection {
+                    po_code_id: row.get(0)?,
+                    section_id: row.get(1)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(po_codes)
+    }
+}
+
+impl POCode {
+    pub fn has_related_records(conn: &Connection, po_code_id: i32) -> Result<bool> {
+        let tables = vec!["process_order", "po_code_sections"];
+        for table in tables {
+            let count: i32 = conn.query_row(
+                &format!("SELECT COUNT(*) FROM {} WHERE po_code_id = ?1", table),
+                params![po_code_id],
+                |row| row.get(0)
+            )?;
+            if count > 0 { return Ok(true); }
+        }
+        Ok(false)
+    }
+
+    pub fn create(conn: &Connection, data: &LookupCreatePayload) -> Result<Self> {
+        let now = chrono::Utc::now().naive_utc().to_string();
+        conn.execute(
+            "INSERT INTO po_codes (name, created_at) VALUES (?1, ?2, ?3)",
+            params![data.name, "", now],
+        )?;
+        let id = conn.last_insert_rowid() as i32;
+        Ok(POCode { id, name: data.name.clone(), created_at: now })
+    }
+    
+    pub fn update(&mut self, conn: &Connection, data: &LookupPayload) -> Result<()> {
+        if let Some(name) = &data.name {
+            conn.execute("UPDATE po_codes SET name = ?1 WHERE id = ?2", params![name, self.id])?;
+            self.name = name.clone();
+        }
+        Ok(())
+    }
+
+    pub fn delete(&self, conn: &Connection) -> Result<()> {
+        conn.execute("DELETE FROM po_codes WHERE id = ?1", params![self.id])?;
+        Ok(())
+    }
+
+    pub fn find_by_id(conn: &Connection, id: i32) -> Result<Self> {
+        let mut stmt = conn.prepare("SELECT * FROM po_codes WHERE id = ?1")?;
+        stmt.query_row(params![id], |row| Ok(POCode {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            created_at: row.get(2)?,
+        }))
+    }
+
+    pub fn all(conn: &Connection) -> Result<Vec<Self>> {
+        let mut stmt = conn.prepare("SELECT * FROM po_codes ORDER BY name")?;
+        let po_codes = stmt.query_map([], |row| Ok(POCode {
+            id: row.get(0)?,
+            name: row.get(1)?,
+            created_at: row.get(2)?,
+        }))?.collect::<Result<Vec<_>, _>>()?;
+        Ok(po_codes)
     }
 }
 
