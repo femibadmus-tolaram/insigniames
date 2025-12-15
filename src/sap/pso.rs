@@ -41,8 +41,7 @@ pub async fn sync_process_orders(local_pool: &Pool<SqliteConnectionManager>) -> 
     
     let target_date = get_target_date(&conn)?;
 
-    let formatted_date = "2024-03-04";
-    let _formatted_date = format!("{}-{:02}-{:02}", target_date.year(), target_date.month(), target_date.day());
+    let formatted_date = format!("{}-{:02}-{:02}", target_date.year(), target_date.month(), target_date.day());
     let url = format!("{}?$format=json&$filter=OrderType eq 'ZIS1' and Plant eq 'A710' and PostingDate eq datetime'{}T00:00:00'", base_url, formatted_date);
 
     let client = reqwest::Client::new();
@@ -66,21 +65,20 @@ pub async fn sync_process_orders(local_pool: &Pool<SqliteConnectionManager>) -> 
 }
 
 fn get_target_date(conn: &rusqlite::Connection) -> rusqlite::Result<chrono::NaiveDate> {
+    let today = chrono::Local::now().date_naive();
+    
     let last_date: Option<String> = conn.query_row(
-        "SELECT MAX(date) FROM process_order",
+        "SELECT MAX(posting_date) FROM process_order",
         [],
         |row| row.get(0),
-    ).ok();
+    )?;
     
-    if let Some(date_str) = last_date {
-        if let Ok(date) = chrono::NaiveDate::parse_from_str(&date_str, "%Y-%m-%d") {
-            Ok(date.succ_opt().unwrap_or(chrono::Local::now().date_naive()))
-        } else {
-            Ok(chrono::Local::now().date_naive())
-        }
-    } else {
-        Ok(chrono::Local::now().date_naive())
-    }
+    let target_date = last_date
+        .and_then(|date_str| chrono::NaiveDate::parse_from_str(&date_str, "%Y-%m-%d").ok())
+        .and_then(|date| date.succ_opt())
+        .unwrap_or(today);
+    
+    Ok(target_date)
 }
 
 fn extract_and_save_po_data(conn: &rusqlite::Connection, po: &ProcessOrder) -> rusqlite::Result<()> {

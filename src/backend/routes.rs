@@ -96,6 +96,7 @@ pub fn init_routes(cfg: &mut web::ServiceConfig, conn_data: web::Data<Pool<Sqlit
     cfg.service(
         web::scope("/api/process_order")
             .service(web::resource("").wrap(CheckRead { model: "rolls", conn_data: conn_data.clone() }).route(web::get().to(get_process_orders)))
+            .service(web::resource("/all").wrap(CheckRead { model: "rolls", conn_data: conn_data.clone() }).route(web::get().to(get_all_process_orders)))
     );
 
     // Solvent Usage routes

@@ -1,7 +1,7 @@
 use chrono::Local;
 use rusqlite::{params, Connection, Result};
 use serde::{Serialize, Deserialize};
-use crate::backend::models::FilterResponse;
+use crate::{backend::models::{FilterResponse, Job}, sap::{RollData, post_rolls}};
 
 #[derive(Debug, Serialize)]
 pub struct Roll {
@@ -49,6 +49,7 @@ pub struct RollFilterPayload {
     pub end_date: Option<String>,
     pub per_page: Option<String>,
     pub page: Option<String>,
+    pub status: Option<String>,
 }
 
 impl Roll {
@@ -73,8 +74,25 @@ impl Roll {
         })
     }
 
-    pub fn update(&mut self, conn: &Connection, data: &RollPayload) -> Result<()> {
+    pub async fn update(&mut self, conn: &Connection, data: &RollPayload) -> Result<()> {
+        if let Some(final_weight) = data.final_weight {
+            let job = Job::find_by_id(conn, self.job_id)?;
+            
+            let roll_data = RollData {
+                alternate_quantity: final_weight.to_string(),
+                quantity: self.final_meter.to_string(),
+                batch: job.batch_roll_no.clone(),
+                production_order: job.production_order.clone(),
+            };
+            
+            let success = post_rolls(roll_data).await;
+            if !success {
+                return Err(rusqlite::Error::InvalidParameterName("Failed to post roll data".to_string()));
+            }
+        }
+        
         let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        
         if let Some(output_roll_no) = &data.output_roll_no {
             conn.execute("UPDATE rolls SET output_roll_no = ?1 WHERE id = ?2", params![output_roll_no, self.id])?;
             self.output_roll_no = output_roll_no.clone();
@@ -163,6 +181,19 @@ impl Roll {
                 params_vec.push(job_ids.last().unwrap());
                 count_query.push_str(" AND r.job_id = ?");
                 data_query.push_str(" AND r.job_id = ?");
+            }
+        }
+
+        if let Some(val) = &filter.status {
+            if val == "pending" {
+                count_query.push_str(" AND r.final_weight = 0");
+                data_query.push_str(" AND r.final_weight = 0");
+            } else if val == "flagged" {
+                count_query.push_str(" AND r.number_of_flags > 0");
+                data_query.push_str(" AND r.number_of_flags > 0");
+            } else if val == "completed" {
+                count_query.push_str(" AND r.final_weight > 0");
+                data_query.push_str(" AND r.final_weight > 0");
             }
         }
 

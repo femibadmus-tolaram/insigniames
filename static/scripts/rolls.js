@@ -29,7 +29,6 @@ async function loadFilterOptions() {
 
 		populateSelect("filter-flag-reason", flagReasons, "name", "All Reasons");
 		populateSelect("filter-user", users, "full_name", "All Users");
-		populateSelect("flag-reason", flagReasons, "name", "Select Reason");
 	} catch (error) {
 		showNotification(error.message, "error");
 	}
@@ -62,7 +61,7 @@ async function loadRolls() {
 
 function updateRollStats(rolls) {
 	const totalRecords = rolls.length;
-	const completedRolls = rolls.filter((roll) => roll.final_weight > 0 && roll.number_of_flags === 0).length;
+	const completedRolls = rolls.filter((roll) => roll.final_weight > 0).length;
 	const pendingRolls = rolls.filter((roll) => roll.final_weight === 0).length;
 	const flaggedRolls = rolls.filter((roll) => roll.number_of_flags > 0).length;
 
@@ -84,6 +83,8 @@ function renderRolls(rollsToRender) {
 	rollsToRender.forEach((roll) => {
 		const reason = flagReasons.find((r) => r.id === roll.flag_reason_id);
 		const createdBy = users.find((u) => u.id === roll.created_by);
+		const isEditable = roll.final_weight === 0;
+		const isDeletable = roll.final_weight === 0;
 
 		const row = document.createElement("tr");
 		row.className = "hover:bg-gray-50";
@@ -108,10 +109,14 @@ function renderRolls(rollsToRender) {
 			<td class="py-3 px-4">${formatDateTime(roll.created_at)}</td>
 			<td class="py-3 px-4">
 				<div class="flex gap-2">
-					<button class="text-blue-600 hover:text-blue-800 edit-btn" data-id="${roll.id}">
+					<button class="${isEditable ? "text-blue-600 hover:text-blue-800" : "text-gray-400 cursor-not-allowed"} edit-btn" data-id="${roll.id}" ${
+			!isEditable ? "disabled" : ""
+		}>
 						<i class="fas fa-edit"></i>
 					</button>
-					<button class="text-red-600 hover:text-red-800 delete-btn" data-id="${roll.id}">
+					<button class="${isDeletable ? "text-red-600 hover:text-red-800" : "text-gray-400 cursor-not-allowed"} delete-btn" data-id="${roll.id}" ${
+			!isDeletable ? "disabled" : ""
+		}>
 						<i class="fas fa-trash"></i>
 					</button>
 				</div>
@@ -129,10 +134,10 @@ function renderRolls(rollsToRender) {
 		tbody.appendChild(row);
 	});
 
-	document.querySelectorAll(".edit-btn").forEach((btn) => {
+	document.querySelectorAll(".edit-btn:not([disabled])").forEach((btn) => {
 		btn.addEventListener("click", () => editRoll(btn.dataset.id));
 	});
-	document.querySelectorAll(".delete-btn").forEach((btn) => {
+	document.querySelectorAll(".delete-btn:not([disabled])").forEach((btn) => {
 		btn.addEventListener("click", function () {
 			deleteRoll(btn.dataset.id);
 		});
@@ -191,16 +196,24 @@ async function applyFilters() {
 
 	try {
 		const params = new URLSearchParams();
-		const jobId = document.getElementById("filter-job-id").value;
-		const outputRollNo = document.getElementById("filter-output-roll-no").value;
+		const searchTerm = document.getElementById("filter-search").value;
+		const statusFilter = document.getElementById("filter-status").value;
 		const reasonFilter = document.getElementById("filter-flag-reason").value;
 		const userFilter = document.getElementById("filter-user").value;
 		const shiftFilter = document.getElementById("filter-shift").value;
 		const startDate = document.getElementById("filter-start-date").value;
 		const endDate = document.getElementById("filter-end-date").value;
 
-		if (jobId) params.append("job_id", jobId);
-		if (outputRollNo) params.append("output_roll_no", outputRollNo);
+		if (searchTerm) {
+			if (!isNaN(searchTerm) && searchTerm.trim() !== "") {
+				params.append("job_id", searchTerm);
+			} else {
+				params.append("output_roll_no", searchTerm);
+			}
+		}
+
+		if (statusFilter) params.append("status", statusFilter);
+
 		if (reasonFilter) params.append("flag_reason_id", reasonFilter);
 		if (userFilter) params.append("created_by", userFilter);
 		if (shiftFilter) params.append("shift_id", shiftFilter);
@@ -227,8 +240,8 @@ async function applyFilters() {
 }
 
 function clearFilters() {
-	document.getElementById("filter-job-id").value = "";
-	document.getElementById("filter-output-roll-no").value = "";
+	document.getElementById("filter-search").value = "";
+	document.getElementById("filter-status").value = "";
 	document.getElementById("filter-flag-reason").value = "";
 	document.getElementById("filter-user").value = "";
 	document.getElementById("filter-shift").value = "";
@@ -265,42 +278,31 @@ function closeModal() {
 
 function populateForm(roll) {
 	document.getElementById("roll-id").value = roll.id;
-	document.getElementById("output-roll-no").value = roll.output_roll_no;
-	document.getElementById("final-meter").value = roll.final_meter;
-	document.getElementById("final-weight").value = roll.final_weight;
-	document.getElementById("job-id").value = roll.job_id;
-	document.getElementById("flag-count").value = roll.number_of_flags;
-	document.getElementById("flag-reason").value = roll.flag_reason_id || "";
-
-	const flagReasonSelect = document.getElementById("flag-reason");
-	flagReasonSelect.disabled = roll.number_of_flags === 0;
+	document.getElementById("final-weight").value = roll.final_weight || "";
 }
 
 function handleFormSubmit(e) {
 	e.preventDefault();
 
+	const rollId = document.getElementById("roll-id").value;
+	const roll = rolls.find((r) => r.id === parseInt(rollId));
+
+	if (roll && roll.final_weight > 0) {
+		showNotification("Only pending rolls can be updated", "warning");
+		return;
+	}
+
 	const submitBtn = e.target.querySelector('button[type="submit"]');
 	setButtonLoading(submitBtn, true);
 
-	const rollId = document.getElementById("roll-id").value;
-	const flagCount = parseInt(document.getElementById("flag-count").value) || 0;
-	const flagReason = document.getElementById("flag-reason").value;
-
 	const formData = {
-		output_roll_no: document.getElementById("output-roll-no").value,
-		final_meter: parseFloat(document.getElementById("final-meter").value),
+		id: parseInt(rollId),
 		final_weight: parseFloat(document.getElementById("final-weight").value),
-		job_id: parseInt(document.getElementById("job-id").value),
-		number_of_flags: flagCount,
-		flag_reason_id: flagCount === 0 ? null : flagReason ? parseInt(flagReason) : null,
 	};
 
-	if (rollId) {
-		formData.id = parseInt(rollId);
-		updateRoll(formData).finally(() => {
-			setButtonLoading(submitBtn, false);
-		});
-	}
+	updateRoll(formData).finally(() => {
+		setButtonLoading(submitBtn, false);
+	});
 }
 
 async function updateRoll(rollData) {
@@ -321,6 +323,18 @@ async function updateRoll(rollData) {
 }
 
 function editRoll(rollId) {
+	const roll = rolls.find((r) => r.id === parseInt(rollId));
+
+	if (roll.final_weight > 0 && roll.number_of_flags === 0) {
+		showNotification("Completed rolls cannot be edited", "warning");
+		return;
+	}
+
+	if (roll.final_weight > 0 && roll.number_of_flags > 0) {
+		showNotification("Flagged rolls cannot be edited", "warning");
+		return;
+	}
+
 	openModal(rollId);
 }
 
@@ -353,16 +367,33 @@ async function exportToExcel() {
 
 	try {
 		const params = new URLSearchParams();
-		const jobId = document.getElementById("filter-job-id").value;
-		const outputRollNo = document.getElementById("filter-output-roll-no").value;
+		const searchTerm = document.getElementById("filter-search").value;
+		const statusFilter = document.getElementById("filter-status").value;
 		const reasonFilter = document.getElementById("filter-flag-reason").value;
 		const userFilter = document.getElementById("filter-user").value;
 		const shiftFilter = document.getElementById("filter-shift").value;
 		const startDate = document.getElementById("filter-start-date").value;
 		const endDate = document.getElementById("filter-end-date").value;
 
-		if (jobId) params.append("job_id", jobId);
-		if (outputRollNo) params.append("output_roll_no", outputRollNo);
+		if (searchTerm) {
+			if (!isNaN(searchTerm) && searchTerm.trim() !== "") {
+				params.append("job_id", searchTerm);
+			} else {
+				params.append("output_roll_no", searchTerm);
+			}
+		}
+
+		if (statusFilter) {
+			if (statusFilter === "pending") {
+				params.append("final_weight", "0");
+			} else if (statusFilter === "flagged") {
+				params.append("number_of_flags_gt", "0");
+			} else if (statusFilter === "completed") {
+				params.append("final_weight_gt", "0");
+				params.append("number_of_flags", "0");
+			}
+		}
+
 		if (reasonFilter) params.append("flag_reason_id", reasonFilter);
 		if (userFilter) params.append("created_by", userFilter);
 		if (shiftFilter) params.append("shift_id", shiftFilter);
@@ -415,11 +446,6 @@ function setupEventListeners() {
 	document.getElementById("close-modal").addEventListener("click", closeModal);
 	document.getElementById("cancel-btn").addEventListener("click", closeModal);
 	document.getElementById("roll-form").addEventListener("submit", handleFormSubmit);
-
-	document.getElementById("flag-count").addEventListener("change", function () {
-		const flagReasonSelect = document.getElementById("flag-reason");
-		flagReasonSelect.disabled = this.value === "0" || this.value === "";
-	});
 
 	const exportBtn = document.getElementById("export-btn");
 	if (exportBtn) {

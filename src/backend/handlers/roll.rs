@@ -20,7 +20,7 @@ pub async fn update_roll(conn_data: web::Data<Pool<SqliteConnectionManager>>, da
     let conn = conn_data.get().unwrap();
     match Roll::find_by_id(&conn, data.id) {
         Ok(mut roll) => {
-            if let Err(e) = roll.update(&conn, &data) { return HttpResponse::InternalServerError().body(e.to_string()); }
+            if let Err(e) = roll.update(&conn, &data).await { return HttpResponse::InternalServerError().body(e.to_string()); }
             HttpResponse::Ok().json(roll)
         }
         Err(_) => HttpResponse::NotFound().body("Roll not found"),
