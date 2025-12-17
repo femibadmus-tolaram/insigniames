@@ -172,7 +172,7 @@ function updateInputTitle(materialDetails) {
 	if (filmMaterial) {
 		const dimensions = filmMaterial
 			.split(",")
-			.map((item) => extractSize(item.trim()))
+			.map((item) => item.trim())
 			.filter((item) => item !== "");
 
 		if (dimensions.length > 0) {

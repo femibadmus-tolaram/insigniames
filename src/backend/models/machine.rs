@@ -9,7 +9,6 @@ pub struct Machine {
     pub label: String,
     pub section_id: i32,
     pub section_name: String,
-    pub section_order_types: Option<String>,
     pub user_count: i32,
     pub job_count: i32,
 }
@@ -59,12 +58,10 @@ impl Machine {
         
         let mut stmt = conn.prepare(
             "SELECT m.*, s.name as section_name,
-             mot.name as section_order_types,
              COUNT(DISTINCT us.user_id) as user_count,
              COUNT(DISTINCT j.id) as job_count
              FROM machines m
              JOIN sections s ON m.section_id = s.id
-             LEFT JOIN manufacturing_order_types mot ON s.order_type_id = mot.id
              LEFT JOIN user_sections us ON m.section_id = us.section_id
              LEFT JOIN jobs j ON m.id = j.machine_id
              WHERE m.id = ?1
@@ -77,9 +74,8 @@ impl Machine {
             label: row.get(2)?,
             section_id: row.get(3)?,
             section_name: row.get(4)?,
-            section_order_types: row.get(5)?,
-            user_count: row.get(6)?,
-            job_count: row.get(7)?,
+            user_count: row.get(5)?,
+            job_count: row.get(6)?,
         }))
     }
 
@@ -97,16 +93,13 @@ impl Machine {
             self.section_id = *section_id;
             
             let mut stmt = conn.prepare(
-                "SELECT s.name as section_name,
-                 mot.name as section_order_types
+                "SELECT s.name as section_name
                  FROM sections s
-                 LEFT JOIN manufacturing_order_types mot ON s.order_type_id = mot.id
                  WHERE s.id = ?1"
             )?;
             
             stmt.query_row(params![section_id], |row| {
                 self.section_name = row.get(0)?;
-                self.section_order_types = row.get(1)?;
                 Ok(())
             })?;
         }
@@ -131,12 +124,10 @@ impl Machine {
     pub fn find_by_id(conn: &Connection, id: i32) -> Result<Self> {
         let mut stmt = conn.prepare(
             "SELECT m.*, s.name as section_name,
-             mot.name as section_order_types,
              COUNT(DISTINCT us.user_id) as user_count,
              COUNT(DISTINCT j.id) as job_count
              FROM machines m
              JOIN sections s ON m.section_id = s.id
-             LEFT JOIN manufacturing_order_types mot ON s.order_type_id = mot.id
              LEFT JOIN user_sections us ON m.section_id = us.section_id
              LEFT JOIN jobs j ON m.id = j.machine_id
              WHERE m.id = ?1
@@ -148,21 +139,18 @@ impl Machine {
             label: row.get(2)?,
             section_id: row.get(3)?,
             section_name: row.get(4)?,
-            section_order_types: row.get(5)?,
-            user_count: row.get(6)?,
-            job_count: row.get(7)?,
+            user_count: row.get(5)?,
+            job_count: row.get(6)?,
         }))
     }
 
     pub fn all(conn: &Connection) -> Result<Vec<Self>> {
         let mut stmt = conn.prepare(
             "SELECT m.*, s.name as section_name,
-             mot.name as section_order_types,
              COUNT(DISTINCT us.user_id) as user_count,
              COUNT(DISTINCT j.id) as job_count
              FROM machines m
              JOIN sections s ON m.section_id = s.id
-             LEFT JOIN manufacturing_order_types mot ON s.order_type_id = mot.id
              LEFT JOIN user_sections us ON m.section_id = us.section_id
              LEFT JOIN jobs j ON m.id = j.machine_id
              GROUP BY m.id
@@ -174,9 +162,8 @@ impl Machine {
             label: row.get(2)?,
             section_id: row.get(3)?,
             section_name: row.get(4)?,
-            section_order_types: row.get(5)?,
-            user_count: row.get(6)?,
-            job_count: row.get(7)?,
+            user_count: row.get(5)?,
+            job_count: row.get(6)?,
         }))?.collect::<Result<Vec<_>, _>>()?;
         Ok(machines)
     }
@@ -198,12 +185,10 @@ impl Machine {
     pub fn filter(conn: &Connection, filter: &MachineFilterPayload) -> Result<FilterResponse<Self>> {
         let mut count_query = "SELECT COUNT(DISTINCT m.id) FROM machines m JOIN sections s ON m.section_id = s.id WHERE 1=1".to_string();
         let mut data_query = "SELECT m.*, s.name as section_name,
-                            mot.name as section_order_types,
                             COUNT(DISTINCT us.user_id) as user_count,
                             COUNT(DISTINCT j.id) as job_count
                             FROM machines m
                             JOIN sections s ON m.section_id = s.id
-                            LEFT JOIN manufacturing_order_types mot ON s.order_type_id = mot.id
                             LEFT JOIN user_sections us ON m.section_id = us.section_id
                             LEFT JOIN jobs j ON m.id = j.machine_id
                             WHERE 1=1".to_string();
@@ -301,9 +286,8 @@ impl Machine {
                 label: row.get(2)?,
                 section_id: row.get(3)?,
                 section_name: row.get(4)?,
-                section_order_types: row.get(5)?,
-                user_count: row.get(6)?,
-                job_count: row.get(7)?,
+                user_count: row.get(5)?,
+                job_count: row.get(6)?,
             })
         })?;
 

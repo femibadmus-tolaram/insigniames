@@ -48,9 +48,7 @@ pub fn init_local_db(path: &str) -> Result<()> {
 
         CREATE TABLE IF NOT EXISTS sections (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE,
-            order_type_id INTEGER,
-            FOREIGN KEY (order_type_id) REFERENCES manufacturing_order_types(id)
+            name TEXT UNIQUE
         );
         CREATE TABLE IF NOT EXISTS po_codes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -100,10 +98,6 @@ pub fn init_local_db(path: &str) -> Result<()> {
             PRIMARY KEY(user_id, section_id),
             FOREIGN KEY(user_id) REFERENCES users(id),
             FOREIGN KEY(section_id) REFERENCES sections(id)
-        );
-        CREATE TABLE IF NOT EXISTS manufacturing_order_types (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE
         );
         CREATE TABLE IF NOT EXISTS shifts (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

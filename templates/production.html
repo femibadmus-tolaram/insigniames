@@ -136,13 +136,10 @@
 										<label for="process-order" class="form-label">Process Order *</label>
 										<div class="relative">
 											<input type="text" id="po-search" class="form-input pr-10 w-full" placeholder="Search process order..." />
-											<select
-												id="process-order"
-												class="form-input absolute inset-0 opacity-0 pointer-events-none w-full"
-												required
-											>
+											<!-- <select id="process-order" class="form-input" style="display: none" required>
 												<option value="">Select Process Order</option>
-											</select>
+											</select> -->
+											<input type="hidden" id="process-order" required />
 											<div
 												id="po-results"
 												class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden"
@@ -237,14 +234,6 @@
 										<label for="start-meter" class="form-label">Start Meter *</label>
 										<input type="number" id="start-meter" class="form-input" step="0.01" min="0" placeholder="0.00" required />
 									</div>
-								</div>
-								<div class="form-group">
-									<label for="shift" class="form-label">Shift *</label>
-									<select id="shift" class="form-input" required>
-										<option value="">Select Shift</option>
-										<option value="1">Day</option>
-										<option value="2">Night</option>
-									</select>
 								</div>
 							</div>
 							<div class="flex justify-end gap-3 mt-6">

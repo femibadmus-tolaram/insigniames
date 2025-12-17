@@ -11,7 +11,6 @@ const lookupTypes = {
 	"po-codes": "Material Description CODE",
 	"downtime-reasons": "Downtime Reasons",
 	"flag-reasons": "Flag Reasons",
-	"manufacturing-order-types": "Manufacturing Order Types",
 };
 
 const colorSuggestions = {
@@ -148,8 +147,6 @@ function renderLookups(lookupsToRender) {
 		tbody.appendChild(row);
 	});
 
-	renderPagination(lookupsToRender.length);
-
 	document.querySelectorAll(".edit-btn").forEach((btn) => {
 		btn.addEventListener("click", () => {
 			const type = btn.dataset.type;
@@ -167,66 +164,7 @@ function renderLookups(lookupsToRender) {
 	});
 }
 
-function renderPagination(totalItems) {
-	const totalPages = Math.ceil(totalItems / itemsPerPage);
-	const paginationContainer = document.getElementById("pagination");
-
-	if (totalPages <= 1) {
-		paginationContainer.innerHTML = "";
-		return;
-	}
-
-	let paginationHTML = "";
-
-	paginationHTML += `
-		<button class="pagination-btn" ${currentPage === 1 ? "disabled" : ""} id="prev-page">
-			<i class="fas fa-chevron-left"></i>
-		</button>
-	`;
-
-	for (let i = 1; i <= totalPages; i++) {
-		paginationHTML += `
-			<button class="pagination-btn ${currentPage === i ? "active" : ""}" data-page="${i}">
-				${i}
-			</button>
-		`;
-	}
-
-	paginationHTML += `
-		<button class="pagination-btn" ${currentPage === totalPages ? "disabled" : ""} id="next-page">
-			<i class="fas fa-chevron-right"></i>
-		</button>
-	`;
-
-	paginationContainer.innerHTML = paginationHTML;
-
-	document.getElementById("prev-page")?.addEventListener("click", () => {
-		if (currentPage > 1) {
-			currentPage--;
-			applyFilters();
-		}
-	});
-
-	document.getElementById("next-page")?.addEventListener("click", () => {
-		if (currentPage < totalPages) {
-			currentPage++;
-			applyFilters();
-		}
-	});
-
-	document.querySelectorAll(".pagination-btn[data-page]").forEach((btn) => {
-		btn.addEventListener("click", () => {
-			currentPage = parseInt(btn.dataset.page);
-			applyFilters();
-		});
-	});
-}
-
 function applyFilters() {
-	const applyBtn = document.getElementById("apply-filter");
-	setButtonLoading(applyBtn, true);
-	showLoading(true);
-
 	try {
 		const typeFilter = document.getElementById("filter-type").value;
 
@@ -240,9 +178,6 @@ function applyFilters() {
 		renderLookups(filteredLookups);
 	} catch (error) {
 		showNotification("Failed to apply filters. Please try again.", "error");
-	} finally {
-		setButtonLoading(applyBtn, false);
-		showLoading(false);
 	}
 }
 
@@ -521,8 +456,7 @@ function saveAsExcel(buffer, filename) {
 }
 
 function setupEventListeners() {
-	document.getElementById("apply-filter").addEventListener("click", applyFilters);
-	document.getElementById("clear-filter").addEventListener("click", clearFilters);
+	document.getElementById("filter-type").addEventListener("change", applyFilters);
 	document.getElementById("add-lookup-btn").addEventListener("click", () => openModal());
 	document.getElementById("close-modal").addEventListener("click", closeModal);
 	document.getElementById("cancel-btn").addEventListener("click", closeModal);
@@ -537,10 +471,4 @@ function setupEventListeners() {
 	if (exportBtn) {
 		exportBtn.addEventListener("click", exportToExcel);
 	}
-
-	document.getElementById("per-page").addEventListener("change", function () {
-		itemsPerPage = parseInt(this.value);
-		currentPage = 1;
-		applyFilters();
-	});
 }

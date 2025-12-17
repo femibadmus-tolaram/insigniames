@@ -8,7 +8,6 @@ pub struct Section {
     pub name: String,
     pub machine_count: i32,
     pub user_count: i32,
-    pub order_type_id: Option<i32>,
     pub job_count: i32,
     pub po_code_ids: Vec<i32>,
 }
@@ -23,14 +22,12 @@ pub struct SectionStats {
 #[derive(Deserialize)]
 pub struct SectionCreatePayload {
     pub name: String,
-    pub order_type_id: Option<i32>,
 }
 
 #[derive(Deserialize)]
 pub struct SectionPayload {
     pub id: i32,
     pub name: Option<String>,
-    pub order_type_id: Option<i32>,
 }
 
 #[derive(Deserialize)]
@@ -44,7 +41,6 @@ pub struct SectionFilterPayload {
     pub name: Option<String>,
     pub has_machines: Option<String>,
     pub has_users: Option<String>,
-    pub has_order_type: Option<String>,
     pub per_page: Option<String>,
     pub page: Option<String>,
 }
@@ -52,8 +48,8 @@ pub struct SectionFilterPayload {
 impl Section {
     pub fn create(conn: &Connection, data: &SectionCreatePayload) -> Result<Self> {
         conn.execute(
-            "INSERT INTO sections (name, order_type_id) VALUES (?1, ?2)",
-            params![data.name, data.order_type_id],
+            "INSERT INTO sections (name) VALUES (?1)",
+            params![data.name],
         )?;
         let id = conn.last_insert_rowid() as i32;
         
@@ -73,7 +69,7 @@ impl Section {
         )?;
         
         stmt.query_row(params![id], |row| {
-            let po_code_ids_str: Option<String> = row.get(6)?;
+            let po_code_ids_str: Option<String> = row.get(5)?;
             let po_code_ids = po_code_ids_str
                 .map(|s| s.split(',')
                     .filter_map(|id| id.parse::<i32>().ok())
@@ -83,10 +79,9 @@ impl Section {
             Ok(Section {
                 id: row.get(0)?,
                 name: row.get(1)?,
-                order_type_id: row.get(2)?,
-                machine_count: row.get(3)?,
-                user_count: row.get(4)?,
-                job_count: row.get(5)?,
+                machine_count: row.get(2)?,
+                user_count: row.get(3)?,
+                job_count: row.get(4)?,
                 po_code_ids,
             })
         })
@@ -96,11 +91,6 @@ impl Section {
         if let Some(name) = &data.name {
             conn.execute("UPDATE sections SET name = ?1 WHERE id = ?2", params![name, self.id])?;
             self.name = name.clone();
-        }
-        
-        if let Some(order_type_id) = &data.order_type_id {
-            conn.execute("UPDATE sections SET order_type_id = ?1 WHERE id = ?2", params![order_type_id, self.id])?;
-            self.order_type_id = Some(*order_type_id);
         }
         
         Ok(())
@@ -139,7 +129,7 @@ impl Section {
         )?;
         
         stmt.query_row(params![id], |row| {
-            let po_code_ids_str: Option<String> = row.get(6)?;
+            let po_code_ids_str: Option<String> = row.get(5)?;
             let po_code_ids = po_code_ids_str
                 .map(|s| s.split(',')
                     .filter_map(|id| id.parse::<i32>().ok())
@@ -149,10 +139,9 @@ impl Section {
             Ok(Section {
                 id: row.get(0)?,
                 name: row.get(1)?,
-                order_type_id: row.get(2)?,
-                machine_count: row.get(3)?,
-                user_count: row.get(4)?,
-                job_count: row.get(5)?,
+                machine_count: row.get(2)?,
+                user_count: row.get(3)?,
+                job_count: row.get(4)?,
                 po_code_ids,
             })
         })
@@ -174,7 +163,7 @@ impl Section {
              ORDER BY s.name"
         )?;
         let sections = stmt.query_map([], |row| {
-            let po_code_ids_str: Option<String> = row.get(6)?;
+            let po_code_ids_str: Option<String> = row.get(5)?;
             let po_code_ids = po_code_ids_str
                 .map(|s| s.split(',')
                     .filter_map(|id| id.parse::<i32>().ok())
@@ -184,10 +173,9 @@ impl Section {
             Ok(Section {
                 id: row.get(0)?,
                 name: row.get(1)?,
-                order_type_id: row.get(2)?,
-                machine_count: row.get(3)?,
-                user_count: row.get(4)?,
-                job_count: row.get(5)?,
+                machine_count: row.get(2)?,
+                user_count: row.get(3)?,
+                job_count: row.get(4)?,
                 po_code_ids,
             })
         })?.collect::<Result<Vec<_>, _>>()?;
@@ -256,16 +244,6 @@ impl Section {
             }
         }
 
-        if let Some(val) = &filter.has_order_type {
-            if val == "true" {
-                count_query.push_str(" AND s.order_type_id IS NOT NULL");
-                data_query.push_str(" AND s.order_type_id IS NOT NULL");
-            } else if val == "false" {
-                count_query.push_str(" AND s.order_type_id IS NULL");
-                data_query.push_str(" AND s.order_type_id IS NULL");
-            }
-        }
-
         let total_count: i32 = conn.query_row(&count_query, params_vec.as_slice(), |row| row.get(0))?;
 
         data_query.push_str(" GROUP BY s.id ORDER BY s.name");
@@ -285,7 +263,7 @@ impl Section {
 
         let mut stmt = conn.prepare(&data_query)?;
         let rows = stmt.query_map(params_vec.as_slice(), |row| {
-            let po_code_ids_str: Option<String> = row.get(6)?;
+            let po_code_ids_str: Option<String> = row.get(5)?;
             let po_code_ids = po_code_ids_str
                 .map(|s| s.split(',')
                     .filter_map(|id| id.parse::<i32>().ok())
@@ -295,10 +273,9 @@ impl Section {
             Ok(Section {
                 id: row.get(0)?,
                 name: row.get(1)?,
-                order_type_id: row.get(2)?,
-                machine_count: row.get(3)?,
-                user_count: row.get(4)?,
-                job_count: row.get(5)?,
+                machine_count: row.get(2)?,
+                user_count: row.get(3)?,
+                job_count: row.get(4)?,
                 po_code_ids,
             })
         })?;

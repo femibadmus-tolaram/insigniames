@@ -137,20 +137,10 @@ pub fn init_routes(cfg: &mut web::ServiceConfig, conn_data: web::Data<Pool<Sqlit
             .service(web::resource("/downtime-reasons/update").wrap(CheckUpdate { model: "downtime_reasons", conn_data: conn_data.clone() }).route(web::put().to(update_downtime_reason)))
             .service(web::resource("/downtime-reasons/delete").wrap(CheckDelete { model: "downtime_reasons", conn_data: conn_data.clone() }).route(web::delete().to(delete_downtime_reason)))
             
-            .service(web::resource("/manufacturing-order-types").wrap(CheckRead { model: "manufacturing_order_types", conn_data: conn_data.clone() }).route(web::get().to(all_manufacturing_order_type)))
-            .service(web::resource("/manufacturing-order-types/create").wrap(CheckCreate { model: "manufacturing_order_types", conn_data: conn_data.clone() }).route(web::post().to(create_manufacturing_order_type)))
-            .service(web::resource("/manufacturing-order-types/update").wrap(CheckUpdate { model: "manufacturing_order_types", conn_data: conn_data.clone() }).route(web::put().to(update_manufacturing_order_type)))
-            .service(web::resource("/manufacturing-order-types/delete").wrap(CheckDelete { model: "manufacturing_order_types", conn_data: conn_data.clone() }).route(web::delete().to(delete_manufacturing_order_type)))
-            
             .service(web::resource("/flag-reasons").wrap(CheckRead { model: "flag_reasons", conn_data: conn_data.clone() }).route(web::get().to(all_flag_reasons)))
             .service(web::resource("/flag-reasons/create").wrap(CheckCreate { model: "flag_reasons", conn_data: conn_data.clone() }).route(web::post().to(create_flag_reason)))
             .service(web::resource("/flag-reasons/update").wrap(CheckUpdate { model: "flag_reasons", conn_data: conn_data.clone() }).route(web::put().to(update_flag_reason)))
             .service(web::resource("/flag-reasons/delete").wrap(CheckDelete { model: "flag_reasons", conn_data: conn_data.clone() }).route(web::delete().to(delete_flag_reason)))
-
-            // .service(web::resource("/po-code-sections").wrap(CheckRead { model: "po_code_sections", conn_data: conn_data.clone() }).route(web::get().to(all_manufacturing_order_type)))
-            // .service(web::resource("/po-code-sections/create").wrap(CheckCreate { model: "po_code_sections", conn_data: conn_data.clone() }).route(web::post().to(create_manufacturing_order_type)))
-            // .service(web::resource("/po-code-sections/update").wrap(CheckUpdate { model: "po_code_sections", conn_data: conn_data.clone() }).route(web::put().to(update_manufacturing_order_type)))
-            // .service(web::resource("/po-code-sections/delete").wrap(CheckDelete { model: "po_code_sections", conn_data: conn_data.clone() }).route(web::delete().to(delete_manufacturing_order_type)))
 
             .service(web::resource("/po-code-sections").wrap(CheckRead { model: "po_codes", conn_data: conn_data.clone() }).route(web::get().to(get_po_code_sections)))
             .service(web::resource("/po-code-sections/create").wrap(CheckCreate { model: "po_codes", conn_data: conn_data.clone() }).route(web::post().to(add_po_code_section)))
