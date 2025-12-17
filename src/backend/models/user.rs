@@ -12,6 +12,7 @@ pub struct User {
     pub phone_number: Option<String>,
     pub status: String,
     pub role_id: i32,
+    pub page_id: i32,
     pub created_at: String,
     pub updated_at: String,
     pub section_ids: Vec<i32>,
@@ -23,6 +24,7 @@ pub struct SignInResponse {
     pub staffid: String,
     pub role: String,
     pub whois: String,
+    pub page_id: i32,
 }
 
 #[derive(Deserialize)]
@@ -32,6 +34,7 @@ pub struct UserFilterPayload {
     pub status: Option<String>,
     pub role_id: Option<String>,
     pub section_id: Option<String>,
+    pub page_id: Option<String>,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
     pub per_page: Option<String>,
@@ -99,8 +102,8 @@ impl User {
     pub fn create(conn: &Connection, u: &UserCreatePayload) -> Result<User> {
         let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         conn.execute(
-            "INSERT INTO users (full_name, staffid, password, phone_number, status, role_id, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-            params![u.full_name, u.staffid, u.password, u.phone_number, u.status, u.role_id, now, now],
+            "INSERT INTO users (full_name, staffid, password, phone_number, status, role_id, page_id, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            params![u.full_name, u.staffid, u.password, u.phone_number, u.status, u.role_id, u.page_id, now, now],
         )?;
         let id = conn.last_insert_rowid() as i32;
 
@@ -123,6 +126,7 @@ impl User {
             phone_number: u.phone_number.clone(),
             status: u.status.clone(),
             role_id: u.role_id,
+            page_id: u.page_id,
             created_at: now.clone(),
             updated_at: now.clone(),
             section_ids,
@@ -158,6 +162,10 @@ impl User {
             conn.execute("UPDATE users SET role_id = ?1 WHERE id = ?2", params![role_id, self.id])?;
             self.role_id = role_id;
         }
+        if let Some(page_id) = u.page_id {
+            conn.execute("UPDATE users SET page_id = ?1 WHERE id = ?2", params![page_id, self.id])?;
+            self.page_id = page_id;
+        }
         
         if let Some(section_ids) = &u.section_ids {
             conn.execute("DELETE FROM user_sections WHERE user_id = ?1", params![self.id])?;
@@ -186,7 +194,7 @@ impl User {
 
     pub fn find_by_id(conn: &Connection, id: i32) -> Result<Self> {
         let mut stmt = conn.prepare(
-            "SELECT u.id, u.full_name, u.staffid, u.password, u.phone_number, u.status, u.role_id, u.created_at, u.updated_at
+            "SELECT u.id, u.full_name, u.staffid, u.password, u.phone_number, u.status, u.role_id, u.page_id, u.created_at, u.updated_at
              FROM users u
              WHERE u.id = ?1"
         )?;
@@ -199,8 +207,9 @@ impl User {
             phone_number: row.get(4)?,
             status: row.get(5)?,
             role_id: row.get(6)?,
-            created_at: row.get(7)?,
-            updated_at: row.get(8)?,
+            page_id: row.get(7)?,
+            created_at: row.get(8)?,
+            updated_at: row.get(9)?,
             section_ids: Vec::new(),
         }))?;
         
@@ -210,7 +219,7 @@ impl User {
 
     pub fn all(conn: &Connection) -> Result<Vec<Self>> {
         let mut stmt = conn.prepare(
-            "SELECT u.id, u.full_name, u.staffid, u.password, u.phone_number, u.status, u.role_id, u.created_at, u.updated_at
+            "SELECT u.id, u.full_name, u.staffid, u.password, u.phone_number, u.status, u.role_id, u.page_id, u.created_at, u.updated_at
              FROM users u
              ORDER BY u.created_at DESC"
         )?;
@@ -223,8 +232,9 @@ impl User {
             phone_number: row.get(4)?,
             status: row.get(5)?,
             role_id: row.get(6)?,
-            created_at: row.get(7)?,
-            updated_at: row.get(8)?,
+            page_id: row.get(7)?,
+            created_at: row.get(8)?,
+            updated_at: row.get(9)?,
             section_ids: Vec::new(),
         }))?.collect::<Result<Vec<_>, _>>()?;
         
@@ -244,7 +254,7 @@ impl User {
         hasher.update(&payload.password);
         let hashed_password = format!("{:x}", hasher.finalize());
         let mut stmt = conn.prepare(
-            "SELECT u.staffid, r.name AS role, u.id
+            "SELECT u.staffid, r.name AS role, u.id, u.page_id
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id
             WHERE lower(u.staffid) = lower(?1) AND u.password = ?2"
@@ -259,6 +269,7 @@ impl User {
                     row.get::<_, String>(1).unwrap_or_default()
                 ),
                 id: row.get(2)?,
+                page_id: row.get(3)?,
             })
         })?;
         Ok(signin_response)
@@ -291,7 +302,7 @@ impl User {
     }
 
     pub fn filter(conn: &Connection, filter: &UserFilterPayload) -> Result<Vec<Self>> {
-        let mut query = "SELECT u.id, u.full_name, u.staffid, u.password, u.phone_number, u.status, u.role_id, u.created_at, u.updated_at
+        let mut query = "SELECT u.id, u.full_name, u.staffid, u.password, u.phone_number, u.status, u.role_id, u.page_id, u.created_at, u.updated_at
                         FROM users u
                         WHERE 1=1".to_string();
         let mut params_vec: Vec<&dyn rusqlite::ToSql> = vec![];
@@ -300,6 +311,7 @@ impl User {
         let mut staffids: Vec<String> = vec![];
         let mut statuses: Vec<String> = vec![];
         let mut role_ids: Vec<i32> = vec![];
+        let mut page_ids: Vec<i32> = vec![];
         let mut section_ids: Vec<i32> = vec![];
         let mut start_dates: Vec<String> = vec![];
         let mut end_dates: Vec<String> = vec![];
@@ -335,6 +347,14 @@ impl User {
                 role_ids.push(parsed);
                 params_vec.push(role_ids.last().unwrap());
                 query.push_str(" AND u.role_id = ?");
+            }
+        }
+
+        if let Some(val) = &filter.page_id {
+            if let Ok(parsed) = val.parse::<i32>() {
+                page_ids.push(parsed);
+                params_vec.push(page_ids.last().unwrap());
+                query.push_str(" AND u.page_id = ?");
             }
         }
 
@@ -387,8 +407,9 @@ impl User {
                 phone_number: row.get(4)?,
                 status: row.get(5)?,
                 role_id: row.get(6)?,
-                created_at: row.get(7)?,
-                updated_at: row.get(8)?,
+                page_id: row.get(7)?,
+                created_at: row.get(8)?,
+                updated_at: row.get(9)?,
                 section_ids: Vec::new(),
             })
         })?.collect::<Result<Vec<_>, _>>()?;
@@ -409,6 +430,7 @@ pub struct UserCreatePayload {
     pub phone_number: Option<String>,
     pub status: String,
     pub role_id: i32,
+    pub page_id: i32,
     pub section_ids: Option<Vec<i32>>,
 }
 
@@ -421,6 +443,7 @@ pub struct UserPayload {
     pub phone_number: Option<String>,
     pub status: Option<String>,
     pub role_id: Option<i32>,
+    pub page_id: Option<i32>,
     pub section_ids: Option<Vec<i32>>,
 }
 
@@ -435,3 +458,4 @@ pub struct UserSectionPayload {
     pub user_id: i32,
     pub section_id: i32,
 }
+

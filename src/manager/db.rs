@@ -34,6 +34,7 @@ pub fn init_local_db(path: &str) -> Result<()> {
             password TEXT,
             status TEXT,
             role_id INTEGER,
+            page_id INTEGER,
             created_at DATETIME,
             updated_at DATETIME,
             FOREIGN KEY (role_id) REFERENCES roles(id)

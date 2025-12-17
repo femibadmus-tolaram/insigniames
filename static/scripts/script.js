@@ -1,173 +1,64 @@
 /** @format */
-
-let currentUserRole = null;
+let currentUserPageId = null;
 
 document.addEventListener("DOMContentLoaded", async function () {
 	document.body.style.zoom = "90%";
-	await loadUserRole();
-	transformNavBasedOnRole();
+	await loadUserPageId();
+	showNavBasedOnPageId();
 	highlightActiveLink();
 });
 
-async function loadUserRole() {
+async function loadUserPageId() {
 	try {
 		const userResponse = await fetch("/api/users/me");
 		if (!userResponse.ok) throw new Error("Failed to load user data");
 		const userData = await userResponse.json();
-
-		const rolesResponse = await fetch("/api/roles");
-		if (!rolesResponse.ok) throw new Error("Failed to load roles");
-		const roles = await rolesResponse.json();
-
-		const userRole = roles.find((r) => r.id === userData.role_id);
-		currentUserRole = userRole ? userRole.name : null;
+		currentUserPageId = userData.page_id || 0;
 	} catch (error) {
-		console.error("Error loading role:", error);
+		console.error("Error loading user page_id:", error);
 	}
 }
 
-function transformNavBasedOnRole() {
+function showNavBasedOnPageId() {
 	const nav = document.querySelector("#main-nav");
 	if (!nav) return;
 
-	const roleNavMap = {
-		Dashboard: ["Dashboard", "Jobs", "Rolls"],
-		Production: ["Production", "Downtime", "Scrap", "Actual Consumable"],
-		Settings: ["Settings", "Materials", "Machines", "Sections", "Manage Lookups", "Users Management", "Roles & Permissions", "Logout"],
+	const pageItemsMap = {
+		1: [
+			{ name: "Dashboard", href: "/", icon: "fa-chart-simple" },
+			{ name: "Jobs", href: "/jobs", icon: "fa-briefcase" },
+			{ name: "Rolls", href: "/rolls", icon: "fa-layer-group" },
+		],
+		2: [
+			{ name: "Production", href: "/production", icon: "fa-industry" },
+			{ name: "Downtime", href: "/downtime", icon: "fa-clock" },
+			{ name: "Scrap", href: "/scrap", icon: "fa-trash" },
+			{ name: "Actual Consumable", href: "/consumables", icon: "fa-flask" },
+		],
+		3: [
+			{ name: "Settings", href: "/settings", icon: "fa-cog" },
+			{ name: "Materials", href: "/materials", icon: "fa-industry" },
+			{ name: "Machines", href: "/machines", icon: "fa-cogs" },
+			{ name: "Sections", href: "/sections", icon: "fa-building" },
+			{ name: "Manage Lookups", href: "/lookups", icon: "fa-list" },
+			{ name: "Users Management", href: "/users", icon: "fa-users" },
+			{ name: "Roles & Permissions", href: "/roles", icon: "fa-user-tag" },
+			{ name: "Logout", href: "/logout", icon: "fa-sign-out-alt", class: "text-red-600 hover:bg-red-50" },
+		],
 	};
 
-	const defaultNav = `
-        <li class="relative group">
-            <a href="/" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
-                ><i class="fas fa-chart-simple"></i> Dashboard <i class="fas fa-chevron-down text-xs ml-1"></i
-            ></a>
-            <div class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div class="py-2">
-                    <a href="/jobs" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-                        <i class="fas fa-briefcase"></i> Jobs
-                    </a>
-                    <a href="/rolls" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-                        <i class="fas fa-layer-group"></i> Rolls
-                    </a>
-                </div>
-            </div>
-        </li>
-
-        <li class="relative group">
-            <a href="/production" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
-                ><i class="fas fa-industry"></i> Production <i class="fas fa-chevron-down text-xs ml-1"></i
-            ></a>
-            <div class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div class="py-2">
-                    <a href="/downtime" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-                        <i class="fas fa-clock"></i> Downtime
-                    </a>
-                    <a href="/scrap" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-                        <i class="fas fa-trash"></i> Scrap
-                    </a>
-                    <a href="/consumables" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-                        <i class="fas fa-flask"></i> Actual Consumable
-                    </a>
-                </div>
-            </div>
-        </li>
-
-        <li class="relative group">
-            <a href="/settings" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
-                ><i class="fas fa-cog"></i> Settings <i class="fas fa-chevron-down text-xs ml-1"></i
-            ></a>
-            <div class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                <div class="py-2">
-                    <a href="/materials" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-                        <i class="fas fa-industry"></i> Materials
-                    </a>
-                    <a href="/machines" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-                        <i class="fas fa-cogs"></i> Machines
-                    </a>
-                    <a href="/sections" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-                        <i class="fas fa-building"></i> Sections
-                    </a>
-                    <a href="/lookups" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-                        <i class="fas fa-list"></i> Manage Lookups
-                    </a>
-                    <div class="border-t border-gray-200 my-1"></div>
-                    <a href="/users" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-                        <i class="fas fa-users"></i> Users Management
-                    </a>
-                    <a href="/roles" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-                        <i class="fas fa-user-tag"></i> Roles & Permissions
-                    </a>
-                    <div class="border-t border-gray-200 my-1"></div>
-                    <a href="/logout" class="px-4 py-2 hover:bg-red-50 hover:text-red-600 flex items-center gap-2 text-sm">
-                        <i class="fas fa-sign-out-alt"></i> Logout
-                    </a>
-                </div>
-            </div>
-        </li>
-    `;
-
-	let roleFound = false;
-	for (const [dropdownName, dropdownItems] of Object.entries(roleNavMap)) {
-		if (dropdownItems.some((item) => item === currentUserRole)) {
-			nav.innerHTML = "";
-			dropdownItems.forEach((item) => {
-				const navItemHTML = createNavItemHTML(item);
-				nav.innerHTML += navItemHTML;
-			});
-			roleFound = true;
-			break;
-		}
+	if (pageItemsMap[currentUserPageId]) {
+		nav.innerHTML = "";
+		pageItemsMap[currentUserPageId].forEach((item) => {
+			const li = document.createElement("li");
+			li.innerHTML = `
+				<a href="${item.href}" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 ${item.class || ""}">
+					<i class="fas ${item.icon}"></i> ${item.name}
+				</a>
+			`;
+			nav.appendChild(li);
+		});
 	}
-
-	if (!roleFound) {
-		nav.innerHTML = defaultNav;
-	}
-}
-
-function createNavItemHTML(itemName) {
-	const hrefMap = {
-		Dashboard: "/",
-		Jobs: "/jobs",
-		Rolls: "/rolls",
-		Production: "/production",
-		Downtime: "/downtime",
-		Scrap: "/scrap",
-		"Actual Consumable": "/consumables",
-		Settings: "/settings",
-		Materials: "/materials",
-		Machines: "/machines",
-		Sections: "/sections",
-		"Manage Lookups": "/lookups",
-		"Users Management": "/users",
-		"Roles & Permissions": "/roles",
-		Logout: "/logout",
-	};
-
-	const iconMap = {
-		Dashboard: "fa-chart-simple",
-		Jobs: "fa-briefcase",
-		Rolls: "fa-layer-group",
-		Production: "fa-industry",
-		Downtime: "fa-clock",
-		Scrap: "fa-trash",
-		"Actual Consumable": "fa-flask",
-		Settings: "fa-cog",
-		Materials: "fa-industry",
-		Machines: "fa-cogs",
-		Sections: "fa-building",
-		"Manage Lookups": "fa-list",
-		"Users Management": "fa-users",
-		"Roles & Permissions": "fa-user-tag",
-		Logout: "fa-sign-out-alt",
-	};
-
-	return `
-        <li>
-            <a href="${hrefMap[itemName]}" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
-                <i class="fas ${iconMap[itemName]}"></i> ${itemName}
-            </a>
-        </li>
-    `;
 }
 
 function highlightActiveLink() {
