@@ -12,6 +12,35 @@
 		<link rel="stylesheet" href="/static/styles/styles.css?v=1.0" />
 		<script src="/static/scripts/downloads/xlsx.js"></script>
 		<script src="/static/scripts/script.js?v=1.8"></script>
+		<style>
+			.modal {
+				display: none;
+				position: fixed;
+				z-index: 9999;
+				left: 0;
+				top: 0;
+				width: 100%;
+				height: 100%;
+				background-color: rgba(0, 0, 0, 0.7);
+				align-items: center;
+				justify-content: center;
+			}
+
+			.modal.active {
+				display: flex;
+			}
+
+			.modal-content {
+				background-color: white;
+				padding: 2rem;
+				border-radius: 8px;
+				box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+				max-width: 90%;
+				max-height: 90vh;
+				overflow-y: auto;
+				position: relative;
+			}
+		</style>
 	</head>
 	<body class="bg-gray-50 min-h-screen">
 		<header class="bg-white shadow-sm sticky top-0 z-40">
@@ -140,7 +169,7 @@
 						</div>
 					</div>
 
-					<div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+					<!-- <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
 						<div>
 							<label class="block text-sm font-medium text-gray-700 mb-1">Flag Reason</label>
 							<select id="filter-flag-reason" class="filter-select">
@@ -153,7 +182,7 @@
 								<option value="">All Users</option>
 							</select>
 						</div>
-					</div>
+					</div> -->
 
 					<div class="flex flex-wrap gap-3 items-center pt-2">
 						<div>
@@ -226,7 +255,19 @@
 
 				<div class="mt-6">
 					<div class="flex justify-between items-center mb-4">
-						<h3 class="text-lg font-medium text-gray-700">Roll Records</h3>
+						<div class="flex items-center gap-3">
+							<h3 class="text-lg font-medium text-gray-700">Roll Records</h3>
+							<!-- Add toggle button -->
+							<div class="flex items-center gap-2">
+								<span class="text-sm text-gray-600">Details</span>
+								<label class="relative inline-flex items-center cursor-pointer">
+									<input type="checkbox" id="details-toggle" class="sr-only peer" />
+									<div
+										class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"
+									></div>
+								</label>
+							</div>
+						</div>
 						<div class="flex items-center gap-2">
 							<button class="btn btn-secondary" id="export-btn"><i class="fas fa-file-export"></i> Export</button>
 						</div>
@@ -236,7 +277,13 @@
 						<table id="rolls-table" class="table" style="display: none">
 							<thead>
 								<tr>
-									<th class="cursor-pointer">
+									<th id="from-batch-header" class="cursor-pointer details-column">
+										<div class="flex items-center gap-1">
+											<span>From Batch</span>
+											<i class="fas fa-sort text-gray-400"></i>
+										</div>
+									</th>
+									<th id="output-roll-header" class="cursor-pointer details-column">
 										<div class="flex items-center gap-1">
 											<span>Output Roll No</span>
 											<i class="fas fa-sort text-gray-400"></i>
@@ -260,13 +307,7 @@
 											<i class="fas fa-sort text-gray-400"></i>
 										</div>
 									</th>
-									<th class="cursor-pointer">
-										<div class="flex items-center gap-1">
-											<span>Job ID</span>
-											<i class="fas fa-sort text-gray-400"></i>
-										</div>
-									</th>
-									<th class="cursor-pointer">
+									<th id="flag-count-header" class="cursor-pointer details-column">
 										<div class="flex items-center gap-1">
 											<span>Flag Count</span>
 											<i class="fas fa-sort text-gray-400"></i>
@@ -325,6 +366,25 @@
 			</div>
 		</div>
 
+		<div id="print-modal" class="modal">
+			<div class="modal-content max-w-4xl">
+				<div class="flex justify-between items-center mb-4">
+					<h3 class="text-lg font-semibold">Roll Print Preview</h3>
+					<button id="close-print-modal" class="text-gray-400 hover:text-gray-600">
+						<i class="fas fa-times"></i>
+					</button>
+				</div>
+				<div class="space-y-4">
+					<div id="print-loading" class="text-center py-8 hidden">
+						<i class="fas fa-spinner fa-spin text-blue-600 text-2xl"></i>
+						<p class="mt-2 text-gray-600">Loading roll details...</p>
+					</div>
+					<div id="print-preview" class="hidden"></div>
+				</div>
+			</div>
+		</div>
+
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 		<script src="/static/scripts/rolls.js?v=1.0"></script>
 	</body>
 </html>

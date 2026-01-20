@@ -131,22 +131,6 @@
 								<button class="btn btn-secondary" id="change-machine-btn"><i class="fas fa-exchange-alt"></i> Change Machine</button>
 							</div>
 							<div class="space-y-4">
-								<div class="grid grid-cols-1 gap-4">
-									<div class="form-group">
-										<label for="process-order" class="form-label">Process Order *</label>
-										<div class="relative">
-											<input type="text" id="po-search" class="form-input pr-10 w-full" placeholder="Search process order..." />
-											<!-- <select id="process-order" class="form-input" style="display: none" required>
-												<option value="">Select Process Order</option>
-											</select> -->
-											<input type="hidden" id="process-order" required />
-											<div
-												id="po-results"
-												class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden"
-											></div>
-										</div>
-									</div>
-								</div>
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 									<div class="form-group">
 										<label for="shift-select" class="form-label">Shift *</label>
@@ -161,6 +145,19 @@
 										<input type="date" id="date-select" class="form-input w-full" required />
 									</div>
 								</div>
+								<div class="grid grid-cols-1 gap-4">
+									<div class="form-group">
+										<label for="process-order" class="form-label">Process Order *</label>
+										<div class="relative">
+											<input type="text" id="po-search" class="form-input pr-10 w-full" placeholder="Search process order..." />
+											<input type="hidden" id="process-order" required />
+											<div
+												id="po-results"
+												class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden"
+											></div>
+										</div>
+									</div>
+								</div>
 							</div>
 							<div id="job-details" class="bg-blue-50 p-4 rounded-xl border border-blue-200" style="display: none">
 								<h3 class="text-lg font-semibold text-blue-800 mb-3">Job Details</h3>
@@ -170,26 +167,27 @@
 						<section id="input-section" class="card p-6 space-y-6" style="display: none">
 							<div class="flex items-center justify-between">
 								<h3 class="text-lg font-semibold text-gray-800" id="input-title">Currently Consuming (Input)</h3>
-								<span class="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full">New Job</span>
 							</div>
 							<form id="input-form">
 								<div class="space-y-4">
-									<div class="form-group">
-										<label for="batch-roll-no" class="form-label">Batch Roll No. *</label>
-										<input type="text" id="batch-roll-no" class="form-input" placeholder="Enter batch roll number" required />
+									<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+										<div class="form-group">
+											<label for="consuming-material" class="form-label">Material *</label>
+											<select id="consuming-material" class="form-input" required>
+												<option value="">Select Material</option>
+											</select>
+										</div>
+										<div class="form-group">
+											<label for="batch-roll-no" class="form-label">Batch Roll No. *</label>
+											<select id="batch-roll-no" class="form-input" required disabled>
+												<option value="">Select Material First</option>
+											</select>
+										</div>
 									</div>
 									<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 										<div class="form-group">
-											<label for="start-weight" class="form-label">Start Weight (kg) *</label>
-											<input
-												type="number"
-												id="start-weight"
-												class="form-input"
-												step="0.01"
-												min="0"
-												placeholder="0.00"
-												required
-											/>
+											<label for="start-weight" class="form-label">Start Weight *</label>
+											<input type="text" id="start-weight" class="form-input" readonly required />
 										</div>
 										<div class="form-group">
 											<label for="start-meter" class="form-label">Start Meter *</label>
@@ -206,85 +204,42 @@
 									</div>
 								</div>
 								<div class="flex justify-end gap-3 mt-6">
-									<button type="button" id="start-new-btn" class="btn btn-secondary" style="display: none">
-										Start New Production
-									</button>
+									<button type="button" id="start-new-btn" class="btn btn-secondary" style="display: none">Change Job</button>
 									<button type="submit" class="btn btn-primary" disabled>Start Production</button>
 								</div>
 							</form>
 						</section>
 					</div>
-					<section id="input-section" class="card p-6 space-y-6" style="display: none">
-						<div class="flex items-center justify-between">
-							<h3 class="text-lg font-semibold text-gray-800">Currently Consuming (Input)</h3>
-							<span class="bg-blue-100 text-blue-800 text-sm px-2 py-1 rounded-full">New Job</span>
-						</div>
-						<form id="input-form">
-							<div class="space-y-4">
-								<div class="form-group">
-									<label for="batch-roll-no" class="form-label">Batch Roll No. *</label>
-									<input type="text" id="batch-roll-no" class="form-input" placeholder="Enter batch roll number" required />
-								</div>
-								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<div class="form-group">
-										<label for="start-weight" class="form-label">Start Weight (kg) *</label>
-										<input type="number" id="start-weight" class="form-input" step="0.01" min="0" placeholder="0.00" required />
-									</div>
-									<div class="form-group">
-										<label for="start-meter" class="form-label">Start Meter *</label>
-										<input type="number" id="start-meter" class="form-input" step="0.01" min="0" placeholder="0.00" required />
-									</div>
-								</div>
-							</div>
-							<div class="flex justify-end gap-3 mt-6">
-								<button type="button" id="start-new-btn" class="btn btn-secondary" style="display: none">Start New Production</button>
-								<button type="submit" class="btn btn-primary" disabled>Start Production</button>
-							</div>
-						</form>
-					</section>
 				</div>
 				<div class="space-y-6">
 					<section id="output-section" class="card p-6 space-y-6" style="display: none">
 						<div class="flex items-center justify-between">
 							<h3 class="text-lg font-semibold text-gray-800">Complete Output Roll</h3>
-							<span class="bg-green-100 text-green-800 text-sm px-2 py-1 rounded-full">Active Job</span>
 						</div>
 						<form id="output-form">
+							<input type="hidden" id="final_from_batch" />
 							<div class="space-y-4">
-								<div class="form-group">
-									<label for="output-roll-no" class="form-label">Output Roll No. *</label>
-									<input type="text" id="output-roll-no" class="form-input" placeholder="Auto-generated" readonly />
-								</div>
-								<div class="form-group">
-									<label for="final-meter" class="form-label">Final Meters *</label>
-									<input type="number" id="final-meter" class="form-input" step="0.01" min="0" placeholder="0.00" required />
-								</div>
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 									<div class="form-group">
-										<label for="flag-count" class="form-label">No. of Flags</label>
-										<input type="number" id="flag-count" class="form-input" min="0" value="0" />
+										<label for="final-meter" class="form-label">Final Meters *</label>
+										<input type="number" id="final-meter" class="form-input" step="0.01" min="0" placeholder="0.00" required />
 									</div>
 									<div class="form-group">
-										<label for="flag-reason" class="form-label">Flag Reason</label>
-										<select id="flag-reason" class="form-input">
-											<option value="">Select Reason</option>
-										</select>
+										<label for="core-weight" class="form-label">Core Weight</label>
+										<input type="number" id="core-weight" class="form-input" step="0.01" min="0" placeholder="0.00" />
 									</div>
+								</div>
+								<div class="form-group">
+									<label class="form-label">Flag Reasons</label>
+									<div id="flag-reasons-list" class="space-y-2 max-h-48 overflow-y-auto p-2 border rounded-lg"></div>
 								</div>
 							</div>
 							<div class="flex justify-end gap-3 mt-6">
-								<button type="reset" class="btn btn-secondary">Clear</button>
 								<button type="submit" class="btn btn-success" disabled>Complete Roll</button>
 							</div>
 						</form>
 					</section>
 					<section id="active-production" class="card p-6 space-y-6" style="display: none">
-						<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-							<h2 class="text-xl font-semibold text-gray-800">Active Production</h2>
-							<div class="flex items-center gap-3">
-								<button class="btn btn-secondary" id="refresh-btn"><i class="fas fa-refresh"></i> Refresh</button>
-							</div>
-						</div>
 						<div class="space-y-4">
 							<div class="flex justify-between items-center">
 								<h3 class="text-lg font-medium text-gray-700">Recent Rolls</h3>
@@ -293,9 +248,8 @@
 								<table id="rolls-table" class="table">
 									<thead class="sticky top-0 bg-white">
 										<tr>
+											<th>From Batch</th>
 											<th>Output Roll No.</th>
-											<th>Status</th>
-											<th>Weight (kg)</th>
 											<th>Meters</th>
 											<th>Flag Count</th>
 										</tr>
@@ -309,6 +263,29 @@
 							</div>
 						</div>
 					</section>
+				</div>
+			</div>
+			<div id="start-new-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+				<div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+					<h3 class="text-xl font-semibold text-gray-800 mb-4">End Current Job</h3>
+
+					<div class="mb-4">
+						<label class="block text-gray-700 text-sm font-medium mb-2"> Remaining Weight (Optional) </label>
+						<input
+							type="number"
+							id="remaining-weight"
+							class="form-input w-full"
+							step="0.01"
+							min="0"
+							placeholder="Enter remaining weight if any"
+						/>
+						<p class="text-xs text-gray-500 mt-1">Leave empty if no remaining weight</p>
+					</div>
+
+					<div class="flex justify-end gap-3">
+						<button onclick="cancelStartNew()" class="btn btn-secondary">Cancel</button>
+						<button onclick="confirmStartNew()" class="btn btn-danger">End Job</button>
+					</div>
 				</div>
 			</div>
 		</main>
