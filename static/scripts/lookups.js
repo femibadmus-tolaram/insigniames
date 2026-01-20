@@ -1,5 +1,6 @@
 /** @format */
 let lookups = [];
+let sections = [];
 let currentPage = 1;
 let itemsPerPage = 10;
 
@@ -33,8 +34,17 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 async function initializePage() {
-	await loadLookups();
+	await Promise.all([loadLookups(), loadSections()]);
 	setupEventListeners();
+}
+
+async function loadSections() {
+	try {
+		const response = await fetch("/api/sections");
+		sections = await response.json();
+	} catch (error) {
+		console.error("Error loading sections:", error);
+	}
 }
 
 function showLoading(show) {
@@ -130,6 +140,11 @@ function renderLookups(lookupsToRender) {
 							: ""
 					}
                     ${escapeHtml(lookup.name)}
+                    ${
+						lookup.lookup_type === "flag-reasons" && lookup.section_id
+							? `<span class="ml-2 text-xs text-gray-500">(${getSectionName(lookup.section_id)})</span>`
+							: ""
+					}
                 </div>
             </td>
             <td class="py-3 px-4">
@@ -215,19 +230,47 @@ function openModal(lookupId = null, lookupType = null) {
 	modal.style.display = "flex";
 }
 
+function getSectionName(sectionId) {
+	const section = sections.find((s) => s.id === sectionId);
+	return section ? section.name : "Unknown";
+}
+
 function toggleColorPicker() {
 	const type = document.getElementById("type").value;
 	const colorPicker = document.getElementById("color-picker");
 	const colorSuggestions = document.getElementById("color-suggestions");
+	const sectionPicker = document.getElementById("section-picker");
+	const sectionSelect = document.getElementById("section-id");
 
 	if (type === "colours") {
 		colorPicker.style.display = "block";
 		colorSuggestions.style.display = "block";
+		sectionPicker.style.display = "none";
+		sectionSelect.removeAttribute("required");
 		renderColorSuggestions();
+	} else if (type === "flag-reasons") {
+		colorPicker.style.display = "none";
+		colorSuggestions.style.display = "none";
+		sectionPicker.style.display = "block";
+		sectionSelect.setAttribute("required", "required");
+		populateSectionSelect();
 	} else {
 		colorPicker.style.display = "none";
 		colorSuggestions.style.display = "none";
+		sectionPicker.style.display = "none";
+		sectionSelect.removeAttribute("required");
 	}
+}
+
+function populateSectionSelect() {
+	const select = document.getElementById("section-id");
+	select.innerHTML = '<option value="">Select Section</option>';
+	sections.forEach((section) => {
+		const option = document.createElement("option");
+		option.value = section.id;
+		option.textContent = section.name;
+		select.appendChild(option);
+	});
 }
 
 function renderColorSuggestions() {
@@ -267,6 +310,10 @@ function populateForm(lookup) {
 		document.getElementById("color-preview").style.backgroundColor = lookup.color_code;
 	}
 
+	if (lookup.lookup_type === "flag-reasons" && lookup.section_id) {
+		document.getElementById("section-id").value = lookup.section_id;
+	}
+
 	toggleColorPicker();
 }
 
@@ -303,6 +350,14 @@ function handleFormSubmit(e) {
 		formData.color_code = colorCode;
 	}
 
+	// Add section_id for flag reasons
+	if (finalType === "flag-reasons") {
+		const sectionId = document.getElementById("section-id").value;
+		if (sectionId) {
+			formData.section_id = parseInt(sectionId);
+		}
+	}
+
 	const endpoint = lookupId ? "update" : "create";
 	const apiType = lookupType || selectedType;
 
@@ -320,7 +375,12 @@ function handleFormSubmit(e) {
 
 async function createLookup(type, lookupData) {
 	try {
-		const response = await fetch(`/api/lookups/${type}/create`, {
+		let url = `/api/lookups/${type}/create`;
+		if (type === "flag-reasons" && lookupData.section_id) {
+			url += `?section_id=${lookupData.section_id}`;
+			delete lookupData.section_id;
+		}
+		const response = await fetch(url, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(lookupData),

@@ -20,6 +20,10 @@ const MODULE_NAMES = {
 	scrap_types: "Scrap Types",
 	downtime_reasons: "Downtime Reasons",
 	flag_reasons: "Flag Reasons",
+	machines: "Machines",
+	sections: "Sections",
+	materials: "Materials",
+	po_codes: "PO Codes",
 };
 
 const PERMISSION_LABELS = {
@@ -226,10 +230,15 @@ function renderPermissionsManagement() {
 
 function renderPermissionControls(roleId) {
 	const rolePermissions = permissions.filter((p) => p.role_id === roleId);
+
+	// Get all unique modules from permissions data
+	const allModules = [...new Set(permissions.map((p) => p.model))];
+
 	return `
         <div class="permission-grid">
-            ${Object.entries(MODULE_NAMES)
-				.map(([key, name]) => {
+            ${allModules
+				.map((key) => {
+					const name = MODULE_NAMES[key] || key;
 					const modulePerms = rolePermissions.find((p) => p.model === key) || {
 						can_create: false,
 						can_read: false,
@@ -319,43 +328,52 @@ async function updateRole(roleData) {
 }
 
 async function savePermissions() {
-	const roleId = parseInt(document.getElementById("role-selector").value);
-	const checkboxes = document.querySelectorAll('input[type="checkbox"][data-role]');
-
-	const MODEL_TO_CONTENT_TYPE = {
-		users: 1,
-		roles: 2,
-		permissions: 3,
-		jobs: 4,
-		rolls: 5,
-		downtimes: 6,
-		scraps: 7,
-		ink_usages: 8,
-		solvent_usages: 9,
-		shifts: 10,
-		colours: 11,
-		solvent_types: 12,
-		scrap_types: 13,
-		downtime_reasons: 14,
-		flag_reasons: 15,
-	};
-
 	const permissionsToSave = [];
 	const processedModules = new Set();
 
-	checkboxes.forEach((checkbox) => {
-		if (parseInt(checkbox.dataset.role) === roleId && checkbox.checked) {
-			processedModules.add(checkbox.dataset.module);
+	// Get the CURRENT selected role ID (right before processing)
+	const roleId = parseInt(document.getElementById("role-selector").value);
+
+	// Collect all modules that have at least one permission change
+	const allModules = [...new Set(permissions.map((p) => p.model))];
+
+	allModules.forEach((module) => {
+		const canCreate = document.getElementById(`perm-${roleId}-${module}-can_create`)?.checked || false;
+		const canRead = document.getElementById(`perm-${roleId}-${module}-can_read`)?.checked || false;
+		const canUpdate = document.getElementById(`perm-${roleId}-${module}-can_update`)?.checked || false;
+		const canDelete = document.getElementById(`perm-${roleId}-${module}-can_delete`)?.checked || false;
+
+		// Find existing permission for this role and module
+		const existing = permissions.find((p) => p.role_id === roleId && p.model === module);
+
+		// Check if any permission has changed
+		if (existing) {
+			const hasChanged =
+				existing.can_create !== canCreate ||
+				existing.can_read !== canRead ||
+				existing.can_update !== canUpdate ||
+				existing.can_delete !== canDelete;
+
+			if (hasChanged) {
+				processedModules.add(module);
+			}
+		} else if (canCreate || canRead || canUpdate || canDelete) {
+			// New permission for this module
+			processedModules.add(module);
 		}
 	});
 
 	processedModules.forEach((module) => {
-		const content_type_id = MODEL_TO_CONTENT_TYPE[module];
-		if (!content_type_id) return;
+		// Get content_type_id from existing permissions data
+		const existingPerm = permissions.find((p) => p.model === module);
+		if (!existingPerm) return;
+
+		const content_type_id = existingPerm.content_type_id;
 
 		const permData = {
 			role_id: roleId,
 			content_type_id: content_type_id,
+			model: module,
 			can_create: document.getElementById(`perm-${roleId}-${module}-can_create`)?.checked || false,
 			can_read: document.getElementById(`perm-${roleId}-${module}-can_read`)?.checked || false,
 			can_update: document.getElementById(`perm-${roleId}-${module}-can_update`)?.checked || false,
@@ -385,17 +403,27 @@ async function savePermissions() {
 			})
 		);
 
-		saveResults.forEach((result, index) => {
-			const existingIndex = permissions.findIndex((p) => p.id === result.id);
-			if (existingIndex !== -1) {
-				permissions[existingIndex] = result;
-			} else {
-				permissions.push(result);
-			}
-		});
+		// Reload permissions from server to ensure all roles have correct data
+		try {
+			permissions = await fetch("/api/permissions").then(handleApiResponse);
+		} catch (error) {
+			console.error("Failed to reload permissions:", error);
+			// Fallback: Update local array manually
+			saveResults.forEach((result) => {
+				const existingIndex = permissions.findIndex((p) => p.role_id === result.role_id && p.model === result.model);
+				if (existingIndex !== -1) {
+					permissions[existingIndex] = result;
+				} else {
+					permissions.push(result);
+				}
+			});
+		}
 
 		showNotification("Permissions saved successfully!", "success");
-		hidePermissionsModal();
+		// Refresh the permission controls to show updated state without closing modal
+		const updatedRoleId = parseInt(document.getElementById("role-selector").value);
+		const permControls = document.getElementById("permission-controls");
+		permControls.innerHTML = renderPermissionControls(updatedRoleId);
 		updateStats();
 		renderRolesTable(roles);
 		renderPermissionsMatrix();

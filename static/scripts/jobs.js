@@ -6,15 +6,41 @@ let machines = [];
 let currentPage = 1;
 let itemsPerPage = 10;
 let totalCount = 0;
+let showDetails = false;
 
 document.addEventListener("DOMContentLoaded", function () {
 	initializePage();
 });
 
 async function initializePage() {
+	showDetails = localStorage.getItem("jobsShowDetails") === "true";
+	const toggle = document.getElementById("details-toggle");
+	if (toggle) {
+		toggle.checked = showDetails;
+		toggle.addEventListener("change", toggleDetails);
+	}
 	await loadFilterOptions();
 	await loadJobs();
 	setupEventListeners();
+	setTimeout(() => toggleDetails(), 100);
+}
+
+function toggleDetails() {
+	showDetails = !showDetails;
+	const toggle = document.getElementById("details-toggle");
+	if (toggle) toggle.checked = showDetails;
+	const detailColumns = document.querySelectorAll(".details-column");
+	const detailCells = document.querySelectorAll(".detail-cell");
+
+	if (showDetails) {
+		detailColumns.forEach((col) => (col.style.display = "table-cell"));
+		detailCells.forEach((cell) => (cell.style.display = "table-cell"));
+	} else {
+		detailColumns.forEach((col) => (col.style.display = "none"));
+		detailCells.forEach((cell) => (cell.style.display = "none"));
+	}
+
+	localStorage.setItem("jobsShowDetails", showDetails);
 }
 
 async function loadFilterOptions() {
@@ -63,7 +89,7 @@ async function loadJobs() {
 
 function updateJobStats(jobs) {
 	const totalRecords = jobs.length;
-	const activeJobs = jobs.filter((job) => !job.completed_at).length;
+	const activeJobs = jobs.filter((job) => !job.end_datetime).length;
 
 	const totalRolls = jobs.reduce((sum, job) => sum + (job.total_rolls || 0), 0);
 	const pendingRolls = jobs.reduce((sum, job) => sum + (job.pending_rolls || 0), 0);
@@ -79,7 +105,7 @@ function updateJobStats(jobs) {
 function renderJobs(jobsToRender) {
 	const tbody = document.getElementById("jobs-table-body");
 	if (!jobsToRender || jobsToRender.length === 0) {
-		tbody.innerHTML = '<tr><td colspan="11" class="text-center text-gray-500 py-4">No job records found</td></tr>';
+		tbody.innerHTML = '<tr><td colspan="12" class="text-center text-gray-500 py-4">No job records found</td></tr>';
 		return;
 	}
 
@@ -95,22 +121,24 @@ function renderJobs(jobsToRender) {
 		row.innerHTML = `
 			<td class="py-3 px-4">
 				<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-					job.completed_at ? "bg-gray-100 text-gray-800" : "bg-green-100 text-green-800"
+					job.end_datetime ? "bg-gray-100 text-gray-800" : "bg-green-100 text-green-800"
 				}">
-					${job.completed_at ? "Completed" : "Active"}
+					${job.end_datetime ? "Completed" : "Active"}
 				</span>
 			</td>
 			<td class="py-3 px-4">${escapeHtml(job.production_order)}</td>
 			<td class="py-3 px-4">${escapeHtml(job.batch_roll_no)}</td>
 			<td class="py-3 px-4">${job.shift_id === 1 ? "Day" : "Night"}</td>
 			<td class="py-3 px-4">${escapeHtml(machine?.label || "Unknown")}</td>
-			<td class="py-3 px-4 text-center">
+			<td class="py-3 px-4 detail-cell">${formatDateTime(job.start_datetime)}</td>
+			<td class="py-3 px-4 detail-cell">${job.end_datetime ? formatDateTime(job.end_datetime) : '<span class="text-gray-400">-</span>'}</td>
+			<td class="py-3 px-4 text-center detail-cell">
 				<span class="inline-flex items-center gap-1">
 					<i class="fas fa-layer-group text-blue-600"></i>
 					${job.total_rolls || 0}
 				</span>
 			</td>
-			<td class="py-3 px-4 text-center">
+			<td class="py-3 px-4 text-center detail-cell">
 				<span class="inline-flex items-center gap-1 ${job.pending_rolls > 0 ? "text-yellow-600" : "text-gray-600"}">
 					<i class="fas fa-clock"></i>
 					${job.pending_rolls || 0}
@@ -202,6 +230,7 @@ async function applyFilters() {
 		const params = new URLSearchParams();
 		const productionOrder = document.getElementById("filter-production-order").value;
 		const batchRollNo = document.getElementById("filter-batch-roll-no").value;
+		const status = document.getElementById("filter-status").value;
 		const shiftFilter = document.getElementById("filter-shift").value;
 		const machineFilter = document.getElementById("filter-machine").value;
 		const userFilter = document.getElementById("filter-user").value;
@@ -210,6 +239,7 @@ async function applyFilters() {
 
 		if (productionOrder) params.append("production_order", productionOrder);
 		if (batchRollNo) params.append("batch_roll_no", batchRollNo);
+		if (status) params.append("status", status);
 		if (shiftFilter) params.append("shift_id", shiftFilter);
 		if (machineFilter) params.append("machine_id", machineFilter);
 		if (userFilter) params.append("created_by", userFilter);
@@ -244,6 +274,7 @@ function clearFilters() {
 	document.getElementById("filter-user").value = "";
 	document.getElementById("filter-start-date").value = "";
 	document.getElementById("filter-end-date").value = "";
+	document.getElementById("filter-status").value = "";
 
 	currentPage = 1;
 	applyFilters();
@@ -385,8 +416,7 @@ async function exportToExcel() {
 		if (userFilter) params.append("created_by", userFilter);
 		if (startDate) params.append("start_date", startDate);
 		if (endDate) params.append("end_date", endDate);
-
-		const response = await fetch(`/api/jobs/filter?${params}`);
+		if (status) params.append("status", status);
 		const result = await handleApiResponse(response);
 		const filteredJobs = result.data;
 
@@ -401,7 +431,7 @@ async function exportToExcel() {
 
 			return {
 				"Job ID": job.id,
-				Status: job.completed_at ? "Completed" : "Active",
+				Status: job.end_datetime ? "Completed" : "Active",
 				"Production Order": job.production_order,
 				"Batch Roll No": job.batch_roll_no,
 				Shift: job.shift_id === 1 ? "Day" : "Night",

@@ -3,6 +3,7 @@ let currentUserPageId = null;
 
 document.addEventListener("DOMContentLoaded", async function () {
 	document.body.style.zoom = "90%";
+	cleanForm();
 	await loadUserPageId();
 	showNavBasedOnPageId();
 	highlightActiveLink();
@@ -502,4 +503,71 @@ function formatDowntime(minutes) {
 		const remainingMinutes = minutes % 60;
 		return remainingMinutes > 0 ? `${hours}h ${remainingMinutes}m` : `${hours}h`;
 	}
+}
+
+function cleanForm() {
+	document.querySelectorAll("input, select, textarea").forEach((el) => {
+		el.autocomplete = "off";
+		el.autocapitalize = "off";
+		el.autocorrect = "off";
+		el.spellcheck = false;
+	});
+
+	document.querySelectorAll("form").forEach((form) => {
+		form.setAttribute("autocomplete", "off");
+		form.addEventListener("submit", (e) => {
+			e.target.querySelectorAll("input").forEach((input) => {
+				input.setAttribute("autocomplete", "off");
+			});
+		});
+	});
+
+	const disableAutoFill = (element) => {
+		element.setAttribute("autocomplete", "off");
+		element.setAttribute("readonly", true);
+		element.style.backgroundColor = "transparent";
+
+		element.addEventListener("focus", () => {
+			element.removeAttribute("readonly");
+		});
+
+		element.addEventListener("blur", () => {
+			element.setAttribute("readonly", true);
+		});
+	};
+
+	["po-search", "start-meter", "final-meter"].forEach((id) => {
+		const el = document.getElementById(id);
+		if (el) disableAutoFill(el);
+	});
+
+	document.querySelectorAll("input, select").forEach((el, index) => {
+		if (el.id && !el.id.includes("search") && !el.id.includes("meter")) {
+			el.name = `field_${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`;
+		}
+	});
+}
+
+function highlightElement(elementId, color = "#ef4444") {
+	const element = document.getElementById(elementId);
+	if (!element) return;
+
+	const originalBorder = element.style.border;
+	const originalTransition = element.style.transition;
+
+	element.style.border = `2px solid ${color}`;
+	element.style.transition = "border 0.3s ease";
+
+	setTimeout(() => {
+		element.style.border = originalBorder;
+		element.style.transition = originalTransition;
+	}, 3000);
+}
+
+function formatDateForAPI(dateStr) {
+	const parts = dateStr.split("/");
+	if (parts.length === 3) {
+		return `${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`;
+	}
+	return `${dateStr}T00:00:00`;
 }
