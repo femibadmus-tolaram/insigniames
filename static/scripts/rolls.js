@@ -650,16 +650,40 @@ async function printRoll(rollId) {
 
 		document.getElementById("close-print-btn").addEventListener("click", closePrintModal);
 		document.getElementById("print-pdf-btn").addEventListener("click", async function () {
-			// Instead of window.print(), send pdf_data to /api/app/print
-			if (result.pdf_data) {
-				await fetch("http://localhost:8080/api/app/print", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ pdf_data: result.pdf_data }),
-				});
-				showNotification("Sent to printer", "success");
-			} else {
-				showNotification("No PDF data found for this roll.", "error");
+			// Convert the print-preview div to PDF and download for test (comment out POST)
+			const printDiv = document.getElementById("print-preview");
+			if (!printDiv) {
+				showNotification("Print preview not found.", "error");
+				return;
+			}
+			try {
+				// html2pdf.js must be loaded in the page for this to work
+				const opt = {
+					margin: 0,
+					filename: "label.pdf",
+					image: { type: "jpeg", quality: 0.98 },
+					html2canvas: { scale: 2 },
+					jsPDF: { unit: "in", format: [4, 6], orientation: "portrait" },
+				};
+				// Download PDF instead of posting
+				await window.html2pdf().set(opt).from(printDiv).save();
+				showNotification("PDF downloaded for test.", "success");
+				// --- For real printing, uncomment below ---
+				// const worker = window.html2pdf().set(opt).from(printDiv);
+				// const pdfBlob = await worker.outputPdf('blob');
+				// const reader = new FileReader();
+				// reader.onloadend = async function () {
+				//     const base64data = reader.result.split(',')[1];
+				//     await fetch("http://localhost:8080/api/app/print", {
+				//         method: "POST",
+				//         headers: { "Content-Type": "application/json" },
+				//         body: JSON.stringify({ pdf_data: base64data }),
+				//     });
+				//     showNotification("Sent to printer", "success");
+				// };
+				// reader.readAsDataURL(pdfBlob);
+			} catch (err) {
+				showNotification("Failed to generate PDF for printing.", "error");
 			}
 		});
 	} catch (error) {
