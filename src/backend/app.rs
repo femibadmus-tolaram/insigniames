@@ -13,12 +13,10 @@ use crate::backend::routes;
 struct Asset;
 
 async fn static_handler(path: web::Path<String>) -> impl Responder {
-    let file_path = format!("static/{}", path.into_inner());
+    let file_path = path.into_inner(); // e.g. css/app.css
     if let Some(file) = Asset::get(&file_path) {
         let mime = mime_guess::from_path(&file_path).first_or_octet_stream();
-        HttpResponse::Ok()
-            .content_type(mime.as_ref())
-            .body(file.data.into_owned())
+        HttpResponse::Ok().content_type(mime.as_ref()).body(file.data.into_owned())
     } else {
         HttpResponse::NotFound().body("not found")
     }
