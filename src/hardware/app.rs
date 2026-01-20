@@ -1,23 +1,30 @@
-use reqwest;
-use chrono::Local;
-use serde_json::json;
-use serde::Deserialize;
-use base64::prelude::*;
 use crate::manager::config::*;
+use actix_web::{HttpResponse, Responder, web};
+use base64::prelude::*;
+use chrono::Local;
+use reqwest;
+use serde::Deserialize;
+use serde_json::json;
 use std::{ffi::CString, fs, path::Path, ptr};
-use actix_web::{web, Responder, HttpResponse};
-use winapi::um::processthreadsapi::{CreateProcessA, STARTUPINFOA, PROCESS_INFORMATION};
+#[cfg(windows)]
+use winapi::um::processthreadsapi::{CreateProcessA, PROCESS_INFORMATION, STARTUPINFOA};
 
-
-pub async fn run_update(base_url: web::Query<std::collections::HashMap<String, String>>) -> impl Responder {
+pub async fn run_update(
+    base_url: web::Query<std::collections::HashMap<String, String>>,
+) -> impl Responder {
     let result = (|| -> Result<String, Box<dyn std::error::Error>> {
-        let base_url = base_url.get("base_url").ok_or("Missing base_url parameter")?;
-        
-        if !Path::new("update.exe").exists() { 
-            download_update(base_url)?; 
+        let base_url = base_url
+            .get("base_url")
+            .ok_or("Missing base_url parameter")?;
+        if !Path::new("update.exe").exists() {
+            download_update(base_url)?;
         }
         download_app(base_url)?;
-        fs::write("data/last_update.txt", Local::now().format("%Y-%m-%d %H:%M:%S").to_string())?;
+        fs::write(
+            "data/last_update.txt",
+            Local::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+        )?;
+        #[cfg(windows)]
         unsafe {
             let cmd = CString::new("update.exe").unwrap();
             let mut startup_info: STARTUPINFOA = std::mem::zeroed();
@@ -35,6 +42,10 @@ pub async fn run_update(base_url: web::Query<std::collections::HashMap<String, S
                 &mut startup_info,
                 &mut process_info,
             );
+        }
+        #[cfg(not(windows))]
+        {
+            // On non-Windows, just skip process creation or implement alternative if needed
         }
         Ok("Update started - application will restart shortly...".to_string())
     })();
@@ -74,12 +85,10 @@ pub fn download_update(base_url: &str) -> Result<(), Box<dyn std::error::Error>>
     Ok(())
 }
 
-
 #[derive(Deserialize)]
 pub struct PrintData {
     pub pdf_data: String,
 }
-
 
 pub async fn scan_qrcode() -> impl Responder {
     let scanner_config = AppConfig::scanner();
@@ -110,7 +119,7 @@ pub async fn scan_qrcode() -> impl Responder {
                                 .trim_end_matches(&['\r', '\n'][..])
                                 .to_string();
 
-                            if !line.is_empty(){
+                            if !line.is_empty() {
                                 return HttpResponse::Ok().json(json!({
                                     "success": true,
                                     "message": "QR code scanned successfully",
@@ -141,7 +150,6 @@ pub async fn scan_qrcode() -> impl Responder {
     }
 }
 
-
 pub async fn get_settings() -> HttpResponse {
     let config = serde_json::json!({
         "scanner": AppConfig::scanner(),
@@ -151,8 +159,10 @@ pub async fn get_settings() -> HttpResponse {
 }
 
 pub async fn update_settings(new_config: web::Json<serde_json::Value>) -> HttpResponse {
-    let scanner = serde_json::from_value::<DeviceConfig>(new_config["scanner"].clone()).unwrap_or_default();
-    let scale = serde_json::from_value::<DeviceConfig>(new_config["scale"].clone()).unwrap_or_default();
+    let scanner =
+        serde_json::from_value::<DeviceConfig>(new_config["scanner"].clone()).unwrap_or_default();
+    let scale =
+        serde_json::from_value::<DeviceConfig>(new_config["scale"].clone()).unwrap_or_default();
     AppConfig::save_to_env(scanner.clone(), scale.clone());
     HttpResponse::Ok().json(serde_json::json!({ "scanner": scanner, "scale": scale }))
 }
@@ -166,7 +176,7 @@ pub async fn test_scanner_connection() -> HttpResponse {
         Err(e) => HttpResponse::BadRequest().json(serde_json::json!({
             "success": false,
             "message": e
-        }))
+        })),
     }
 }
 
@@ -180,22 +190,21 @@ pub async fn test_scale_connection() -> HttpResponse {
         Err(e) => HttpResponse::BadRequest().json(serde_json::json!({
             "success": false,
             "message": e
-        }))
+        })),
     }
 }
-
 
 pub async fn test_printer_connection() -> HttpResponse {
     if check_printer() {
         return HttpResponse::Ok().json(serde_json::json!({
             "success": true,
             "message": "Printer connection successful"
-        }))
+        }));
     } else {
         return HttpResponse::BadRequest().json(serde_json::json!({
             "success": false,
             "message": "Printer not found"
-        }))
+        }));
     }
 }
 
@@ -242,4 +251,3 @@ pub async fn get_scale_weight() -> HttpResponse {
         // })),
     }
 }
-
