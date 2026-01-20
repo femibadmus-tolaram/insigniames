@@ -301,7 +301,7 @@ function clearFilters() {
 	applyFilters();
 }
 
-function openModal(rollId = null) {
+async function openModal(rollId = null) {
 	const modal = document.getElementById("roll-modal");
 	const title = document.getElementById("modal-title");
 	const form = document.getElementById("roll-form");
@@ -316,6 +316,28 @@ function openModal(rollId = null) {
 		title.textContent = "Add Roll";
 		form.reset();
 		document.getElementById("roll-id").value = "";
+	}
+
+	// Fetch scale weight and set input value (rounded to 3 decimals), disable input
+	try {
+		const resp = await fetch("http://localhost:8080/api/app/weight");
+		if (resp.ok) {
+			const data = await resp.json();
+			if (data && typeof data.weight !== "undefined") {
+				const weight = Math.round((parseFloat(data.weight) + Number.EPSILON) * 1000) / 1000;
+				const weightInput = document.getElementById("final-weight");
+				if (weightInput) {
+					weightInput.value = weight;
+					weightInput.disabled = true;
+				}
+			}
+		}
+	} catch (e) {
+		// If fetch fails, leave input enabled for manual entry
+		const weightInput = document.getElementById("final-weight");
+		if (weightInput) {
+			weightInput.disabled = false;
+		}
 	}
 
 	modal.style.display = "flex";
@@ -529,31 +551,26 @@ async function printRoll(rollId) {
 						<div style="font-weight: 900; font-size: 18px; letter-spacing: 0.5px;">INSIGNIA PRODUCTION LABEL</div>
 						<div style="font-size: 13px; font-weight: bold; margin-top: 4px;">${escapeHtml(result.process_order_description)}</div>
 					</div>
-
 					<!-- QR CODE IN CENTER -->
 					<div style="text-align: center; margin: 0 auto 30px auto;">
 						<div id="qrcode-container" style="display:block;width:180px;height:180px;margin:0;padding:0;"></div>
 						<label style="margin-top: 5px; font-size: 8px; font-weight: bold; display: block; text-transform: uppercase; color: #444;">ROLL NO SCAN</label>
 					</div>
-
 					<!-- CONTENT BELOW QR CODE -->
 					<div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
 						<div style="flex: 1;">
 							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">PRODUCTION ORDER</label>
 							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.production_order)}</div>
-
 							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">SECTION</label>
 							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.section)}</div>
 						</div>
 						<div style="flex: 1; text-align: right;">
 							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">MATERIAL NUMBER</label>
 							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.material_number)}</div>
-
 							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">ROLL NO</label>
 							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.output_roll_no)}</div>
 						</div>
 					</div>
-
 					<div style="display: flex; margin-bottom: 25px;">
 						<div style="flex: 1;">
 							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">FINAL METER</label>
@@ -564,7 +581,6 @@ async function printRoll(rollId) {
 							<div style="font-size: 14px; font-weight: bold;">${formatNumber(result.final_weight)} kg</div>
 						</div>
 					</div>
-
 					<div style="margin-top: auto; display: flex; justify-content: space-between; padding-bottom: 5px;">
 						<div>
 							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">TIMESTAMP</label>
@@ -579,7 +595,6 @@ async function printRoll(rollId) {
 					</div>
 				</div>
 			</div>
-
 			<div class="mt-6 flex justify-center gap-3">
 				<button id="print-pdf-btn" class="btn btn-primary"><i class="fas fa-print mr-2"></i> Print Label</button>
 				<button id="close-print-btn" class="btn btn-secondary"><i class="fas fa-times mr-2"></i> Close</button>
@@ -633,8 +648,18 @@ async function printRoll(rollId) {
 		}, 100);
 
 		document.getElementById("close-print-btn").addEventListener("click", closePrintModal);
-		document.getElementById("print-pdf-btn").addEventListener("click", function () {
-			window.print();
+		document.getElementById("print-pdf-btn").addEventListener("click", async function () {
+			// Instead of window.print(), send pdf_data to /api/app/print
+			if (result.pdf_data) {
+				await fetch("http://localhost:8080/api/app/print", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ pdf_data: result.pdf_data }),
+				});
+				showNotification("Sent to printer", "success");
+			} else {
+				showNotification("No PDF data found for this roll.", "error");
+			}
 		});
 	} catch (error) {
 		showNotification(error.message, "error");

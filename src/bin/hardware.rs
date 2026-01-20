@@ -1,3 +1,4 @@
+#![windows_subsystem = "windows"]
 use actix_cors::Cors;
 use anyhow::Context;
 use actix_files::Files;
