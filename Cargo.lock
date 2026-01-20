@@ -1901,6 +1901,7 @@ dependencies = [
  "futures",
  "futures-util",
  "lopdf",
+ "mime_guess",
  "mysql",
  "mysql_async",
  "odbc",
