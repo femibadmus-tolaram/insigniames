@@ -13,6 +13,10 @@ jobs:
             - name: Checkout code
               uses: actions/checkout@v3
 
+            - name: Write .env file from secret
+              run: echo "${{ secrets.ENV_CONTENT }}" > .env
+              working-directory: ${{ github.workspace }}
+
             - name: Setup Rust
               uses: actions-rs/toolchain@v1
               with:
@@ -39,10 +43,11 @@ jobs:
             - name: Stop insigniames service
               run: sudo systemctl stop insigniames
 
-            - name: Move new binary to deployment directory
+            - name: Move new binary and .env to deployment directory
               run: |
                   mkdir -p /home/insigniames/target/release
                   cp ${{ github.workspace }}/target/release/insigniames /home/insigniames/target/release/insigniames
+                  cp ${{ github.workspace }}/.env /home/insigniames/target/release/.env
                   chmod +x /home/insigniames/target/release/insigniames
 
             - name: Restart insigniames service
