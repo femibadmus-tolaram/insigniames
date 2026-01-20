@@ -1,6 +1,6 @@
-use rusqlite::{Connection, Result};
-use r2d2_sqlite::SqliteConnectionManager;
 use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
+use rusqlite::{Connection, Result};
 
 pub fn init_local_db(path: &str) -> Result<()> {
     let conn = Connection::open(path)?;
@@ -8,7 +8,7 @@ pub fn init_local_db(path: &str) -> Result<()> {
         "
         CREATE TABLE IF NOT EXISTS content_type (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            model TEXT
+            model TEXT UNIQUE
         );
         CREATE TABLE IF NOT EXISTS permissions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -122,7 +122,9 @@ pub fn init_local_db(path: &str) -> Result<()> {
         );
         CREATE TABLE IF NOT EXISTS flag_reasons (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT UNIQUE
+            name TEXT UNIQUE,
+            section_id INTEGER,
+            FOREIGN KEY (section_id) REFERENCES sections(id)
         );
 
         CREATE TABLE IF NOT EXISTS jobs (
@@ -130,28 +132,35 @@ pub fn init_local_db(path: &str) -> Result<()> {
             shift_id INTEGER,
             production_order TEXT,
             batch_roll_no TEXT,
-            start_weight DECIMAL(10,2),
+            start_weight TEXT,
+            consumed_weight TEXT,
+            material_number TEXT,
+            material_document TEXT,
             start_meter DECIMAL(10,2),
             created_by INTEGER,
             machine_id INTEGER,
+            start_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
+            end_datetime DATETIME,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (machine_id) REFERENCES machines(id),
             FOREIGN KEY (shift_id) REFERENCES shifts(id),
             FOREIGN KEY (created_by) REFERENCES users(id)
         );
+        
         CREATE TABLE IF NOT EXISTS rolls (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             output_roll_no TEXT UNIQUE,
+            from_batch TEXT,
             final_meter DECIMAL(10,2),
-            number_of_flags INTEGER DEFAULT 0,
-            flag_reason_id INTEGER,
+            flag_reason TEXT,
             final_weight DECIMAL(10,2),
+            core_weight DECIMAL(10,2),
             job_id INTEGER,
             created_by INTEGER,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (flag_reason_id) REFERENCES flag_reasons(id),
+            flag_count INTEGER DEFAULT 0,
             FOREIGN KEY (job_id) REFERENCES jobs(id),
             FOREIGN KEY (created_by) REFERENCES users(id)
         );
@@ -210,6 +219,107 @@ pub fn init_local_db(path: &str) -> Result<()> {
         );
         ",
     )?;
+
+    // Initialize content types and permissions if they don't exist
+    let models = vec![
+        "users",
+        "roles",
+        "permissions",
+        "jobs",
+        "rolls",
+        "downtimes",
+        "scraps",
+        "ink_usages",
+        "solvent_usages",
+        "shifts",
+        "colours",
+        "solvent_types",
+        "scrap_types",
+        "downtime_reasons",
+        "flag_reasons",
+        "machines",
+        "sections",
+        "materials",
+        "po_codes",
+    ];
+
+    for model in &models {
+        // Insert content type if not exists
+        conn.execute(
+            "INSERT OR IGNORE INTO content_type (model) VALUES (?1)",
+            rusqlite::params![model],
+        )?;
+
+        // Get content_type_id
+        let content_type_id: i32 = conn.query_row(
+            "SELECT id FROM content_type WHERE model = ?1",
+            rusqlite::params![model],
+            |row| row.get(0),
+        )?;
+
+        // Insert permissions if not exist
+        let codename_create = format!("can_create_{}", model);
+        let codename_read = format!("can_read_{}", model);
+        let codename_update = format!("can_update_{}", model);
+        let codename_delete = format!("can_delete_{}", model);
+
+        let name_create = format!("Can create {}", model);
+        let name_read = format!("Can read {}", model);
+        let name_update = format!("Can update {}", model);
+        let name_delete = format!("Can delete {}", model);
+
+        conn.execute(
+            "INSERT OR IGNORE INTO permissions (codename, name, content_type_id, can_create) 
+             VALUES (?1, ?2, ?3, 1)",
+            rusqlite::params![&codename_create, &name_create, content_type_id],
+        )?;
+
+        conn.execute(
+            "INSERT OR IGNORE INTO permissions (codename, name, content_type_id, can_read) 
+             VALUES (?1, ?2, ?3, 1)",
+            rusqlite::params![&codename_read, &name_read, content_type_id],
+        )?;
+
+        conn.execute(
+            "INSERT OR IGNORE INTO permissions (codename, name, content_type_id, can_update) 
+             VALUES (?1, ?2, ?3, 1)",
+            rusqlite::params![&codename_update, &name_update, content_type_id],
+        )?;
+
+        conn.execute(
+            "INSERT OR IGNORE INTO permissions (codename, name, content_type_id, can_delete) 
+             VALUES (?1, ?2, ?3, 1)",
+            rusqlite::params![&codename_delete, &name_delete, content_type_id],
+        )?;
+    }
+
+    // Get the read permission ID for this model (can_read)
+    // Assign read access to all roles by default for all models
+    let mut stmt = conn.prepare("SELECT id FROM permissions WHERE codename = ?1")?;
+
+    for model in &models {
+        let codename_read = format!("can_read_{}", model);
+        let perm_id: i32 = match stmt.query_row(rusqlite::params![&codename_read], |row| row.get(0))
+        {
+            Ok(id) => id,
+            Err(_) => continue,
+        };
+
+        // Get all roles
+        let mut roles_stmt = conn.prepare("SELECT id FROM roles")?;
+        let role_ids: Vec<i32> = roles_stmt
+            .query_map([], |row| row.get(0))?
+            .collect::<Result<Vec<_>, _>>()?;
+
+        // Assign read permission to each role if not already assigned
+        for role_id in role_ids {
+            conn.execute(
+                "INSERT OR IGNORE INTO role_permissions (role_id, permission_id) VALUES (?1, ?2)",
+                rusqlite::params![role_id, perm_id],
+            )?;
+        }
+    }
+
     Ok(())
 }
 

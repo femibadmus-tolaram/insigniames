@@ -1,30 +1,38 @@
-use chrono::Local;
-use rusqlite::{params, Connection, Result};
-use serde::{Serialize, Deserialize};
-use crate::{backend::models::{FilterResponse, Job}, sap::{RollData, post_rolls}};
+use std::io::{Error, ErrorKind};
+
+use crate::{
+    backend::models::{FilterResponse, Job},
+    sap::{RollData, post_rolls},
+};
+use chrono::{Datelike, Local};
+use rusqlite::{Connection, Result, params};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
 pub struct Roll {
     pub id: i32,
     pub output_roll_no: String,
     pub final_meter: f64,
-    pub number_of_flags: i32,
-    pub flag_reason_id: Option<i32>,
+    pub flag_reason: Option<String>,
     pub final_weight: f64,
+    pub core_weight: Option<f64>,
     pub job_id: i32,
     pub created_by: i32,
     pub created_at: String,
     pub updated_at: String,
+    pub from_batch: String,
+    pub flag_count: i32,
 }
 
 #[derive(Deserialize)]
 pub struct RollCreatePayload {
-    pub output_roll_no: String,
     pub final_meter: f64,
-    pub number_of_flags: i32,
-    pub flag_reason_id: Option<i32>,
+    pub flag_reason: Option<String>,
     pub final_weight: f64,
+    pub core_weight: Option<f64>,
     pub job_id: i32,
+    pub from_batch: String,
+    pub flag_count: i32,
 }
 
 #[derive(Deserialize)]
@@ -32,9 +40,9 @@ pub struct RollPayload {
     pub id: i32,
     pub output_roll_no: Option<String>,
     pub final_meter: Option<f64>,
-    pub number_of_flags: Option<i32>,
-    pub flag_reason_id: Option<i32>,
+    pub flag_reason: Option<String>,
     pub final_weight: Option<f64>,
+    pub core_weight: Option<f64>,
     pub job_id: Option<i32>,
 }
 
@@ -43,7 +51,7 @@ pub struct RollFilterPayload {
     pub job_id: Option<String>,
     pub shift_id: Option<String>,
     pub output_roll_no: Option<String>,
-    pub flag_reason_id: Option<String>,
+    pub flag_reason: Option<String>,
     pub created_by: Option<String>,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
@@ -52,72 +60,143 @@ pub struct RollFilterPayload {
     pub status: Option<String>,
 }
 
+#[derive(Debug, Serialize)]
+pub struct RollDetails {
+    pub material_number: String,
+    pub material_description: String,
+    pub process_order_description: String,
+    pub production_order: String,
+    pub output_roll_no: String,
+    pub final_weight: f64,
+    pub final_meter: f64,
+    pub flag_reason: Option<String>,
+    pub created_at: String,
+    pub section: String,
+    pub flag_count: i32,
+}
+
 impl Roll {
     pub fn create(conn: &Connection, data: &RollCreatePayload, user_id: i32) -> Result<Self> {
         let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-        conn.execute(
-            "INSERT INTO rolls (output_roll_no, final_meter, number_of_flags, flag_reason_id, final_weight, job_id, created_by, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-            params![data.output_roll_no, data.final_meter, data.number_of_flags, data.flag_reason_id, data.final_weight, data.job_id, user_id, now, now],
+        let job = Job::find_by_id(conn, data.job_id)?;
+
+        let machine = conn.query_row(
+            "SELECT label FROM machines WHERE id = ?1",
+            params![job.machine_id],
+            |row| row.get::<_, String>(0),
         )?;
+
+        let current_date = Local::now();
+        let year = current_date.format("%y").to_string();
+        let day_of_year = current_date.date_naive().ordinal() as i32;
+        let shift_number = (day_of_year - 1) * 2 + job.shift_id;
+        let today_start = current_date.format("%Y-%m-%d").to_string();
+
+        let roll_count_for_job: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM rolls WHERE job_id = ?1 AND date(created_at) = date(?2)",
+                params![data.job_id, today_start],
+                |row| row.get(0),
+            )
+            .unwrap_or(0);
+
+        let roll_number = roll_count_for_job + 1;
+        let output_roll_no = format!("{}{:03}{}{:03}", year, shift_number, machine, roll_number);
+
+        conn.execute(
+            "INSERT INTO rolls (output_roll_no, final_meter, flag_reason, final_weight, core_weight, job_id, created_by, created_at, updated_at, from_batch, flag_count) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![output_roll_no, data.final_meter, data.flag_reason, data.final_weight, data.core_weight, data.job_id, user_id, now, now, data.from_batch, data.flag_count],
+        )?;
+
         let id = conn.last_insert_rowid() as i32;
         Ok(Roll {
             id,
-            output_roll_no: data.output_roll_no.clone(),
+            output_roll_no,
             final_meter: data.final_meter,
-            number_of_flags: data.number_of_flags,
-            flag_reason_id: data.flag_reason_id,
+            flag_reason: data.flag_reason.clone(),
             final_weight: data.final_weight,
+            core_weight: data.core_weight,
             job_id: data.job_id,
             created_by: user_id,
             created_at: now.clone(),
             updated_at: now.clone(),
+            from_batch: data.from_batch.clone(),
+            flag_count: data.flag_count,
         })
     }
 
     pub async fn update(&mut self, conn: &Connection, data: &RollPayload) -> Result<()> {
         if let Some(final_weight) = data.final_weight {
             let job = Job::find_by_id(conn, self.job_id)?;
-            
+
+            let kg = final_weight;
+            let meter = self.final_meter;
+            let ratio = (meter / kg * 100.0).round() / 100.0;
+            let new_alternate_quantity = (ratio * kg * 100.0).round() / 100.0;
+
             let roll_data = RollData {
-                alternate_quantity: final_weight.to_string(),
-                quantity: self.final_meter.to_string(),
-                batch: job.batch_roll_no.clone(),
+                meter: new_alternate_quantity.to_string(),
+                weight: final_weight.to_string(),
+                batch: self.output_roll_no.to_string(),
                 production_order: job.production_order.clone(),
             };
-            
-            let success = post_rolls(roll_data).await;
-            if !success {
-                return Err(rusqlite::Error::InvalidParameterName("Failed to post roll data".to_string()));
+
+            if let Err(e) = post_rolls(roll_data).await {
+                return Err(rusqlite::Error::ToSqlConversionFailure(Box::new(
+                    Error::new(ErrorKind::Other, e),
+                )));
             }
+
+            conn.execute(
+                "UPDATE rolls SET final_meter = ?1 WHERE id = ?2",
+                params![new_alternate_quantity, self.id],
+            )?;
+            self.final_meter = new_alternate_quantity;
         }
-        
+
         let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-        
+
         if let Some(output_roll_no) = &data.output_roll_no {
-            conn.execute("UPDATE rolls SET output_roll_no = ?1 WHERE id = ?2", params![output_roll_no, self.id])?;
+            conn.execute(
+                "UPDATE rolls SET output_roll_no = ?1 WHERE id = ?2",
+                params![output_roll_no, self.id],
+            )?;
             self.output_roll_no = output_roll_no.clone();
         }
         if let Some(final_meter) = data.final_meter {
-            conn.execute("UPDATE rolls SET final_meter = ?1 WHERE id = ?2", params![final_meter, self.id])?;
+            conn.execute(
+                "UPDATE rolls SET final_meter = ?1 WHERE id = ?2",
+                params![final_meter, self.id],
+            )?;
             self.final_meter = final_meter;
         }
-        if let Some(number_of_flags) = data.number_of_flags {
-            conn.execute("UPDATE rolls SET number_of_flags = ?1 WHERE id = ?2", params![number_of_flags, self.id])?;
-            self.number_of_flags = number_of_flags;
-        }
-        if let Some(flag_reason_id) = data.flag_reason_id {
-            conn.execute("UPDATE rolls SET flag_reason_id = ?1 WHERE id = ?2", params![flag_reason_id, self.id])?;
-            self.flag_reason_id = Some(flag_reason_id);
+        if let Some(flag_reason) = &data.flag_reason {
+            conn.execute(
+                "UPDATE rolls SET flag_reason = ?1 WHERE id = ?2",
+                params![flag_reason, self.id],
+            )?;
+            self.flag_reason = Some(flag_reason.to_string());
         }
         if let Some(final_weight) = data.final_weight {
-            conn.execute("UPDATE rolls SET final_weight = ?1 WHERE id = ?2", params![final_weight, self.id])?;
+            conn.execute(
+                "UPDATE rolls SET final_weight = ?1 WHERE id = ?2",
+                params![final_weight, self.id],
+            )?;
             self.final_weight = final_weight;
         }
         if let Some(job_id) = data.job_id {
-            conn.execute("UPDATE rolls SET job_id = ?1 WHERE id = ?2", params![job_id, self.id])?;
+            let job = Job::find_by_id(conn, job_id)?;
+            conn.execute(
+                "UPDATE rolls SET job_id = ?1, from_batch = ?2 WHERE id = ?3",
+                params![job_id, job.batch_roll_no, self.id],
+            )?;
             self.job_id = job_id;
+            self.from_batch = job.batch_roll_no;
         }
-        conn.execute("UPDATE rolls SET updated_at = ?1 WHERE id = ?2", params![now, self.id])?;
+        conn.execute(
+            "UPDATE rolls SET updated_at = ?1 WHERE id = ?2",
+            params![now, self.id],
+        )?;
         self.updated_at = now;
         Ok(())
     }
@@ -128,45 +207,64 @@ impl Roll {
     }
 
     pub fn find_by_id(conn: &Connection, id: i32) -> Result<Self> {
-        let mut stmt = conn.prepare("SELECT * FROM rolls WHERE id = ?1")?;
-        stmt.query_row(params![id], |row| Ok(Roll {
-            id: row.get(0)?,
-            output_roll_no: row.get(1)?,
-            final_meter: row.get(2)?,
-            number_of_flags: row.get(3)?,
-            flag_reason_id: row.get(4)?,
-            final_weight: row.get(5)?,
-            job_id: row.get(6)?,
-            created_by: row.get(7)?,
-            created_at: row.get(8)?,
-            updated_at: row.get(9)?,
-        }))
+        let mut stmt = conn.prepare(
+                "SELECT id, output_roll_no, final_meter, flag_reason, final_weight, core_weight, job_id, created_by, created_at, updated_at, from_batch, flag_count 
+                 FROM rolls WHERE id = ?1"
+            )?;
+        stmt.query_row(params![id], |row| {
+            Ok(Roll {
+                id: row.get(0)?,
+                output_roll_no: row.get(1)?,
+                final_meter: row.get(2)?,
+                flag_reason: row.get(3)?,
+                final_weight: row.get(4)?,
+                core_weight: row.get(5)?,
+                job_id: row.get(6)?,
+                created_by: row.get(7)?,
+                created_at: row.get(8)?,
+                updated_at: row.get(9)?,
+                from_batch: row.get(10)?,
+                flag_count: row.get(11)?,
+            })
+        })
     }
 
     pub fn all(conn: &Connection) -> Result<Vec<Self>> {
-        let mut stmt = conn.prepare("SELECT * FROM rolls ORDER BY created_at DESC")?;
-        let rolls = stmt.query_map([], |row| Ok(Roll {
-            id: row.get(0)?,
-            output_roll_no: row.get(1)?,
-            final_meter: row.get(2)?,
-            number_of_flags: row.get(3)?,
-            flag_reason_id: row.get(4)?,
-            final_weight: row.get(5)?,
-            job_id: row.get(6)?,
-            created_by: row.get(7)?,
-            created_at: row.get(8)?,
-            updated_at: row.get(9)?,
-        }))?.collect::<Result<Vec<_>, _>>()?;
+        let mut stmt = conn.prepare(
+                "SELECT id, output_roll_no, final_meter, flag_reason, final_weight, core_weight, job_id, created_by, created_at, updated_at, from_batch, flag_count 
+                 FROM rolls ORDER BY created_at DESC"
+        )?;
+        let rolls = stmt
+            .query_map([], |row| {
+                Ok(Roll {
+                    id: row.get(0)?,
+                    output_roll_no: row.get(1)?,
+                    final_meter: row.get(2)?,
+                    flag_reason: row.get(3)?,
+                    final_weight: row.get(4)?,
+                    core_weight: row.get(5)?,
+                    job_id: row.get(6)?,
+                    created_by: row.get(7)?,
+                    created_at: row.get(8)?,
+                    updated_at: row.get(9)?,
+                    from_batch: row.get(10)?,
+                    flag_count: row.get(11)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(rolls)
     }
 
     pub fn filter(conn: &Connection, filter: &RollFilterPayload) -> Result<FilterResponse<Roll>> {
-        let mut count_query = "SELECT COUNT(*) FROM rolls r JOIN jobs j ON r.job_id = j.id WHERE 1=1".to_string();
-        let mut data_query = "SELECT r.* FROM rolls r JOIN jobs j ON r.job_id = j.id WHERE 1=1".to_string();
+        let mut count_query =
+            "SELECT COUNT(*) FROM rolls r JOIN jobs j ON r.job_id = j.id WHERE 1=1".to_string();
+        let mut data_query =
+            "SELECT r.id, r.output_roll_no, r.final_meter, r.flag_reason, r.final_weight, r.core_weight, r.job_id, r.created_by, r.created_at, r.updated_at, r.from_batch, r.flag_count 
+             FROM rolls r JOIN jobs j ON r.job_id = j.id WHERE 1=1".to_string();
         let mut params_vec: Vec<&dyn rusqlite::ToSql> = vec![];
 
         let mut job_ids: Vec<i32> = vec![];
-        let mut flag_reason_ids: Vec<i32> = vec![];
+        let mut flag_reasons: Vec<String> = vec![];
         let mut created_bys: Vec<i32> = vec![];
         let mut output_roll_nos: Vec<String> = vec![];
         let mut start_dates: Vec<String> = vec![];
@@ -189,8 +287,8 @@ impl Roll {
                 count_query.push_str(" AND r.final_weight = 0");
                 data_query.push_str(" AND r.final_weight = 0");
             } else if val == "flagged" {
-                count_query.push_str(" AND r.number_of_flags > 0");
-                data_query.push_str(" AND r.number_of_flags > 0");
+                count_query.push_str(" AND (r.flag_reason IS NOT NULL AND r.flag_reason != '')");
+                data_query.push_str(" AND (r.flag_reason IS NOT NULL AND r.flag_reason != '')");
             } else if val == "completed" {
                 count_query.push_str(" AND r.final_weight > 0");
                 data_query.push_str(" AND r.final_weight > 0");
@@ -206,13 +304,11 @@ impl Roll {
             }
         }
 
-        if let Some(val) = &filter.flag_reason_id {
-            if let Ok(parsed) = val.parse::<i32>() {
-                flag_reason_ids.push(parsed);
-                params_vec.push(flag_reason_ids.last().unwrap());
-                count_query.push_str(" AND r.flag_reason_id = ?");
-                data_query.push_str(" AND r.flag_reason_id = ?");
-            }
+        if let Some(val) = &filter.flag_reason {
+            flag_reasons.push(val.to_string());
+            params_vec.push(flag_reasons.last().unwrap());
+            count_query.push_str(" AND r.flag_reason = ?");
+            data_query.push_str(" AND r.flag_reason = ?");
         }
 
         if let Some(val) = &filter.created_by {
@@ -251,12 +347,14 @@ impl Roll {
             }
         }
 
-        let total_count: i32 = conn.query_row(&count_query, params_vec.as_slice(), |row| row.get(0))?;
+        let total_count: i32 =
+            conn.query_row(&count_query, params_vec.as_slice(), |row| row.get(0))?;
 
         data_query.push_str(" ORDER BY r.created_at DESC");
 
         if let (Some(page), Some(per_page)) = (&filter.page, &filter.per_page) {
-            if let (Ok(page_val), Ok(per_page_val)) = (page.parse::<i32>(), per_page.parse::<i32>()) {
+            if let (Ok(page_val), Ok(per_page_val)) = (page.parse::<i32>(), per_page.parse::<i32>())
+            {
                 if per_page_val > 0 {
                     let offset = (page_val - 1) * per_page_val;
                     pages.push(offset);
@@ -274,22 +372,109 @@ impl Roll {
                 id: row.get(0)?,
                 output_roll_no: row.get(1)?,
                 final_meter: row.get(2)?,
-                number_of_flags: row.get(3)?,
-                flag_reason_id: row.get(4)?,
-                final_weight: row.get(5)?,
+                flag_reason: row.get(3)?,
+                final_weight: row.get(4)?,
+                core_weight: row.get(5)?,
                 job_id: row.get(6)?,
                 created_by: row.get(7)?,
                 created_at: row.get(8)?,
                 updated_at: row.get(9)?,
+                from_batch: row.get(10)?,
+                flag_count: row.get(11)?,
             })
         })?;
 
         let data = rows.collect::<Result<Vec<_>, _>>()?;
 
-        Ok(FilterResponse {
-            total_count,
-            data,
-        })
+        Ok(FilterResponse { total_count, data })
     }
 
+    pub fn get_details(conn: &Connection, roll_id: i32) -> Result<RollDetails> {
+        let mut stmt = conn.prepare(
+            "SELECT r.output_roll_no, r.final_weight, r.final_meter, r.flag_reason, r.created_at,
+                j.production_order, j.material_number, j.machine_id,
+                po.description, r.flag_count
+         FROM rolls r
+         JOIN jobs j ON r.job_id = j.id
+         LEFT JOIN process_order po ON j.production_order = po.process_order
+         WHERE r.id = ?1",
+        )?;
+
+        stmt.query_row(params![roll_id], |row| {
+            let output_roll_no: String = row.get(0)?;
+            let final_weight: f64 = row.get(1)?;
+            let final_meter: f64 = row.get(2)?;
+            let flag_reason_raw: Option<String> = row.get(3)?;
+            let created_at: String = row.get(4)?;
+            let production_order: String = row.get(5)?;
+            let material_number: Option<String> = row.get(6)?;
+            let machine_id: Option<i32> = row.get(7)?;
+            let process_order_description: Option<String> = row.get(8)?;
+            let flag_count: i32 = row.get(9)?;
+
+            let material_description = material_number.as_ref().and_then(|num| {
+                conn.query_row(
+                    "SELECT desc FROM materials_value_description WHERE value = ?",
+                    params![num],
+                    |row| row.get::<_, String>(0),
+                )
+                .ok()
+            });
+
+            let section = machine_id
+                .and_then(|id| {
+                    conn.query_row(
+                        "SELECT name FROM machines WHERE id = ?",
+                        params![id],
+                        |row| row.get::<_, String>(0),
+                    )
+                    .ok()
+                })
+                .unwrap_or_default();
+
+            // Parse flag_reason as IDs, fetch names, join with ','
+            let flag_reason = if let Some(ref ids_str) = flag_reason_raw {
+                let ids: Vec<&str> = ids_str
+                    .split('|')
+                    .map(|s| s.trim())
+                    .filter(|s| !s.is_empty())
+                    .collect();
+                if !ids.is_empty() {
+                    let mut names = Vec::new();
+                    for id in ids {
+                        if let Ok(flag_name) = conn.query_row(
+                            "SELECT name FROM flag_reasons WHERE id = ?1",
+                            params![id],
+                            |row| row.get::<_, String>(0),
+                        ) {
+                            names.push(flag_name);
+                        }
+                    }
+                    if !names.is_empty() {
+                        Some(names.join(", "))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            Ok(RollDetails {
+                material_number: material_number.unwrap_or_default(),
+                material_description: material_description.unwrap_or_default(),
+                process_order_description: process_order_description.unwrap_or_default(),
+                production_order,
+                output_roll_no,
+                final_weight,
+                final_meter,
+                flag_reason,
+                created_at,
+                section,
+                flag_count,
+            })
+        })
+    }
 }

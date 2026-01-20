@@ -1,5 +1,5 @@
-use rusqlite::{params, Connection, Result};
-use serde::{Serialize, Deserialize};
+use rusqlite::{Connection, Result, params};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
 pub struct Shift {
@@ -35,6 +35,7 @@ pub struct DowntimeReason {
 pub struct FlagReason {
     pub id: i32,
     pub name: String,
+    pub section_id: Option<i32>,
 }
 
 #[derive(Deserialize)]
@@ -66,18 +67,24 @@ pub struct POCode {
     pub created_at: String,
 }
 
-
-
 impl Shift {
     pub fn has_related_records(conn: &Connection, shift_id: i32) -> Result<bool> {
-        let tables = vec!["jobs", "downtimes", "scraps", "ink_usages", "solvent_usages"];
+        let tables = vec![
+            "jobs",
+            "downtimes",
+            "scraps",
+            "ink_usages",
+            "solvent_usages",
+        ];
         for table in tables {
             let count: i32 = conn.query_row(
                 &format!("SELECT COUNT(*) FROM {} WHERE shift_id = ?1", table),
                 params![shift_id],
-                |row| row.get(0)
+                |row| row.get(0),
             )?;
-            if count > 0 { return Ok(true); }
+            if count > 0 {
+                return Ok(true);
+            }
         }
         Ok(false)
     }
@@ -85,12 +92,18 @@ impl Shift {
     pub fn create(conn: &Connection, data: &LookupCreatePayload) -> Result<Self> {
         conn.execute("INSERT INTO shifts (name) VALUES (?1)", params![data.name])?;
         let id = conn.last_insert_rowid() as i32;
-        Ok(Shift { id, name: data.name.clone() })
+        Ok(Shift {
+            id,
+            name: data.name.clone(),
+        })
     }
 
     pub fn update(&mut self, conn: &Connection, data: &LookupPayload) -> Result<()> {
         if let Some(name) = &data.name {
-            conn.execute("UPDATE shifts SET name = ?1 WHERE id = ?2", params![name, self.id])?;
+            conn.execute(
+                "UPDATE shifts SET name = ?1 WHERE id = ?2",
+                params![name, self.id],
+            )?;
             self.name = name.clone();
         }
         Ok(())
@@ -103,12 +116,24 @@ impl Shift {
 
     pub fn find_by_id(conn: &Connection, id: i32) -> Result<Self> {
         let mut stmt = conn.prepare("SELECT * FROM shifts WHERE id = ?1")?;
-        stmt.query_row(params![id], |row| Ok(Shift { id: row.get(0)?, name: row.get(1)? }))
+        stmt.query_row(params![id], |row| {
+            Ok(Shift {
+                id: row.get(0)?,
+                name: row.get(1)?,
+            })
+        })
     }
 
     pub fn all(conn: &Connection) -> Result<Vec<Self>> {
         let mut stmt = conn.prepare("SELECT * FROM shifts ORDER BY name")?;
-        let shifts = stmt.query_map([], |row| Ok(Shift { id: row.get(0)?, name: row.get(1)? }))?.collect::<Result<Vec<_>, _>>()?;
+        let shifts = stmt
+            .query_map([], |row| {
+                Ok(Shift {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(shifts)
     }
 }
@@ -118,7 +143,7 @@ impl Colour {
         let count: i32 = conn.query_row(
             "SELECT COUNT(*) FROM ink_usages WHERE colour_id = ?1",
             params![colour_id],
-            |row| row.get(0)
+            |row| row.get(0),
         )?;
         Ok(count > 0)
     }
@@ -126,12 +151,18 @@ impl Colour {
     pub fn create(conn: &Connection, data: &LookupCreatePayload) -> Result<Self> {
         conn.execute("INSERT INTO colours (name) VALUES (?1)", params![data.name])?;
         let id = conn.last_insert_rowid() as i32;
-        Ok(Colour { id, name: data.name.clone() })
+        Ok(Colour {
+            id,
+            name: data.name.clone(),
+        })
     }
 
     pub fn update(&mut self, conn: &Connection, data: &LookupPayload) -> Result<()> {
         if let Some(name) = &data.name {
-            conn.execute("UPDATE colours SET name = ?1 WHERE id = ?2", params![name, self.id])?;
+            conn.execute(
+                "UPDATE colours SET name = ?1 WHERE id = ?2",
+                params![name, self.id],
+            )?;
             self.name = name.clone();
         }
         Ok(())
@@ -144,12 +175,24 @@ impl Colour {
 
     pub fn find_by_id(conn: &Connection, id: i32) -> Result<Self> {
         let mut stmt = conn.prepare("SELECT * FROM colours WHERE id = ?1")?;
-        stmt.query_row(params![id], |row| Ok(Colour { id: row.get(0)?, name: row.get(1)? }))
+        stmt.query_row(params![id], |row| {
+            Ok(Colour {
+                id: row.get(0)?,
+                name: row.get(1)?,
+            })
+        })
     }
 
     pub fn all(conn: &Connection) -> Result<Vec<Self>> {
         let mut stmt = conn.prepare("SELECT * FROM colours ORDER BY name")?;
-        let colours = stmt.query_map([], |row| Ok(Colour { id: row.get(0)?, name: row.get(1)? }))?.collect::<Result<Vec<_>, _>>()?;
+        let colours = stmt
+            .query_map([], |row| {
+                Ok(Colour {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(colours)
     }
 }
@@ -159,20 +202,29 @@ impl SolventType {
         let count: i32 = conn.query_row(
             "SELECT COUNT(*) FROM solvent_usages WHERE solvent_type_id = ?1",
             params![solvent_type_id],
-            |row| row.get(0)
+            |row| row.get(0),
         )?;
         Ok(count > 0)
     }
 
     pub fn create(conn: &Connection, data: &LookupCreatePayload) -> Result<Self> {
-        conn.execute("INSERT INTO solvent_types (name) VALUES (?1)", params![data.name])?;
+        conn.execute(
+            "INSERT INTO solvent_types (name) VALUES (?1)",
+            params![data.name],
+        )?;
         let id = conn.last_insert_rowid() as i32;
-        Ok(SolventType { id, name: data.name.clone() })
+        Ok(SolventType {
+            id,
+            name: data.name.clone(),
+        })
     }
 
     pub fn update(&mut self, conn: &Connection, data: &LookupPayload) -> Result<()> {
         if let Some(name) = &data.name {
-            conn.execute("UPDATE solvent_types SET name = ?1 WHERE id = ?2", params![name, self.id])?;
+            conn.execute(
+                "UPDATE solvent_types SET name = ?1 WHERE id = ?2",
+                params![name, self.id],
+            )?;
             self.name = name.clone();
         }
         Ok(())
@@ -185,12 +237,24 @@ impl SolventType {
 
     pub fn find_by_id(conn: &Connection, id: i32) -> Result<Self> {
         let mut stmt = conn.prepare("SELECT * FROM solvent_types WHERE id = ?1")?;
-        stmt.query_row(params![id], |row| Ok(SolventType { id: row.get(0)?, name: row.get(1)? }))
+        stmt.query_row(params![id], |row| {
+            Ok(SolventType {
+                id: row.get(0)?,
+                name: row.get(1)?,
+            })
+        })
     }
 
     pub fn all(conn: &Connection) -> Result<Vec<Self>> {
         let mut stmt = conn.prepare("SELECT * FROM solvent_types ORDER BY name")?;
-        let solvent_types = stmt.query_map([], |row| Ok(SolventType { id: row.get(0)?, name: row.get(1)? }))?.collect::<Result<Vec<_>, _>>()?;
+        let solvent_types = stmt
+            .query_map([], |row| {
+                Ok(SolventType {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(solvent_types)
     }
 }
@@ -200,20 +264,29 @@ impl ScrapType {
         let count: i32 = conn.query_row(
             "SELECT COUNT(*) FROM scraps WHERE scrap_type_id = ?1",
             params![scrap_type_id],
-            |row| row.get(0)
+            |row| row.get(0),
         )?;
         Ok(count > 0)
     }
 
     pub fn create(conn: &Connection, data: &LookupCreatePayload) -> Result<Self> {
-        conn.execute("INSERT INTO scrap_types (name) VALUES (?1)", params![data.name])?;
+        conn.execute(
+            "INSERT INTO scrap_types (name) VALUES (?1)",
+            params![data.name],
+        )?;
         let id = conn.last_insert_rowid() as i32;
-        Ok(ScrapType { id, name: data.name.clone() })
+        Ok(ScrapType {
+            id,
+            name: data.name.clone(),
+        })
     }
 
     pub fn update(&mut self, conn: &Connection, data: &LookupPayload) -> Result<()> {
         if let Some(name) = &data.name {
-            conn.execute("UPDATE scrap_types SET name = ?1 WHERE id = ?2", params![name, self.id])?;
+            conn.execute(
+                "UPDATE scrap_types SET name = ?1 WHERE id = ?2",
+                params![name, self.id],
+            )?;
             self.name = name.clone();
         }
         Ok(())
@@ -226,12 +299,24 @@ impl ScrapType {
 
     pub fn find_by_id(conn: &Connection, id: i32) -> Result<Self> {
         let mut stmt = conn.prepare("SELECT * FROM scrap_types WHERE id = ?1")?;
-        stmt.query_row(params![id], |row| Ok(ScrapType { id: row.get(0)?, name: row.get(1)? }))
+        stmt.query_row(params![id], |row| {
+            Ok(ScrapType {
+                id: row.get(0)?,
+                name: row.get(1)?,
+            })
+        })
     }
 
     pub fn all(conn: &Connection) -> Result<Vec<Self>> {
         let mut stmt = conn.prepare("SELECT * FROM scrap_types ORDER BY name")?;
-        let scrap_types = stmt.query_map([], |row| Ok(ScrapType { id: row.get(0)?, name: row.get(1)? }))?.collect::<Result<Vec<_>, _>>()?;
+        let scrap_types = stmt
+            .query_map([], |row| {
+                Ok(ScrapType {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(scrap_types)
     }
 }
@@ -241,38 +326,62 @@ impl DowntimeReason {
         let count: i32 = conn.query_row(
             "SELECT COUNT(*) FROM downtimes WHERE downtime_reason_id = ?1",
             params![downtime_reason_id],
-            |row| row.get(0)
+            |row| row.get(0),
         )?;
         Ok(count > 0)
     }
 
     pub fn create(conn: &Connection, data: &LookupCreatePayload) -> Result<Self> {
-        conn.execute("INSERT INTO downtime_reasons (name) VALUES (?1)", params![data.name])?;
+        conn.execute(
+            "INSERT INTO downtime_reasons (name) VALUES (?1)",
+            params![data.name],
+        )?;
         let id = conn.last_insert_rowid() as i32;
-        Ok(DowntimeReason { id, name: data.name.clone() })
+        Ok(DowntimeReason {
+            id,
+            name: data.name.clone(),
+        })
     }
 
     pub fn update(&mut self, conn: &Connection, data: &LookupPayload) -> Result<()> {
         if let Some(name) = &data.name {
-            conn.execute("UPDATE downtime_reasons SET name = ?1 WHERE id = ?2", params![name, self.id])?;
+            conn.execute(
+                "UPDATE downtime_reasons SET name = ?1 WHERE id = ?2",
+                params![name, self.id],
+            )?;
             self.name = name.clone();
         }
         Ok(())
     }
 
     pub fn delete(&self, conn: &Connection) -> Result<()> {
-        conn.execute("DELETE FROM downtime_reasons WHERE id = ?1", params![self.id])?;
+        conn.execute(
+            "DELETE FROM downtime_reasons WHERE id = ?1",
+            params![self.id],
+        )?;
         Ok(())
     }
 
     pub fn find_by_id(conn: &Connection, id: i32) -> Result<Self> {
         let mut stmt = conn.prepare("SELECT * FROM downtime_reasons WHERE id = ?1")?;
-        stmt.query_row(params![id], |row| Ok(DowntimeReason { id: row.get(0)?, name: row.get(1)? }))
+        stmt.query_row(params![id], |row| {
+            Ok(DowntimeReason {
+                id: row.get(0)?,
+                name: row.get(1)?,
+            })
+        })
     }
 
     pub fn all(conn: &Connection) -> Result<Vec<Self>> {
         let mut stmt = conn.prepare("SELECT * FROM downtime_reasons ORDER BY name")?;
-        let downtime_reasons = stmt.query_map([], |row| Ok(DowntimeReason { id: row.get(0)?, name: row.get(1)? }))?.collect::<Result<Vec<_>, _>>()?;
+        let downtime_reasons = stmt
+            .query_map([], |row| {
+                Ok(DowntimeReason {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(downtime_reasons)
     }
 }
@@ -282,20 +391,34 @@ impl FlagReason {
         let count: i32 = conn.query_row(
             "SELECT COUNT(*) FROM rolls WHERE flag_reason_id = ?1",
             params![flag_reason_id],
-            |row| row.get(0)
+            |row| row.get(0),
         )?;
         Ok(count > 0)
     }
-    
-    pub fn create(conn: &Connection, data: &LookupCreatePayload) -> Result<Self> {
-        conn.execute("INSERT INTO flag_reasons (name) VALUES (?1)", params![data.name])?;
+
+    pub fn create(
+        conn: &Connection,
+        data: &LookupCreatePayload,
+        section_id: Option<i32>,
+    ) -> Result<Self> {
+        conn.execute(
+            "INSERT INTO flag_reasons (name, section_id) VALUES (?1, ?2)",
+            params![data.name, section_id],
+        )?;
         let id = conn.last_insert_rowid() as i32;
-        Ok(FlagReason { id, name: data.name.clone() })
+        Ok(FlagReason {
+            id,
+            name: data.name.clone(),
+            section_id,
+        })
     }
 
     pub fn update(&mut self, conn: &Connection, data: &LookupPayload) -> Result<()> {
         if let Some(name) = &data.name {
-            conn.execute("UPDATE flag_reasons SET name = ?1 WHERE id = ?2", params![name, self.id])?;
+            conn.execute(
+                "UPDATE flag_reasons SET name = ?1 WHERE id = ?2",
+                params![name, self.id],
+            )?;
             self.name = name.clone();
         }
         Ok(())
@@ -307,13 +430,45 @@ impl FlagReason {
     }
 
     pub fn find_by_id(conn: &Connection, id: i32) -> Result<Self> {
-        let mut stmt = conn.prepare("SELECT * FROM flag_reasons WHERE id = ?1")?;
-        stmt.query_row(params![id], |row| Ok(FlagReason { id: row.get(0)?, name: row.get(1)? }))
+        let mut stmt =
+            conn.prepare("SELECT id, name, section_id FROM flag_reasons WHERE id = ?1")?;
+        stmt.query_row(params![id], |row| {
+            Ok(FlagReason {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                section_id: row.get(2)?,
+            })
+        })
     }
 
     pub fn all(conn: &Connection) -> Result<Vec<Self>> {
-        let mut stmt = conn.prepare("SELECT * FROM flag_reasons ORDER BY name")?;
-        let flag_reasons = stmt.query_map([], |row| Ok(FlagReason { id: row.get(0)?, name: row.get(1)? }))?.collect::<Result<Vec<_>, _>>()?;
+        let mut stmt =
+            conn.prepare("SELECT id, name, section_id FROM flag_reasons ORDER BY name")?;
+        let flag_reasons = stmt
+            .query_map([], |row| {
+                Ok(FlagReason {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    section_id: row.get(2)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(flag_reasons)
+    }
+
+    pub fn by_section(conn: &Connection, section_id: i32) -> Result<Vec<Self>> {
+        let mut stmt = conn.prepare(
+            "SELECT id, name, section_id FROM flag_reasons WHERE section_id = ?1 ORDER BY name",
+        )?;
+        let flag_reasons = stmt
+            .query_map(params![section_id], |row| {
+                Ok(FlagReason {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    section_id: row.get(2)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(flag_reasons)
     }
 }
@@ -369,9 +524,11 @@ impl POCode {
             let count: i32 = conn.query_row(
                 &format!("SELECT COUNT(*) FROM {} WHERE po_code_id = ?1", table),
                 params![po_code_id],
-                |row| row.get(0)
+                |row| row.get(0),
             )?;
-            if count > 0 { return Ok(true); }
+            if count > 0 {
+                return Ok(true);
+            }
         }
         Ok(false)
     }
@@ -383,12 +540,19 @@ impl POCode {
             params![data.name, "", now],
         )?;
         let id = conn.last_insert_rowid() as i32;
-        Ok(POCode { id, name: data.name.clone(), created_at: now })
+        Ok(POCode {
+            id,
+            name: data.name.clone(),
+            created_at: now,
+        })
     }
-    
+
     pub fn update(&mut self, conn: &Connection, data: &LookupPayload) -> Result<()> {
         if let Some(name) = &data.name {
-            conn.execute("UPDATE po_codes SET name = ?1 WHERE id = ?2", params![name, self.id])?;
+            conn.execute(
+                "UPDATE po_codes SET name = ?1 WHERE id = ?2",
+                params![name, self.id],
+            )?;
             self.name = name.clone();
         }
         Ok(())
@@ -401,21 +565,26 @@ impl POCode {
 
     pub fn find_by_id(conn: &Connection, id: i32) -> Result<Self> {
         let mut stmt = conn.prepare("SELECT * FROM po_codes WHERE id = ?1")?;
-        stmt.query_row(params![id], |row| Ok(POCode {
-            id: row.get(0)?,
-            name: row.get(1)?,
-            created_at: row.get(2)?,
-        }))
+        stmt.query_row(params![id], |row| {
+            Ok(POCode {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                created_at: row.get(2)?,
+            })
+        })
     }
 
     pub fn all(conn: &Connection) -> Result<Vec<Self>> {
         let mut stmt = conn.prepare("SELECT * FROM po_codes ORDER BY name")?;
-        let po_codes = stmt.query_map([], |row| Ok(POCode {
-            id: row.get(0)?,
-            name: row.get(1)?,
-            created_at: row.get(2)?,
-        }))?.collect::<Result<Vec<_>, _>>()?;
+        let po_codes = stmt
+            .query_map([], |row| {
+                Ok(POCode {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    created_at: row.get(2)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
         Ok(po_codes)
     }
 }
-

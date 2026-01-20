@@ -1,9 +1,9 @@
 use actix_web::web;
-use insignia_mes::manager::db::{connect_local_db, init_local_db};
+use dotenvy::dotenv;
 use insignia_mes::backend::app::start_backend;
+use insignia_mes::manager::db::{connect_local_db, init_local_db};
 use insignia_mes::sap::{sync_material_codes, sync_process_orders, sync_scrap_data};
 use std::{fs, process};
-use dotenvy::dotenv;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -22,8 +22,9 @@ async fn main() -> std::io::Result<()> {
 
     fs::write(pid_file, process::id().to_string())?;
     init_local_db(db_file).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
-    let local_pool = connect_local_db(db_file).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
-    
+    let local_pool =
+        connect_local_db(db_file).map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+
     let local_pool_clone = local_pool.clone();
     let local_pool_clone2 = local_pool.clone();
     tokio::spawn(async move {
@@ -42,10 +43,10 @@ async fn main() -> std::io::Result<()> {
             if let Err(e) = sync_material_codes(&local_pool_clone2).await {
                 eprintln!("Warning: Failed to sync materials: {}", e);
             }
-            tokio::time::sleep(tokio::time::Duration::from_secs(300)).await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(600)).await;
         }
     });
-    
+
     let local_pool_data = web::Data::new(local_pool);
     start_backend(local_pool_data, 911)
         .await
