@@ -338,6 +338,7 @@ async function openModal(rollId = null) {
 		if (weightInput) {
 			weightInput.disabled = false;
 		}
+		showNotification("Could not fetch scale weight. Enter manually.", "warning");
 	}
 
 	modal.style.display = "flex";
