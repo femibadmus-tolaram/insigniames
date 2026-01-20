@@ -48,7 +48,7 @@ async fn main() -> std::io::Result<()> {
     });
 
     let local_pool_data = web::Data::new(local_pool);
-    start_backend(local_pool_data, 911)
+    start_backend(local_pool_data, 80)
         .await
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
 }
