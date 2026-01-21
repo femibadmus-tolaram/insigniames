@@ -1027,8 +1027,9 @@ async function loadActiveJobData(job) {
 			const poData = result.data?.find((po) => po.process_order === job.production_order);
 			if (poData) {
 				processOrders[poData.process_order] = poData;
-				poSearch.value = `${poData.process_order} - ${poData.description || ""}`;
-				poSearch.disabled = true;
+				const poSelect = document.getElementById("process-order");
+				poSelect.value = poData.process_order;
+				poSelect.disabled = true;
 				document.getElementById("date-select").value = poData.posting_date;
 				document.getElementById("date-select").disabled = true;
 
