@@ -1,5 +1,6 @@
 /** @format */
 let currentUserPageId = null;
+let userData;
 
 document.addEventListener("DOMContentLoaded", async function () {
 	document.body.style.zoom = "90%";
@@ -13,7 +14,7 @@ async function loadUserPageId() {
 	try {
 		const userResponse = await fetch("/api/users/me");
 		if (!userResponse.ok) throw new Error("Failed to load user data");
-		const userData = await userResponse.json();
+		userData = await userResponse.json();
 		currentUserPageId = userData.page_id || 0;
 	} catch (error) {
 		console.error("Error loading user page_id:", error);
@@ -98,16 +99,17 @@ function showNotification(message, type = "info") {
 	}
 
 	const notification = document.createElement("div");
-	notification.className = `notification fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 ${
+	notification.className = `notification fixed top-4 right-4 px-4 py-3 rounded-lg shadow-lg ${
 		type === "success"
 			? "bg-green-500 text-white"
 			: type === "error"
-			? "bg-red-500 text-white"
-			: type === "warning"
-			? "bg-red-500 text-white"
-			: "bg-blue-500 text-white"
+				? "bg-red-500 text-white"
+				: type === "warning"
+					? "bg-red-500 text-white"
+					: "bg-blue-500 text-white"
 	}`;
 	notification.textContent = message;
+	notification.style.zIndex = 999999;
 
 	document.body.appendChild(notification);
 

@@ -1,5 +1,5 @@
 <!-- @format -->
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
@@ -126,10 +126,10 @@
 					</section>
 					<div class="space-y-6">
 						<section id="po-section" class="card p-6 space-y-6" style="display: none">
-							<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+							<!-- <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
 								<h2 class="text-xl font-semibold text-gray-800">Process Order Selection</h2>
 								<button class="btn btn-secondary" id="change-machine-btn"><i class="fas fa-exchange-alt"></i> Change Machine</button>
-							</div>
+							</div> -->
 							<div class="space-y-4">
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 									<div class="form-group">
@@ -148,14 +148,9 @@
 								<div class="grid grid-cols-1 gap-4">
 									<div class="form-group">
 										<label for="process-order" class="form-label">Process Order *</label>
-										<div class="relative">
-											<input type="text" id="po-search" class="form-input pr-10 w-full" placeholder="Search process order..." />
-											<input type="hidden" id="process-order" required />
-											<div
-												id="po-results"
-												class="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden"
-											></div>
-										</div>
+										<select id="process-order" class="form-input w-full" required>
+											<option value="">Select Process Order</option>
+										</select>
 									</div>
 								</div>
 							</div>
@@ -284,7 +279,7 @@
 
 					<div class="flex justify-end gap-3">
 						<button onclick="cancelStartNew()" class="btn btn-secondary">Cancel</button>
-						<button onclick="confirmStartNew()" class="btn btn-danger">End Job</button>
+						<button onclick="confirmStartNew()" class="btn btn-danger">Complete Roll</button>
 					</div>
 				</div>
 			</div>

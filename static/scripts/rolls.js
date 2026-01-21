@@ -1,5 +1,276 @@
 /** @format */
 
+// --- VECTOR LABEL, RASTER QR PDF EXPORT ---
+async function printRoll(rollId) {
+	openPrintModal();
+
+	const printPreview = document.getElementById("print-preview");
+	const printLoading = document.getElementById("print-loading");
+
+	if (printPreview) printPreview.classList.add("hidden");
+	if (printLoading) printLoading.classList.remove("hidden");
+
+	try {
+		const response = await fetch(`/api/rolls/details?id=${rollId}`);
+		const result = await handleApiResponse(response);
+
+		document.getElementById("print-preview").innerHTML = `
+			<div style="background: #fff; margin: 0; display: flex; justify-content: center; padding: 10px;" id="print-preview-content">
+				<div style="width: 400px; height: 580px; border: 2px solid #000; padding: 25px; font-family: Arial, sans-serif; display: flex; flex-direction: column;">
+					<div style="text-align: center; margin-bottom: 30px;">
+						<div style="font-weight: 900; font-size: 18px; letter-spacing: 0.5px;">INSIGNIA PRODUCTION LABEL</div>
+						<div style="font-size: 13px; font-weight: bold; margin-top: 4px;">${escapeHtml(result.process_order_description)}</div>
+					</div>
+					<!-- QR CODE IN CENTER -->
+					<div style="text-align: center; margin: 0 auto 30px auto;">
+						<div id="qrcode-container" style="display:block;width:180px;height:180px;margin:0;padding:0;"></div>
+						<label style="margin-top: 5px; font-size: 8px; font-weight: bold; display: block; text-transform: uppercase; color: #444;">ROLL NO SCAN</label>
+					</div>
+					<!-- CONTENT BELOW QR CODE -->
+					<div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+						<div style="flex: 1;">
+							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">PRODUCTION ORDER</label>
+							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.production_order)}</div>
+							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">SECTION</label>
+							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.section)}</div>
+						</div>
+						<div style="flex: 1; text-align: right;">
+							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">MATERIAL NUMBER</label>
+							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.material_number)}</div>
+							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">ROLL NO</label>
+							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.output_roll_no)}</div>
+						</div>
+					</div>
+					<div style="display: flex; margin-bottom: 25px;">
+						<div style="flex: 1;">
+							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">FINAL METER</label>
+							<div style="font-size: 14px; font-weight: bold;">${formatNumber(result.final_meter)} m</div>
+						</div>
+						<div style="flex: 1;">
+							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">FINAL WEIGHT</label>
+							<div style="font-size: 14px; font-weight: bold;">${formatNumber(result.final_weight)} kg</div>
+						</div>
+					</div>
+					<div style="margin-top: auto; display: flex; justify-content: space-between; padding-bottom: 5px;">
+						<div>
+							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">TIMESTAMP</label>
+							<div style="font-size: 11px; font-family: monospace; font-weight: bold;">${escapeHtml(result.created_at)}</div>
+						</div>
+						<div style="text-align: right;">
+							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">REMARK</label>
+							<div style="font-size: 11px; font-family: monospace; font-weight: bold;">
+								${result.flag_count > 0 ? `${result.flag_count} Flags` : "GOOD"}
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="mt-6 flex justify-center gap-3">
+				<button id="print-pdf-btn" class="btn btn-primary"><i class="fas fa-print mr-2"></i> Print Label</button>
+				<button id="close-print-btn" class="btn btn-secondary"><i class="fas fa-times mr-2"></i> Close</button>
+			</div>
+		`;
+
+		if (printLoading) printLoading.classList.add("hidden");
+		if (printPreview) printPreview.classList.remove("hidden");
+		setTimeout(() => {
+			const qrContainer = document.getElementById("qrcode-container");
+			if (qrContainer) {
+				const flagsCount = result.flag_reason
+					? result.flag_reason
+							.split("|")
+							.map((s) => s.trim())
+							.filter((s) => s.length > 0).length
+					: 0;
+				const qrPayload = {
+					"po no": "PO-" + result.production_order,
+					"material no": "MA-" + result.material_number,
+					material: result.process_order_description,
+					"roll no": result.output_roll_no,
+					flags: flagsCount,
+					weight: `${result.final_weight}kg`,
+					meter: `${result.final_meter}m`,
+					date: result.created_at,
+				};
+				const qrData = JSON.stringify(qrPayload);
+				qrContainer.innerHTML = "";
+				const qr = qrcode(0, "L");
+				qr.addData(qrData);
+				qr.make();
+				const moduleCount = qr.getModuleCount();
+				const containerSize = Math.min(qrContainer.clientWidth || 180, qrContainer.clientHeight || 180);
+				let cellSize = Math.floor(containerSize / moduleCount);
+				if (cellSize < 2) cellSize = 2;
+				qrContainer.innerHTML = qr.createSvgTag(cellSize, 0);
+				const svgEl = qrContainer.querySelector("svg");
+				if (svgEl) {
+					const size = moduleCount * cellSize;
+					svgEl.setAttribute("viewBox", `0 0 ${size} ${size}`);
+					svgEl.setAttribute("preserveAspectRatio", "none");
+					svgEl.style.width = "100%";
+					svgEl.style.height = "100%";
+					svgEl.style.display = "block";
+					svgEl.style.margin = "0";
+					svgEl.style.padding = "0";
+				}
+			}
+		}, 100);
+
+		const { PDFDocument, StandardFonts, rgb } = PDFLib;
+
+		const flagsCount = result.flag_reason
+			? result.flag_reason
+					.split("|")
+					.map((s) => s.trim())
+					.filter(Boolean).length
+			: 0;
+
+		const qrPayload = {
+			"po no": "PO-" + result.production_order,
+			"material no": "MA-" + result.material_number,
+			material: result.process_order_description,
+			"roll no": result.output_roll_no,
+			flags: flagsCount,
+			weight: `${result.final_weight}kg`,
+			meter: `${result.final_meter}m`,
+			date: result.created_at,
+		};
+
+		const qr = qrcode(0, "L");
+		qr.addData(JSON.stringify(qrPayload));
+		qr.make();
+		const n = qr.getModuleCount();
+		const scale = 6;
+		const size = n * scale;
+
+		const canvas = document.createElement("canvas");
+		canvas.width = size;
+		canvas.height = size;
+		const ctx = canvas.getContext("2d");
+		ctx.fillStyle = "#fff";
+		ctx.fillRect(0, 0, size, size);
+		ctx.fillStyle = "#000";
+		for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) ctx.fillRect(c * scale, r * scale, scale, scale);
+		const qrPng = await fetch(canvas.toDataURL("image/png")).then((r) => r.arrayBuffer());
+
+		const pdf = await PDFDocument.create();
+		const page = pdf.addPage([288, 432]); // 4x6 in @72dpi
+		const font = await pdf.embedFont(StandardFonts.Helvetica);
+		const fontB = await pdf.embedFont(StandardFonts.HelveticaBold);
+
+		// No border, no main padding
+
+		// Centered title and subtitle
+		const centerX = (text, size, fontObj) => (288 - fontObj.widthOfTextAtSize(text, size)) / 2;
+
+		let y = 410;
+		const title = "INSIGNIA PRODUCTION LABEL";
+		page.drawText(title, { x: centerX(title, 14, fontB), y, size: 14, font: fontB });
+		y -= 18;
+		const wrap = (t, max = 38) => {
+			const w = (t || "").replace(/\s+/g, " ").trim();
+			const out = [];
+			let line = "";
+			for (const word of w.split(" ")) {
+				const next = line ? line + " " + word : word;
+				if (next.length > max) {
+					if (line) out.push(line);
+					line = word;
+				} else line = next;
+			}
+			if (line) out.push(line);
+			return out;
+		};
+		// Always show at least one subtitle line
+		const subtitleLines = wrap(result.process_order_description, 38);
+		if (subtitleLines.length === 0) subtitleLines.push("");
+		subtitleLines.slice(0, 2).forEach((ln) => {
+			page.drawText(ln, { x: centerX(ln, 11, fontB), y, size: 11, font: fontB });
+			y -= 13;
+		});
+
+		// Move QR code lower so it does NOT cover title/subtitle
+		const img = await pdf.embedPng(qrPng);
+		// Move QR code up a bit, and push text blocks below QR code further down
+		const qrY = y - 5; // QR code closer to subtitle
+		page.drawImage(img, { x: (288 - 150) / 2, y: qrY - 150, width: 150, height: 150 });
+		page.drawText("ROLL NO SCAN", { x: 110, y: qrY - 158, size: 7, font: fontB, color: rgb(0.25, 0.25, 0.25) });
+
+		// Adjust y for key-value text blocks to come down more
+		let kvStartY = qrY - 200; // move all key-value texts further down
+
+		const leftX = 24,
+			rightX = 288 - 24 - 80; // 24px margin from right, 80px block width
+		const kv = (label, value, x, y, align = "left") => {
+			if (align === "right") {
+				const blockWidth = 80;
+				const margin = 24;
+				const labelWidth = fontB.widthOfTextAtSize(label, 7);
+				const valueWidth = fontB.widthOfTextAtSize(String(value ?? ""), 9);
+				// x is now rightX, which is 288 - margin - blockWidth
+				const rightEdge = 288 - margin;
+				page.drawText(label, {
+					x: rightEdge - labelWidth,
+					y,
+					size: 7,
+					font: fontB,
+					color: rgb(0.25, 0.25, 0.25),
+					align: "right",
+				});
+				page.drawText(String(value ?? ""), {
+					x: rightEdge - valueWidth,
+					y: y - 10,
+					size: 9,
+					font: fontB,
+					align: "right",
+				});
+			} else {
+				page.drawText(label, { x, y, size: 7, font: fontB, color: rgb(0.25, 0.25, 0.25) });
+				page.drawText(String(value ?? ""), { x, y: y - 10, size: 9, font: fontB });
+			}
+		};
+
+		kv("PRODUCTION ORDER", result.production_order, leftX, kvStartY);
+		kv("SECTION", result.section, leftX, kvStartY - 34);
+		kv("MATERIAL NUMBER", result.material_number, rightX, kvStartY, "right");
+		kv("ROLL NO", result.output_roll_no, rightX, kvStartY - 34, "right");
+
+		kv("FINAL METER", `${formatNumber(result.final_meter)} m`, leftX, kvStartY - 72);
+		kv("FINAL WEIGHT", `${formatNumber(result.final_weight)} kg`, rightX, kvStartY - 72, "right");
+
+		page.drawText("TIMESTAMP", { x: leftX, y: kvStartY - 140, size: 7, font: fontB, color: rgb(0.25, 0.25, 0.25) });
+		page.drawText(String(result.created_at ?? ""), { x: leftX, y: kvStartY - 152, size: 8, font });
+
+		page.drawText("REMARK", { x: rightX, y: kvStartY - 140, size: 7, font: fontB, color: rgb(0.25, 0.25, 0.25) });
+		page.drawText(result.flag_count > 0 ? `${result.flag_count} Flags` : "GOOD", { x: rightX, y: kvStartY - 152, size: 8, font });
+
+		const bytes = await pdf.save();
+		const a = document.createElement("a");
+		const pdfBlob = new Blob([bytes], { type: "application/pdf" });
+		a.href = URL.createObjectURL(pdfBlob);
+		a.download = `label-${result.output_roll_no || rollId}.pdf`;
+		document.getElementById("close-print-btn").addEventListener("click", closePrintModal);
+		document.getElementById("print-pdf-btn").addEventListener("click", async function () {
+			a.click();
+			const worker = window.html2pdf().set(opt).from(labelDiv);
+			const reader = new FileReader();
+			reader.onloadend = async function () {
+				const base64data = reader.result.split(",")[1];
+				await fetch("http://localhost:8080/api/app/print", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ pdf_data: base64data }),
+				});
+				showNotification("Sent to printer", "success");
+			};
+			reader.readAsDataURL(pdfBlob);
+		});
+	} catch (error) {
+		showNotification(error.message, "error");
+		closePrintModal();
+	}
+}
+
 let rolls = [];
 let flagReasons = [];
 let users = [];
@@ -19,6 +290,7 @@ async function initializePage() {
 		toggle.checked = showDetails;
 		toggle.addEventListener("change", toggleDetails);
 	}
+	await loadUserPageId();
 	await loadRolls();
 	setupEventListeners();
 	setTimeout(() => toggleDetails(), 100);
@@ -74,6 +346,10 @@ async function loadRolls() {
 		const params = new URLSearchParams();
 		params.append("page", currentPage);
 		params.append("per_page", itemsPerPage);
+
+		if (typeof userData !== "undefined" && userData.role_id !== 1 && Array.isArray(userData.section_ids)) {
+			userData.section_ids.forEach((id) => params.append("section_ids", id));
+		}
 
 		const response = await fetch(`/api/rolls/filter?${params}`);
 		const result = await handleApiResponse(response);
@@ -530,166 +806,6 @@ function closePrintModal() {
 	const printLoading = document.getElementById("print-loading");
 	if (printPreview) printPreview.classList.add("hidden");
 	if (printLoading) printLoading.classList.add("hidden");
-}
-
-async function printRoll(rollId) {
-	openPrintModal();
-
-	const printPreview = document.getElementById("print-preview");
-	const printLoading = document.getElementById("print-loading");
-
-	if (printPreview) printPreview.classList.add("hidden");
-	if (printLoading) printLoading.classList.remove("hidden");
-
-	try {
-		const response = await fetch(`/api/rolls/details?id=${rollId}`);
-		const result = await handleApiResponse(response);
-
-		document.getElementById("print-preview").innerHTML = `
-			<div style="background: #fff; margin: 0; display: flex; justify-content: center; padding: 10px;">
-				<div style="width: 400px; height: 580px; border: 2px solid #000; padding: 25px; font-family: Arial, sans-serif; display: flex; flex-direction: column;">
-					<div style="text-align: center; margin-bottom: 30px;">
-						<div style="font-weight: 900; font-size: 18px; letter-spacing: 0.5px;">INSIGNIA PRODUCTION LABEL</div>
-						<div style="font-size: 13px; font-weight: bold; margin-top: 4px;">${escapeHtml(result.process_order_description)}</div>
-					</div>
-					<!-- QR CODE IN CENTER -->
-					<div style="text-align: center; margin: 0 auto 30px auto;">
-						<div id="qrcode-container" style="display:block;width:180px;height:180px;margin:0;padding:0;"></div>
-						<label style="margin-top: 5px; font-size: 8px; font-weight: bold; display: block; text-transform: uppercase; color: #444;">ROLL NO SCAN</label>
-					</div>
-					<!-- CONTENT BELOW QR CODE -->
-					<div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-						<div style="flex: 1;">
-							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">PRODUCTION ORDER</label>
-							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.production_order)}</div>
-							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">SECTION</label>
-							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.section)}</div>
-						</div>
-						<div style="flex: 1; text-align: right;">
-							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">MATERIAL NUMBER</label>
-							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.material_number)}</div>
-							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">ROLL NO</label>
-							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.output_roll_no)}</div>
-						</div>
-					</div>
-					<div style="display: flex; margin-bottom: 25px;">
-						<div style="flex: 1;">
-							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">FINAL METER</label>
-							<div style="font-size: 14px; font-weight: bold;">${formatNumber(result.final_meter)} m</div>
-						</div>
-						<div style="flex: 1;">
-							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">FINAL WEIGHT</label>
-							<div style="font-size: 14px; font-weight: bold;">${formatNumber(result.final_weight)} kg</div>
-						</div>
-					</div>
-					<div style="margin-top: auto; display: flex; justify-content: space-between; padding-bottom: 5px;">
-						<div>
-							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">TIMESTAMP</label>
-							<div style="font-size: 11px; font-family: monospace; font-weight: bold;">${escapeHtml(result.created_at)}</div>
-						</div>
-						<div style="text-align: right;">
-							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">REMARK</label>
-							<div style="font-size: 11px; font-family: monospace; font-weight: bold;">
-								${result.flag_count > 0 ? `${result.flag_count} Flags` : "GOOD"}
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="mt-6 flex justify-center gap-3">
-				<button id="print-pdf-btn" class="btn btn-primary"><i class="fas fa-print mr-2"></i> Print Label</button>
-				<button id="close-print-btn" class="btn btn-secondary"><i class="fas fa-times mr-2"></i> Close</button>
-			</div>
-		`;
-
-		if (printLoading) printLoading.classList.add("hidden");
-		if (printPreview) printPreview.classList.remove("hidden");
-
-		setTimeout(() => {
-			const qrContainer = document.getElementById("qrcode-container");
-			if (qrContainer) {
-				const flagsCount = result.flag_reason
-					? result.flag_reason
-							.split("|")
-							.map((s) => s.trim())
-							.filter((s) => s.length > 0).length
-					: 0;
-				const qrPayload = {
-					"po no": "PO-" + result.production_order,
-					"material no": "MA-" + result.material_number,
-					material: result.process_order_description,
-					"roll no": result.output_roll_no,
-					flags: flagsCount,
-					weight: `${result.final_weight}kg`,
-					meter: `${result.final_meter}m`,
-					date: result.created_at,
-				};
-				const qrData = JSON.stringify(qrPayload);
-				qrContainer.innerHTML = "";
-				const qr = qrcode(0, "L");
-				qr.addData(qrData);
-				qr.make();
-				const moduleCount = qr.getModuleCount();
-				const containerSize = Math.min(qrContainer.clientWidth || 180, qrContainer.clientHeight || 180);
-				let cellSize = Math.floor(containerSize / moduleCount);
-				if (cellSize < 2) cellSize = 2;
-				qrContainer.innerHTML = qr.createSvgTag(cellSize, 0);
-				const svgEl = qrContainer.querySelector("svg");
-				if (svgEl) {
-					const size = moduleCount * cellSize;
-					svgEl.setAttribute("viewBox", `0 0 ${size} ${size}`);
-					svgEl.setAttribute("preserveAspectRatio", "none");
-					svgEl.style.width = "100%";
-					svgEl.style.height = "100%";
-					svgEl.style.display = "block";
-					svgEl.style.margin = "0";
-					svgEl.style.padding = "0";
-				}
-			}
-		}, 100);
-
-		document.getElementById("close-print-btn").addEventListener("click", closePrintModal);
-		document.getElementById("print-pdf-btn").addEventListener("click", async function () {
-			// Convert the print-preview div to PDF and download for test (comment out POST)
-			const printDiv = document.getElementById("print-preview");
-			if (!printDiv) {
-				showNotification("Print preview not found.", "error");
-				return;
-			}
-			try {
-				// html2pdf.js must be loaded in the page for this to work
-				const opt = {
-					margin: 0,
-					filename: "label.pdf",
-					image: { type: "jpeg", quality: 0.98 },
-					html2canvas: { scale: 2 },
-					jsPDF: { unit: "in", format: [4, 6], orientation: "portrait" },
-				};
-				// Download PDF instead of posting
-				await window.html2pdf().set(opt).from(printDiv).save();
-				showNotification("PDF downloaded for test.", "success");
-				// --- For real printing, uncomment below ---
-				// const worker = window.html2pdf().set(opt).from(printDiv);
-				// const pdfBlob = await worker.outputPdf('blob');
-				// const reader = new FileReader();
-				// reader.onloadend = async function () {
-				//     const base64data = reader.result.split(',')[1];
-				//     await fetch("http://localhost:8080/api/app/print", {
-				//         method: "POST",
-				//         headers: { "Content-Type": "application/json" },
-				//         body: JSON.stringify({ pdf_data: base64data }),
-				//     });
-				//     showNotification("Sent to printer", "success");
-				// };
-				// reader.readAsDataURL(pdfBlob);
-			} catch (err) {
-				showNotification("Failed to generate PDF for printing.", "error");
-			}
-		});
-	} catch (error) {
-		showNotification(error.message, "error");
-		closePrintModal();
-	}
 }
 
 function formatNumber(num) {

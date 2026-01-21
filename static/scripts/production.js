@@ -40,29 +40,34 @@ async function loadMachines() {
 }
 
 async function loadProcessOrders() {
-	const poSearchInput = document.getElementById("po-search");
-	const poResultsDiv = document.getElementById("po-results");
+	const poSelect = document.getElementById("process-order");
 	const shiftSelect = document.getElementById("shift-select");
 	const dateSelect = document.getElementById("date-select");
 	const machineSelect = document.getElementById("machine");
 	const selectedMachineId = machineSelect.value;
 
+	poSelect.innerHTML = '<option value="">Loading process order...</option>';
+	poSelect.disabled = true;
+
 	if (!selectedMachineId) {
 		resetForm();
-		poSearchInput.placeholder = "Select machine first";
+		poSelect.innerHTML = '<option value="">Select machine first</option>';
+		poSelect.disabled = true;
 		return;
 	}
 
 	if (!shiftSelect.value || !dateSelect.value) {
 		resetForm();
-		poSearchInput.placeholder = "Select shift and date first";
+		poSelect.innerHTML = '<option value="">Select shift and date first</option>';
+		poSelect.disabled = true;
 		return;
 	}
 
 	const selectedMachine = machines.find((m) => m.id == selectedMachineId);
 	if (!selectedMachine || !currentUser || !currentUser.section_ids) {
 		resetForm();
-		poSearchInput.placeholder = "No section assigned";
+		poSelect.innerHTML = '<option value="">No section assigned</option>';
+		poSelect.disabled = true;
 		return;
 	}
 
@@ -85,7 +90,8 @@ async function loadProcessOrders() {
 
 		processOrders = {};
 
-		if (result.data && Array.isArray(result.data)) {
+		if (result.data && Array.isArray(result.data) && result.data.length > 0) {
+			poSelect.innerHTML = "";
 			result.data.forEach((po) => {
 				processOrders[po.process_order] = {
 					process_order: po.process_order,
@@ -93,62 +99,28 @@ async function loadProcessOrders() {
 					material_details: po.material_details || {},
 					material_numbers: po.material_numbers || {},
 				};
+				const option = document.createElement("option");
+				option.value = po.process_order;
+				option.textContent = `${po.process_order} - ${po.description || "-"}`;
+				poSelect.appendChild(option);
 			});
-
-			poSearchInput.disabled = false;
-			poSearchInput.placeholder = "Search process order...";
+			poSelect.disabled = false;
+			// Do not auto-select if only one process order. Prompt user to select.
+			const promptOption = document.createElement("option");
+			promptOption.value = "";
+			promptOption.textContent = "Select Process Order Now";
+			promptOption.disabled = true;
+			promptOption.selected = true;
+			poSelect.insertBefore(promptOption, poSelect.firstChild);
 		} else {
-			resetForm();
-			poSearchInput.placeholder = "No process orders found";
+			poSelect.innerHTML = '<option value="">No process order found for this date and shift</option>';
+			poSelect.disabled = true;
 		}
 	} catch (error) {
 		showNotification(error.message, "error");
-		resetForm();
-		poSearchInput.placeholder = "Failed to load POs";
+		poSelect.innerHTML = '<option value="">Failed to load POs</option>';
+		poSelect.disabled = true;
 	}
-}
-
-function showAllPOs() {
-	const poResultsDiv = document.getElementById("po-results");
-	const poSearchInput = document.getElementById("po-search");
-
-	poResultsDiv.innerHTML = "";
-
-	if (Object.keys(processOrders).length === 0) {
-		const noResult = document.createElement("div");
-		noResult.className = "p-3 text-gray-500 text-center";
-		noResult.textContent = "No process orders available";
-		poResultsDiv.appendChild(noResult);
-	} else {
-		Object.values(processOrders).forEach((po) => {
-			const div = document.createElement("div");
-			div.className = "p-3 hover:bg-blue-50 cursor-pointer border-b border-gray-100";
-			div.dataset.poNumber = po.process_order;
-
-			div.innerHTML = `
-				<div class="font-medium text-gray-800">${po.process_order}</div>
-				<div class="text-sm text-gray-600 truncate">${po.description || "-"}</div>
-			`;
-
-			div.addEventListener("click", function () {
-				const poNumber = this.dataset.poNumber;
-				const poData = processOrders[poNumber];
-
-				document.getElementById("process-order").value = poNumber;
-				poSearchInput.value = `${poNumber} - ${poData.description || ""}`;
-				poResultsDiv.classList.add("hidden");
-
-				updateInputTitle(poData);
-
-				document.getElementById("input-section").style.display = "block";
-				document.querySelector("#input-form button[type='submit']").disabled = false;
-			});
-
-			poResultsDiv.appendChild(div);
-		});
-	}
-
-	poResultsDiv.classList.remove("hidden");
 }
 
 function updateInputTitle(poData) {
@@ -343,10 +315,25 @@ function setupEventListeners() {
 	document.getElementById("machine").addEventListener("change", handleMachineChange);
 	document.getElementById("shift-select").addEventListener("change", handleShiftDateChange);
 	document.getElementById("date-select").addEventListener("change", handleShiftDateChange);
-	document.getElementById("change-machine-btn").addEventListener("click", resetToMachineSelection);
 	document.getElementById("input-form").addEventListener("submit", handleInputSubmit);
 	document.getElementById("output-form").addEventListener("submit", handleOutputSubmit);
-	document.getElementById("po-search").addEventListener("focus", handlePoSearchFocus);
+	document.getElementById("process-order").addEventListener("change", function () {
+		const poNumber = this.value;
+		const poData = processOrders[poNumber];
+		if (poData) {
+			updateInputTitle(poData);
+			document.getElementById("input-section").style.display = "block";
+			document.querySelector("#input-form button[type='submit']").disabled = false;
+		} else {
+			document.getElementById("input-section").style.display = "none";
+			document.getElementById("input-form").reset();
+			document.getElementById("input-title").textContent = "Currently Consuming (Input)";
+			document.getElementById("consuming-material").innerHTML = '<option value="">Select Material</option>';
+			document.getElementById("batch-roll-no").innerHTML = '<option value="">Select Material First</option>';
+			document.getElementById("batch-roll-no").disabled = true;
+			document.querySelector("#input-form button[type='submit']").disabled = true;
+		}
+	});
 
 	document.getElementById("active-job").addEventListener("change", function () {
 		if (this.value) {
@@ -380,14 +367,6 @@ function setupEventListeners() {
 		updateStartWeight(selectedOption);
 	});
 
-	document.addEventListener("click", function (e) {
-		const poSearchInput = document.getElementById("po-search");
-		const poResultsDiv = document.getElementById("po-results");
-		if (!poSearchInput.contains(e.target) && !poResultsDiv.contains(e.target)) {
-			poResultsDiv.classList.add("hidden");
-		}
-	});
-
 	const today = new Date().toISOString().split("T")[0];
 	document.getElementById("date-select").value = today;
 }
@@ -398,9 +377,8 @@ function resetToMachineSelection() {
 	document.getElementById("shift-select").value = "";
 	document.getElementById("shift-select").disabled = false;
 	document.getElementById("date-select").disabled = false;
-	document.getElementById("po-search").disabled = false;
 	document.getElementById("process-order").disabled = false;
-	document.getElementById("process-order").value = "";
+	document.getElementById("process-order").innerHTML = '<option value="">Select Process Order</option>';
 
 	const materialSelect = document.getElementById("consuming-material");
 	const batchSelect = document.getElementById("batch-roll-no");
@@ -525,21 +503,29 @@ async function confirmStartNew() {
 					activeJobSelect.disabled = true;
 				}
 			}
-
-			document.getElementById("rolls-table-body").innerHTML = `
-				<tr>
-					<td colspan="5" class="text-center text-gray-500 py-4">No rolls found</td>
-				</tr>
-			`;
 		}
 
 		document.getElementById("start-new-modal").classList.add("hidden");
 		remainingWeightInput.value = "";
 
+		document.getElementById("date-select").disabled = false;
+		document.getElementById("process-order").disabled = false;
+		document.getElementById("shift-select").disabled = false;
+
 		enableInputForm();
 		document.getElementById("start-new-btn").style.display = "none";
 		const submitBtn = document.querySelector("#input-form button[type='submit']");
 		if (submitBtn) submitBtn.disabled = false;
+
+		const inputForm = document.getElementById("input-form");
+		if (inputForm) {
+			inputForm.addEventListener("submit", function lockFieldsOnce(e) {
+				document.getElementById("date-select").disabled = true;
+				document.getElementById("process-order").disabled = true;
+				document.getElementById("shift-select").disabled = true;
+				inputForm.removeEventListener("submit", lockFieldsOnce);
+			});
+		}
 	} catch (error) {
 		showNotification(error.message, "error");
 	} finally {
@@ -547,14 +533,6 @@ async function confirmStartNew() {
 		cancelBtn.disabled = false;
 		endBtn.textContent = originalEndText;
 		cancelBtn.textContent = originalCancelText;
-	}
-}
-
-function handlePoSearchFocus() {
-	const poSearchInput = document.getElementById("po-search");
-	if (poSearchInput.disabled) return;
-	if (Object.keys(processOrders).length > 0) {
-		showAllPOs();
 	}
 }
 
@@ -596,13 +574,8 @@ async function handleMachineChange(e) {
 }
 
 function resetForm() {
-	document.getElementById("po-search").value = "";
-	document.getElementById("po-search").disabled = true;
-	// document.getElementById("process-order").value = "";
-	// document.getElementById("shift-select").value = "";
-	// document.getElementById("date-select").value = "";
-	document.getElementById("po-results").innerHTML = "";
-	document.getElementById("po-results").classList.add("hidden");
+	document.getElementById("process-order").innerHTML = '<option value="">Select Process Order</option>';
+	document.getElementById("process-order").disabled = true;
 	document.getElementById("job-details").style.display = "none";
 	document.getElementById("input-section").style.display = "none";
 	document.getElementById("input-form").reset();
@@ -860,7 +833,6 @@ async function handleInputSubmit(e) {
 		document.getElementById("shift-select").disabled = true;
 		document.getElementById("date-select").disabled = true;
 		document.getElementById("machine").disabled = true;
-		document.getElementById("po-search").disabled = true;
 		document.getElementById("process-order").disabled = true;
 		disableInputForm();
 	} catch (error) {
@@ -1034,7 +1006,6 @@ async function loadActiveJobData(job) {
 	shiftSelect.value = job.shift_id;
 	shiftSelect.disabled = true;
 
-	const poSearch = document.getElementById("po-search");
 	const processOrder = document.getElementById("process-order");
 	processOrder.value = job.production_order;
 

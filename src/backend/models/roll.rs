@@ -53,6 +53,7 @@ pub struct RollFilterPayload {
     pub output_roll_no: Option<String>,
     pub flag_reason: Option<String>,
     pub created_by: Option<String>,
+    pub section_ids: Option<Vec<String>>,
     pub start_date: Option<String>,
     pub end_date: Option<String>,
     pub per_page: Option<String>,
@@ -92,15 +93,16 @@ impl Roll {
         let shift_number = (day_of_year - 1) * 2 + job.shift_id;
         let today_start = current_date.format("%Y-%m-%d").to_string();
 
-        let roll_count_for_job: i32 = conn
+        let process_order = &job.production_order;
+        let roll_count_for_process_order: i32 = conn
             .query_row(
-                "SELECT COUNT(*) FROM rolls WHERE job_id = ?1 AND date(created_at) = date(?2)",
-                params![data.job_id, today_start],
+                "SELECT COUNT(*) FROM rolls r JOIN jobs j ON r.job_id = j.id WHERE j.production_order = ?1 AND date(r.created_at) = date(?2)",
+                params![process_order, today_start],
                 |row| row.get(0),
             )
             .unwrap_or(0);
 
-        let roll_number = roll_count_for_job + 1;
+        let roll_number = roll_count_for_process_order + 1;
         let output_roll_no = format!("{}{:03}{}{:03}", year, shift_number, machine, roll_number);
 
         conn.execute(
@@ -262,6 +264,8 @@ impl Roll {
             "SELECT r.id, r.output_roll_no, r.final_meter, r.flag_reason, r.final_weight, r.core_weight, r.job_id, r.created_by, r.created_at, r.updated_at, r.from_batch, r.flag_count 
              FROM rolls r JOIN jobs j ON r.job_id = j.id WHERE 1=1".to_string();
         let mut params_vec: Vec<&dyn rusqlite::ToSql> = vec![];
+        // Hold boxed section_ids for params_vec lifetime
+        let mut boxed_section_ids: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
 
         let mut job_ids: Vec<i32> = vec![];
         let mut flag_reasons: Vec<String> = vec![];
@@ -272,6 +276,24 @@ impl Roll {
         let mut shift_ids: Vec<i32> = vec![];
         let mut pages: Vec<i32> = vec![];
         let mut per_pages: Vec<i32> = vec![];
+        if let Some(section_ids_vec) = &filter.section_ids {
+            let valid_ids: Vec<i32> = section_ids_vec
+                .iter()
+                .filter_map(|val| val.parse::<i32>().ok())
+                .collect();
+            if !valid_ids.is_empty() {
+                let placeholders = valid_ids.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+                let clause = format!(" AND j.section_id IN ({})", placeholders);
+                count_query.push_str(&clause);
+                data_query.push_str(&clause);
+                for id in valid_ids {
+                    boxed_section_ids.push(Box::new(id));
+                }
+                for id in &boxed_section_ids {
+                    params_vec.push(id.as_ref());
+                }
+            }
+        }
 
         if let Some(val) = &filter.job_id {
             if let Ok(parsed) = val.parse::<i32>() {
