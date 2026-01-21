@@ -131,14 +131,26 @@ impl Roll {
         if let Some(final_weight) = data.final_weight {
             let job = Job::find_by_id(conn, self.job_id)?;
 
-            let kg = final_weight;
+            // Find core_weight from DB (self.core_weight)
+            let core_weight = self.core_weight.unwrap_or(0.0);
+            let net_weight = if final_weight > core_weight {
+                final_weight - core_weight
+            } else {
+                0.0
+            };
+
+            let kg = net_weight;
             let meter = self.final_meter;
-            let ratio = (meter / kg * 100.0).round() / 100.0;
+            let ratio = if kg > 0.0 {
+                (meter / kg * 100.0).round() / 100.0
+            } else {
+                0.0
+            };
             let new_alternate_quantity = (ratio * kg * 100.0).round() / 100.0;
 
             let roll_data = RollData {
                 meter: new_alternate_quantity.to_string(),
-                weight: final_weight.to_string(),
+                weight: net_weight.to_string(),
                 batch: self.output_roll_no.to_string(),
                 production_order: job.production_order.clone(),
             };
@@ -150,10 +162,11 @@ impl Roll {
             }
 
             conn.execute(
-                "UPDATE rolls SET final_meter = ?1 WHERE id = ?2",
-                params![new_alternate_quantity, self.id],
+                "UPDATE rolls SET final_meter = ?1, final_weight = ?2 WHERE id = ?3",
+                params![new_alternate_quantity, net_weight, self.id],
             )?;
             self.final_meter = new_alternate_quantity;
+            self.final_weight = net_weight;
         }
 
         let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
