@@ -40,6 +40,10 @@ async function loadMachines() {
 }
 
 async function loadProcessOrders() {
+	// Prevent race condition: use a request token to ensure only the latest fetch result is processed
+	if (!window._poRequestToken) window._poRequestToken = 0;
+	const myToken = ++window._poRequestToken;
+
 	const poSelect = document.getElementById("process-order");
 	const shiftSelect = document.getElementById("shift-select");
 	const dateSelect = document.getElementById("date-select");
@@ -86,6 +90,8 @@ async function loadProcessOrders() {
 
 	try {
 		const response = await fetch(url);
+		// Only process if this is the latest request
+		if (myToken !== window._poRequestToken) return;
 		const result = await handleApiResponse(response);
 
 		processOrders = {};
@@ -117,6 +123,7 @@ async function loadProcessOrders() {
 			poSelect.disabled = true;
 		}
 	} catch (error) {
+		if (myToken !== window._poRequestToken) return;
 		showNotification(error.message, "error");
 		poSelect.innerHTML = '<option value="">Failed to load POs</option>';
 		poSelect.disabled = true;

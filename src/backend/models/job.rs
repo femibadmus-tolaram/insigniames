@@ -436,7 +436,7 @@ impl Job {
             if last_insert == "true" {
                 data_query = data_query.replace(
                     " GROUP BY j.id ORDER BY j.created_at DESC",
-                    " GROUP BY j.id ORDER BY j.id DESC LIMIT 1",
+                    " GROUP BY j.production_order HAVING j.id = MAX(j.id) ORDER BY j.id DESC",
                 );
             }
         }
