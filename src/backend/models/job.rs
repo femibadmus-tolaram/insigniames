@@ -127,8 +127,8 @@ impl Job {
         // "UPDATE jobs SET end_datetime = ?1, consumed_weight = ?2, updated_at = ?3, material_document = ?4 WHERE id = ?5",
         // params![now_str, &data.consumed_weight, now_str, &document_number, data.id],
         conn.execute(
-        "UPDATE jobs SET end_datetime = ?1, consumed_weight = ?2, material_document = ?3 WHERE id = ?4",
-        params![now_str, &data.consumed_weight,  &document_number, data.id],
+        "UPDATE jobs SET consumed_weight = ?1, updated_at = ?2, material_document = ?3 WHERE id = ?4",
+        params![&data.consumed_weight, now_str, &document_number, data.id],
     )?;
 
         Ok(document_number)
