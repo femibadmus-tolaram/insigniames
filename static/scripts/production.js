@@ -1028,6 +1028,16 @@ async function loadActiveJobData(job) {
 			if (poData) {
 				processOrders[poData.process_order] = poData;
 				const poSelect = document.getElementById("process-order");
+				// Populate options first
+				poSelect.innerHTML = "";
+				if (result.data && Array.isArray(result.data)) {
+					result.data.forEach((po) => {
+						const option = document.createElement("option");
+						option.value = po.process_order;
+						option.textContent = `${po.process_order} - ${po.description || "-"}`;
+						poSelect.appendChild(option);
+					});
+				}
 				poSelect.value = poData.process_order;
 				poSelect.disabled = true;
 				document.getElementById("date-select").value = poData.posting_date;
