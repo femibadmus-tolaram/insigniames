@@ -246,16 +246,23 @@ async function printRoll(rollId) {
 
 		const bytes = await pdf.save();
 		const a = document.createElement("a");
-		a.href = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+		const pdfBlob = new Blob([bytes], { type: "application/pdf" });
+		a.href = URL.createObjectURL(pdfBlob);
 		a.download = `label-${result.output_roll_no || rollId}.pdf`;
 		document.getElementById("close-print-btn").addEventListener("click", closePrintModal);
 		document.getElementById("print-pdf-btn").addEventListener("click", async function () {
-			a.click();
-			await fetch("http://localhost:8080/api/app/print", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ pdf_data: bytes }),
-			});
+			// a.click();
+			const reader = new FileReader();
+			reader.onloadend = async function () {
+				const base64data = reader.result.split(",")[1];
+				await fetch("http://localhost:8080/api/app/print", {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ pdf_data: base64data }),
+				});
+				showNotification("Label sent to printer", "success");
+			};
+			reader.readAsDataURL(pdfBlob);
 		});
 	} catch (error) {
 		showNotification(error.message, "error");
