@@ -405,7 +405,7 @@ function resetToMachineSelection() {
 
 	const submitBtn = document.querySelector("#input-form button[type='submit']");
 	submitBtn.disabled = true;
-	submitBtn.textContent = "Start Production";
+	submitBtn.textContent = "Use Roll";
 
 	const clearBtn = document.getElementById("clear-input-btn");
 	if (clearBtn) clearBtn.remove();
@@ -490,7 +490,7 @@ async function confirmStartNew() {
 
 			await handleApiResponse(response);
 
-			showNotification("Current job ended", "success");
+			showNotification("Current Roll consumed", "success");
 
 			const activeJobSelect = document.getElementById("active-job");
 			const currentOption = activeJobSelect.querySelector(`option[value="${currentJob.id}"]`);
@@ -580,7 +580,7 @@ function resetForm() {
 	document.getElementById("input-section").style.display = "none";
 	document.getElementById("input-form").reset();
 	document.querySelector("#input-form button[type='submit']").disabled = true;
-	document.querySelector("#input-form button[type='submit']").textContent = "Start Production";
+	document.querySelector("#input-form button[type='submit']").textContent = "Use Roll";
 	document.getElementById("input-title").textContent = "Currently Consuming (Input)";
 	document.getElementById("rolls-table-body").innerHTML = `
         <tr>
@@ -700,7 +700,7 @@ function enableInputForm() {
 
 	const submitBtn = document.querySelector("#input-form button[type='submit']");
 	submitBtn.disabled = false;
-	submitBtn.textContent = "Start Production";
+	submitBtn.textContent = "Use Roll";
 
 	disableOutputForm();
 }
@@ -1173,7 +1173,7 @@ async function loadJobRolls(jobId) {
 			const buttonContainer = submitBtn.parentElement;
 			buttonContainer.insertBefore(clearBtn, submitBtn);
 
-			startNewBtn.style.display = "none";
+			// startNewBtn.style.display = "none";
 			tableBody.innerHTML = `
                 <tr>
                     <td colspan="5" class="text-center text-gray-500 py-4">No rolls found</td>

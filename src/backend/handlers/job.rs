@@ -73,7 +73,7 @@ pub async fn end_job(
 ) -> impl Responder {
     let conn = conn_data.get().unwrap();
     match Job::end_job(&conn, &data).await {
-        Ok(_) => HttpResponse::Ok().body("Job ended successfully"),
+        Ok(_) => HttpResponse::Ok().body("Roll consumed successfully"),
         Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
     }
 }
