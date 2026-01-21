@@ -854,7 +854,10 @@ async function handleOutputSubmit(e) {
 	setButtonLoading(submitBtn, true);
 
 	if (fromBatchRollNo === lastBatchRollNo) {
-		lastBatchRollNo = lastBatchRollNo.includes(",") ? lastBatchRollNo.split(",")[1].trim() : lastBatchRollNo;
+		if (lastBatchRollNo.includes(",")) {
+			const parts = lastBatchRollNo.split(",").map((s) => s.trim());
+			lastBatchRollNo = parts[parts.length - 1];
+		}
 	}
 	fromBatchRollNo = lastBatchRollNo;
 
