@@ -201,32 +201,34 @@ async function printRoll(rollId) {
 
 		const leftX = 24,
 			rightX = 288 - 24 - 80; // 24px margin from right, 80px block width
+		// Increase font sizes for key-value texts
 		const kv = (label, value, x, y, align = "left") => {
+			const labelFontSize = 10;
+			const valueFontSize = 13;
 			if (align === "right") {
 				const blockWidth = 80;
 				const margin = 24;
-				const labelWidth = fontB.widthOfTextAtSize(label, 7);
-				const valueWidth = fontB.widthOfTextAtSize(String(value ?? ""), 9);
-				// x is now rightX, which is 288 - margin - blockWidth
+				const labelWidth = fontB.widthOfTextAtSize(label, labelFontSize);
+				const valueWidth = fontB.widthOfTextAtSize(String(value ?? ""), valueFontSize);
 				const rightEdge = 288 - margin;
 				page.drawText(label, {
 					x: rightEdge - labelWidth,
 					y,
-					size: 7,
+					size: labelFontSize,
 					font: fontB,
 					color: rgb(0.25, 0.25, 0.25),
 					align: "right",
 				});
 				page.drawText(String(value ?? ""), {
 					x: rightEdge - valueWidth,
-					y: y - 10,
-					size: 9,
+					y: y - 15,
+					size: valueFontSize,
 					font: fontB,
 					align: "right",
 				});
 			} else {
-				page.drawText(label, { x, y, size: 7, font: fontB, color: rgb(0.25, 0.25, 0.25) });
-				page.drawText(String(value ?? ""), { x, y: y - 10, size: 9, font: fontB });
+				page.drawText(label, { x, y, size: labelFontSize, font: fontB, color: rgb(0.25, 0.25, 0.25) });
+				page.drawText(String(value ?? ""), { x, y: y - 15, size: valueFontSize, font: fontB });
 			}
 		};
 
@@ -238,11 +240,10 @@ async function printRoll(rollId) {
 		kv("FINAL METER", `${formatNumber(result.final_meter)} m`, leftX, kvStartY - 72);
 		kv("FINAL WEIGHT", `${formatNumber(result.final_weight)} kg`, rightX, kvStartY - 72, "right");
 
-		page.drawText("TIMESTAMP", { x: leftX, y: kvStartY - 140, size: 7, font: fontB, color: rgb(0.25, 0.25, 0.25) });
-		page.drawText(String(result.created_at ?? ""), { x: leftX, y: kvStartY - 152, size: 8, font });
-
-		page.drawText("REMARK", { x: rightX, y: kvStartY - 140, size: 7, font: fontB, color: rgb(0.25, 0.25, 0.25) });
-		page.drawText(result.flag_count > 0 ? `${result.flag_count} Flags` : "GOOD", { x: rightX, y: kvStartY - 152, size: 8, font });
+		// Only show the values for TIMESTAMP and REMARK, no key/label
+		const valueFontSize = 13;
+		page.drawText(String(result.created_at ?? ""), { x: leftX, y: kvStartY - 152, size: valueFontSize, font });
+		page.drawText(result.flag_count > 0 ? `${result.flag_count} Flags` : "GOOD", { x: rightX, y: kvStartY - 152, size: valueFontSize, font });
 
 		const bytes = await pdf.save();
 		const a = document.createElement("a");
@@ -251,7 +252,7 @@ async function printRoll(rollId) {
 		a.download = `label-${result.output_roll_no || rollId}.pdf`;
 		document.getElementById("close-print-btn").addEventListener("click", closePrintModal);
 		document.getElementById("print-pdf-btn").addEventListener("click", async function () {
-			// a.click();
+			a.click();
 			const reader = new FileReader();
 			reader.onloadend = async function () {
 				const base64data = reader.result.split(",")[1];
@@ -289,7 +290,6 @@ async function initializePage() {
 		toggle.checked = showDetails;
 		toggle.addEventListener("change", toggleDetails);
 	}
-	await loadUserPageId();
 	await loadRolls();
 	setupEventListeners();
 	setTimeout(() => toggleDetails(), 100);
@@ -345,10 +345,6 @@ async function loadRolls() {
 		const params = new URLSearchParams();
 		params.append("page", currentPage);
 		params.append("per_page", itemsPerPage);
-
-		if (typeof userData !== "undefined" && userData.role_id !== 1 && Array.isArray(userData.section_ids)) {
-			userData.section_ids.forEach((id) => params.append("section_ids", id));
-		}
 
 		const response = await fetch(`/api/rolls/filter?${params}`);
 		const result = await handleApiResponse(response);

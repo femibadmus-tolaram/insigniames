@@ -129,7 +129,7 @@ function renderJobs(jobsToRender) {
 			<td class="py-3 px-4">${escapeHtml(job.production_order)}</td>
 			<td class="py-3 px-4">${escapeHtml(job.batch_roll_no)}</td>
 			<td class="py-3 px-4">${job.shift_id === 1 ? "Day" : "Night"}</td>
-			<td class="py-3 px-4">${escapeHtml(machine?.label || "Unknown")}</td>
+			<td class="py-3 px-4">${escapeHtml(machine?.name || "Unknown")}</td>
 			<td class="py-3 px-4 detail-cell">${formatDateTime(job.start_datetime)}</td>
 			<td class="py-3 px-4 detail-cell">${job.end_datetime ? formatDateTime(job.end_datetime) : '<span class="text-gray-400">-</span>'}</td>
 			<td class="py-3 px-4 text-center detail-cell">
@@ -151,6 +151,7 @@ function renderJobs(jobsToRender) {
 				</span>
 			</td>
 			<td class="py-3 px-4">${formatDateTime(job.last_updated || job.updated_at)}</td>
+            <!--
 			<td class="py-3 px-4">
 				<div class="flex gap-2">
 					<button class="text-blue-600 hover:text-blue-800 edit-btn" data-id="${job.id}">
@@ -161,19 +162,20 @@ function renderJobs(jobsToRender) {
 					</button>
 				</div>
 			</td>
+            -->
 		`;
 
 		tbody.appendChild(row);
 	});
 
-	document.querySelectorAll(".edit-btn").forEach((btn) => {
-		btn.addEventListener("click", () => editJob(btn.dataset.id));
-	});
-	document.querySelectorAll(".delete-btn").forEach((btn) => {
-		btn.addEventListener("click", function () {
-			deleteJob(btn.dataset.id);
-		});
-	});
+	// document.querySelectorAll(".edit-btn").forEach((btn) => {
+	// 	btn.addEventListener("click", () => editJob(btn.dataset.id));
+	// });
+	// document.querySelectorAll(".delete-btn").forEach((btn) => {
+	// 	btn.addEventListener("click", function () {
+	// 		deleteJob(btn.dataset.id);
+	// 	});
+	// });
 }
 
 function renderPagination() {
@@ -417,6 +419,7 @@ async function exportToExcel() {
 		if (startDate) params.append("start_date", startDate);
 		if (endDate) params.append("end_date", endDate);
 		if (status) params.append("status", status);
+		const response = await fetch(`/api/jobs/filter?${params}`);
 		const result = await handleApiResponse(response);
 		const filteredJobs = result.data;
 
@@ -435,7 +438,7 @@ async function exportToExcel() {
 				"Production Order": job.production_order,
 				"Batch Roll No": job.batch_roll_no,
 				Shift: job.shift_id === 1 ? "Day" : "Night",
-				Machine: machine?.label || "Unknown",
+				Machine: machine?.name || "Unknown",
 				"Total Rolls": job.total_rolls || 0,
 				"Pending Rolls": job.pending_rolls || 0,
 				"Total Weight": formatWeight(job.total_weight || 0),

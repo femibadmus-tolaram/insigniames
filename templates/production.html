@@ -217,7 +217,16 @@
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 									<div class="form-group">
 										<label for="final-meter" class="form-label">Final Meters *</label>
-										<input type="number" id="final-meter" class="form-input" step="0.01" min="0" placeholder="0.00" required />
+										<input
+											type="number"
+											id="final-meter"
+											class="form-input"
+											step="1000"
+											min="0"
+											max="40000"
+											placeholder="0.00"
+											required
+										/>
 									</div>
 									<div class="form-group">
 										<label for="core-weight" class="form-label">Core Weight</label>
@@ -262,19 +271,20 @@
 			</div>
 			<div id="start-new-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
 				<div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-					<h3 class="text-xl font-semibold text-gray-800 mb-4">End Current Job</h3>
+					<h3 class="text-xl font-semibold text-gray-800 mb-4">End Current Roll</h3>
 
 					<div class="mb-4">
-						<label class="block text-gray-700 text-sm font-medium mb-2"> Remaining Weight (Optional) </label>
+						<label class="block text-gray-700 text-sm font-medium mb-2">Used Weight *</label>
 						<input
 							type="number"
-							id="remaining-weight"
+							id="used-weight"
 							class="form-input w-full"
 							step="0.01"
 							min="0"
-							placeholder="Enter remaining weight if any"
+							placeholder="Enter used weight"
+							required
 						/>
-						<p class="text-xs text-gray-500 mt-1">Leave empty if no remaining weight</p>
+						<p class="text-xs text-gray-500 mt-1">Enter the amount of weight used for this roll.</p>
 					</div>
 
 					<div class="flex justify-end gap-3">

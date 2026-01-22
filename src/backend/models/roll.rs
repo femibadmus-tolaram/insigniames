@@ -31,7 +31,6 @@ pub struct RollCreatePayload {
     pub final_weight: f64,
     pub core_weight: Option<f64>,
     pub job_id: i32,
-    pub from_batch: String,
     pub flag_count: i32,
 }
 
@@ -59,6 +58,7 @@ pub struct RollFilterPayload {
     pub per_page: Option<String>,
     pub page: Option<String>,
     pub status: Option<String>,
+    pub production_order: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -94,6 +94,57 @@ impl Roll {
         let today_start = current_date.format("%Y-%m-%d").to_string();
 
         let process_order = &job.production_order;
+
+        // Get all jobs for this production_order, order by id asc
+        let mut stmt = conn.prepare(
+            "SELECT id, batch_roll_no FROM jobs WHERE production_order = ? ORDER BY id ASC",
+        )?;
+        let jobs: Vec<(i32, String)> = stmt
+            .query_map(params![process_order], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        // Find jobs with at least one roll
+        let mut jobs_with_rolls = Vec::new();
+        let mut jobs_without_rolls = Vec::new();
+        for (job_id, batch_roll_no) in &jobs {
+            let count: i32 = conn
+                .query_row(
+                    "SELECT COUNT(*) FROM rolls WHERE job_id = ?1",
+                    params![job_id],
+                    |row| row.get(0),
+                )
+                .unwrap_or(0);
+            if count > 0 {
+                jobs_with_rolls.push(batch_roll_no.clone());
+            } else {
+                jobs_without_rolls.push(batch_roll_no.clone());
+            }
+        }
+
+        // Merge all previous scenarios and add the new priority condition
+        let from_batch = if !jobs_with_rolls.is_empty() {
+            let last_with_roll = jobs_with_rolls.last().unwrap();
+            if *last_with_roll != job.batch_roll_no {
+                // Last job with roll is not the current job, join their batch_roll_no and the current job's batch_roll_no
+                format!("{},{}", last_with_roll, job.batch_roll_no)
+            } else if jobs_without_rolls.is_empty() {
+                // Only jobs with rolls, take the last one's batch_roll_no
+                last_with_roll.clone()
+            } else {
+                // Both exist, join last with rolls and all without rolls
+                let mut batches = Vec::new();
+                batches.push(last_with_roll.clone());
+                batches.extend(jobs_without_rolls.iter().cloned());
+                batches.join(",")
+            }
+        } else if !jobs_without_rolls.is_empty() {
+            // Only jobs without rolls, join all batch_roll_no with ","
+            jobs_without_rolls.join(",")
+        } else {
+            job.batch_roll_no.clone()
+        };
+
         let roll_count_for_process_order: i32 = conn
             .query_row(
                 "SELECT COUNT(*) FROM rolls r JOIN jobs j ON r.job_id = j.id WHERE j.production_order = ?1 AND date(r.created_at) = date(?2)",
@@ -107,7 +158,7 @@ impl Roll {
 
         conn.execute(
             "INSERT INTO rolls (output_roll_no, final_meter, flag_reason, final_weight, core_weight, job_id, created_by, created_at, updated_at, from_batch, flag_count) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
-            params![output_roll_no, data.final_meter, data.flag_reason, data.final_weight, data.core_weight, data.job_id, user_id, now, now, data.from_batch, data.flag_count],
+            params![output_roll_no, data.final_meter, data.flag_reason, data.final_weight, data.core_weight, data.job_id, user_id, now, now, from_batch, data.flag_count],
         )?;
 
         let id = conn.last_insert_rowid() as i32;
@@ -122,7 +173,7 @@ impl Roll {
             created_by: user_id,
             created_at: now.clone(),
             updated_at: now.clone(),
-            from_batch: data.from_batch.clone(),
+            from_batch,
             flag_count: data.flag_count,
         })
     }
@@ -289,6 +340,15 @@ impl Roll {
         let mut shift_ids: Vec<i32> = vec![];
         let mut pages: Vec<i32> = vec![];
         let mut per_pages: Vec<i32> = vec![];
+        let mut production_orders: Vec<String> = vec![];
+        if let Some(val) = &filter.production_order {
+            if !val.is_empty() {
+                production_orders.push(val.clone());
+                params_vec.push(production_orders.last().unwrap());
+                count_query.push_str(" AND j.production_order = ?");
+                data_query.push_str(" AND j.production_order = ?");
+            }
+        }
         if let Some(section_ids_vec) = &filter.section_ids {
             let valid_ids: Vec<i32> = section_ids_vec
                 .iter()

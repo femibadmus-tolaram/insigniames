@@ -424,7 +424,7 @@ function resetToMachineSelection() {
 
 function cancelStartNew() {
 	document.getElementById("start-new-modal").classList.add("hidden");
-	document.getElementById("remaining-weight").value = "";
+	document.getElementById("used-weight").value = "";
 }
 
 async function confirmStartNew() {
@@ -438,32 +438,30 @@ async function confirmStartNew() {
 	endBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ending...';
 
 	try {
-		const remainingWeightInput = document.getElementById("remaining-weight");
+		const usedWeightInput = document.getElementById("used-weight");
 		let consumedWeight = null;
 		let weightUnit = null;
 
-		consumedWeight = parseFloat(currentJob.start_weight);
-		weightUnit = currentJob.start_weight.replace(/[\d.]+/g, "").replace(/\s+/g, "");
+		// Now, collect used weight directly from user
+		if (!usedWeightInput.value) {
+			showNotification("Please enter the used weight.", "error");
+			return;
+		}
+		consumedWeight = parseFloat(usedWeightInput.value);
+		weightUnit = currentJob.start_weight.replace(/[^a-zA-Z]+/g, "").replace(/\s+/g, "");
 
-		if (remainingWeightInput.value) {
-			const remainingWeight = parseFloat(remainingWeightInput.value);
-
-			if (isNaN(remainingWeight) || isNaN(consumedWeight)) {
-				showNotification("Invalid weight values", "error");
-				return;
-			}
-
-			if (remainingWeight < 0) {
-				showNotification("Remaining weight cannot be negative", "error");
-				return;
-			}
-
-			if (remainingWeight > consumedWeight) {
-				showNotification("Remaining weight cannot exceed start weight", "error");
-				return;
-			}
-
-			consumedWeight = consumedWeight - remainingWeight;
+		const startWeight = parseFloat(currentJob.start_weight);
+		if (isNaN(consumedWeight) || isNaN(startWeight)) {
+			showNotification("Invalid weight values", "error");
+			return;
+		}
+		if (consumedWeight <= 0) {
+			showNotification("Used weight must be greater than 0", "error");
+			return;
+		}
+		if (consumedWeight > startWeight) {
+			showNotification("Used weight cannot exceed start weight", "error");
+			return;
 		}
 
 		if (currentJob && currentJob.id) {
@@ -1105,7 +1103,7 @@ async function loadActiveJobData(job) {
 				disableInputForm();
 				enableOutputForm();
 
-				await loadJobRolls(job.id);
+				await loadJobRolls(job.production_order);
 			}
 		} catch (error) {
 			console.error("Failed to load process order data:", error);
@@ -1114,9 +1112,9 @@ async function loadActiveJobData(job) {
 	}
 }
 
-async function loadJobRolls(jobId) {
+async function loadJobRolls(production_order) {
 	try {
-		const response = await fetch(`/api/rolls/filter?job_id=${jobId}&per_page=50`);
+		const response = await fetch(`/api/rolls/filter?production_order=${production_order}&per_page=50`);
 		const result = await handleApiResponse(response);
 
 		const tableBody = document.getElementById("rolls-table-body");

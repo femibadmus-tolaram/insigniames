@@ -434,7 +434,6 @@ impl Job {
 
         if let Some(last_insert) = &filter.last_insert {
             if last_insert == "true" {
-                // Only return the single latest job (highest id)
                 data_query = data_query.replace(
                     " GROUP BY j.id ORDER BY j.created_at DESC",
                     " GROUP BY j.id ORDER BY j.id DESC LIMIT 1",
