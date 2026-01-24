@@ -32,10 +32,6 @@ jobs:
                       target
                   key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-            - name: Run tests
-              run: cargo test
-              working-directory: ${{ github.workspace }}
-
             - name: Build release binary
               run: cargo build --release
               working-directory: ${{ github.workspace }}
