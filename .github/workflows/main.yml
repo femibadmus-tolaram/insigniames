@@ -11,7 +11,7 @@ jobs:
         runs-on: self-hosted
         env:
             CARGO_HOME: /home/mes/.cargo
-            CARGO_TARGET_DIR: /home/mes/.cargo/target
+            CARGO_TARGET_DIR: /home/insigniames/target
         steps:
             - name: Checkout code
               uses: actions/checkout@v3
@@ -19,8 +19,9 @@ jobs:
                   clean: false
 
             - name: Write .env file from secret
-              run: echo "${{ secrets.ENV_CONTENT }}" > .env
-              working-directory: ${{ github.workspace }}
+              run: |
+                  mkdir -p /home/insigniames/target/release
+                  echo "${{ secrets.ENV_CONTENT }}" > /home/insigniames/target/release/.env
 
             - name: Setup Rust
               uses: actions-rs/toolchain@v1
@@ -34,7 +35,7 @@ jobs:
                   path: |
                       /home/mes/.cargo/registry
                       /home/mes/.cargo/git
-                      /home/mes/.cargo/target
+                      /home/insigniames/target
                   key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
                   restore-keys: |
                       ${{ runner.os }}-cargo-
@@ -49,9 +50,7 @@ jobs:
             - name: Move new binary, .env, and static files to deployment directory
               working-directory: ${{ github.workspace }}
               run: |
-                  mkdir -p /home/insigniames/target/release
-                  cp target/release/backend /home/insigniames/target/release/insigniames
-                  cp .env /home/insigniames/target/release/.env
+                  cp /home/insigniames/target/release/backend /home/insigniames/target/release/insigniames
                   cp -r static /home/insigniames/target/release/static
                   chmod +x /home/insigniames/target/release/insigniames
                   sudo setcap 'cap_net_bind_service=+ep' /home/insigniames/target/release/insigniames
