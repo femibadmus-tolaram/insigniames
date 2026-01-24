@@ -22,6 +22,8 @@ pub struct InputRoll {
     pub batch: String,
     pub material_document: Option<String>,
     pub material_number: Option<String>,
+    pub material_description: Option<String>,
+    pub process_order: Option<String>,
     pub start_meter: f64,
     pub created_by: i32,
     pub start_weight: String,
@@ -72,7 +74,7 @@ pub struct InputRollFilterPayload {
 impl InputRoll {
     pub fn find_by_job_id(conn: &Connection, job_id: i32) -> Result<Self> {
         let mut stmt = conn.prepare(
-            "SELECT id, job_id, batch, material_document, material_number, start_meter, created_by, start_weight, consumed_weight, created_at, updated_at FROM input_rolls WHERE job_id = ?1 LIMIT 1"
+            "SELECT ir.id, ir.job_id, ir.batch, ir.material_document, ir.material_number, mvd.desc, j.production_order, ir.start_meter, ir.created_by, ir.start_weight, ir.consumed_weight, ir.created_at, ir.updated_at FROM input_rolls ir LEFT JOIN jobs j ON ir.job_id = j.id LEFT JOIN materials_value_description mvd ON ir.material_number = mvd.value WHERE ir.job_id = ?1 LIMIT 1"
         )?;
         stmt.query_row(params![job_id], |row| {
             Ok(InputRoll {
@@ -81,12 +83,14 @@ impl InputRoll {
                 batch: row.get(2)?,
                 material_document: row.get(3).ok(),
                 material_number: row.get(4).ok(),
-                start_meter: row.get(5)?,
-                created_by: row.get(6)?,
-                start_weight: row.get(7)?,
-                consumed_weight: row.get(8).ok(),
-                created_at: row.get(9)?,
-                updated_at: row.get(10)?,
+                material_description: row.get(5).ok(),
+                process_order: row.get(6).ok(),
+                start_meter: row.get(7)?,
+                created_by: row.get(8)?,
+                start_weight: row.get(9)?,
+                consumed_weight: row.get(10).ok(),
+                created_at: row.get(11)?,
+                updated_at: row.get(12)?,
             })
         })
     }
@@ -128,6 +132,8 @@ impl InputRoll {
             batch: data.batch.clone(),
             material_document: data.material_document.clone(),
             material_number: Some(data.material_number.clone()),
+            material_description: None,
+            process_order: None,
             start_meter: data.start_meter,
             created_by: user_id,
             start_weight: data.start_weight.clone(),
@@ -196,7 +202,7 @@ impl InputRoll {
 
     pub fn find_by_id(conn: &Connection, id: i32) -> Result<Self> {
         let mut stmt = conn.prepare(
-            "SELECT id, job_id, batch, material_document, material_number, start_meter, created_by, start_weight, consumed_weight, created_at, updated_at FROM input_rolls WHERE id = ?1"
+            "SELECT ir.id, ir.job_id, ir.batch, ir.material_document, ir.material_number, mvd.desc, j.production_order, ir.start_meter, ir.created_by, ir.start_weight, ir.consumed_weight, ir.created_at, ir.updated_at FROM input_rolls ir LEFT JOIN jobs j ON ir.job_id = j.id LEFT JOIN materials_value_description mvd ON ir.material_number = mvd.value WHERE ir.id = ?1"
         )?;
         stmt.query_row(params![id], |row| {
             Ok(InputRoll {
@@ -205,19 +211,21 @@ impl InputRoll {
                 batch: row.get(2)?,
                 material_document: row.get(3).ok(),
                 material_number: row.get(4).ok(),
-                start_meter: row.get(5)?,
-                created_by: row.get(6)?,
-                start_weight: row.get(7)?,
-                consumed_weight: row.get(8).ok(),
-                created_at: row.get(9)?,
-                updated_at: row.get(10)?,
+                material_description: row.get(5).ok(),
+                process_order: row.get(6).ok(),
+                start_meter: row.get(7)?,
+                created_by: row.get(8)?,
+                start_weight: row.get(9)?,
+                consumed_weight: row.get(10).ok(),
+                created_at: row.get(11)?,
+                updated_at: row.get(12)?,
             })
         })
     }
 
     pub fn all(conn: &Connection) -> Result<Vec<Self>> {
         let mut stmt = conn.prepare(
-            "SELECT id, job_id, batch, material_document, material_number, start_meter, created_by, start_weight, consumed_weight, created_at, updated_at FROM input_rolls ORDER BY created_at DESC"
+            "SELECT ir.id, ir.job_id, ir.batch, ir.material_document, ir.material_number, mvd.desc, j.production_order, ir.start_meter, ir.created_by, ir.start_weight, ir.consumed_weight, ir.created_at, ir.updated_at FROM input_rolls ir LEFT JOIN jobs j ON ir.job_id = j.id LEFT JOIN materials_value_description mvd ON ir.material_number = mvd.value ORDER BY ir.created_at DESC"
         )?;
         let rows = stmt.query_map([], |row| {
             Ok(InputRoll {
@@ -226,12 +234,14 @@ impl InputRoll {
                 batch: row.get(2)?,
                 material_document: row.get(3).ok(),
                 material_number: row.get(4).ok(),
-                start_meter: row.get(5)?,
-                created_by: row.get(6)?,
-                start_weight: row.get(7)?,
-                consumed_weight: row.get(8).ok(),
-                created_at: row.get(9)?,
-                updated_at: row.get(10)?,
+                material_description: row.get(5).ok(),
+                process_order: row.get(6).ok(),
+                start_meter: row.get(7)?,
+                created_by: row.get(8)?,
+                start_weight: row.get(9)?,
+                consumed_weight: row.get(10).ok(),
+                created_at: row.get(11)?,
+                updated_at: row.get(12)?,
             })
         })?;
         rows.collect::<Result<Vec<_>, _>>()
@@ -239,7 +249,7 @@ impl InputRoll {
 
     pub fn filter(conn: &Connection, filter: &InputRollFilterPayload) -> Result<Vec<Self>> {
         let mut query = String::from(
-            "SELECT id, job_id, batch, material_document, material_number, start_meter, created_by, start_weight, consumed_weight, created_at, updated_at FROM input_rolls WHERE 1=1",
+            "SELECT ir.id, ir.job_id, ir.batch, ir.material_document, ir.material_number, mvd.desc, j.production_order, ir.start_meter, ir.created_by, ir.start_weight, ir.consumed_weight, ir.created_at, ir.updated_at FROM input_rolls ir LEFT JOIN jobs j ON ir.job_id = j.id LEFT JOIN materials_value_description mvd ON ir.material_number = mvd.value WHERE 1=1",
         );
         let mut params_vec: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
 
@@ -288,7 +298,7 @@ impl InputRoll {
             params_vec.push(Box::new(format!("%{}%", updated_at)));
         }
 
-        query.push_str(" ORDER BY created_at DESC");
+        query.push_str(" ORDER BY ir.created_at DESC");
 
         if let (Some(page), Some(per_page)) = (filter.page, filter.per_page) {
             let offset = (page - 1) * per_page;
@@ -311,12 +321,14 @@ impl InputRoll {
                     batch: row.get(2)?,
                     material_document: row.get(3).ok(),
                     material_number: row.get(4).ok(),
-                    start_meter: row.get(5)?,
-                    created_by: row.get(6)?,
-                    start_weight: row.get(7)?,
-                    consumed_weight: row.get(8).ok(),
-                    created_at: row.get(9)?,
-                    updated_at: row.get(10)?,
+                    material_description: row.get(5).ok(),
+                    process_order: row.get(6).ok(),
+                    start_meter: row.get(7)?,
+                    created_by: row.get(8)?,
+                    start_weight: row.get(9)?,
+                    consumed_weight: row.get(10).ok(),
+                    created_at: row.get(11)?,
+                    updated_at: row.get(12)?,
                 })
             },
         )?;
