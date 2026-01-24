@@ -40,12 +40,14 @@ jobs:
               run: sudo systemctl stop insigniames
 
             - name: Move new binary, .env, and static files to deployment directory
+              working-directory: ${{ github.workspace }}
               run: |
                   mkdir -p /home/insigniames/target/release
-                  cp ${{ github.workspace }}/target/release/backend /home/insigniames/target/release/insigniames
-                  cp ${{ github.workspace }}/.env /home/insigniames/target/release/.env
-                  cp -r ${{ github.workspace }}/static /home/insigniames/target/release/static
+                  cp target/release/backend /home/insigniames/target/release/insigniames
+                  cp .env /home/insigniames/target/release/.env
+                  cp -r static /home/insigniames/target/release/static
                   chmod +x /home/insigniames/target/release/insigniames
+                  sudo setcap 'cap_net_bind_service=+ep' /home/insigniames/target/release/insigniames
 
             - name: Restart insigniames service
               run: |
