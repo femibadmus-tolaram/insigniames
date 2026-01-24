@@ -33,7 +33,7 @@ jobs:
                   key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
             - name: Build release binary
-              run: cargo build --release
+              run: cargo build --release --bin backend
               working-directory: ${{ github.workspace }}
 
             - name: Stop insigniames service
@@ -42,7 +42,7 @@ jobs:
             - name: Move new binary, .env, and static files to deployment directory
               run: |
                   mkdir -p /home/insigniames/target/release
-                  cp ${{ github.workspace }}/target/release/insigniames /home/insigniames/target/release/insigniames
+                  cp ${{ github.workspace }}/target/release/backend /home/insigniames/target/release/insigniames
                   cp ${{ github.workspace }}/.env /home/insigniames/target/release/.env
                   cp -r ${{ github.workspace }}/static /home/insigniames/target/release/static
                   chmod +x /home/insigniames/target/release/insigniames
