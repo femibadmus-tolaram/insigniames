@@ -34,7 +34,7 @@ pub fn init_local_db(path: &str) -> Result<()> {
             password TEXT,
             status TEXT,
             role_id INTEGER,
-            page_id INTEGER,
+            page_id TEXT,
             created_at DATETIME,
             updated_at DATETIME,
             FOREIGN KEY (role_id) REFERENCES roles(id)
@@ -129,16 +129,10 @@ pub fn init_local_db(path: &str) -> Result<()> {
 
         CREATE TABLE IF NOT EXISTS jobs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            shift_id INTEGER,
-            production_order TEXT,
-            batch_roll_no TEXT,
-            start_weight TEXT,
-            consumed_weight TEXT,
-            material_number TEXT,
-            material_document TEXT,
-            start_meter DECIMAL(10,2),
-            created_by INTEGER,
             machine_id INTEGER,
+            shift_id INTEGER,
+            created_by INTEGER,
+            production_order TEXT,
             start_datetime DATETIME DEFAULT CURRENT_TIMESTAMP,
             end_datetime DATETIME,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -147,22 +141,42 @@ pub fn init_local_db(path: &str) -> Result<()> {
             FOREIGN KEY (shift_id) REFERENCES shifts(id),
             FOREIGN KEY (created_by) REFERENCES users(id)
         );
-        
-        CREATE TABLE IF NOT EXISTS rolls (
+
+        CREATE TABLE IF NOT EXISTS input_rolls (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            output_roll_no TEXT UNIQUE,
-            from_batch TEXT,
+            job_id INTEGER,
+            batch TEXT,
+            material_document TEXT DEFAULT NULL,
+            material_number TEXT,
+            start_meter DECIMAL(10,2),
+            created_by INTEGER,
+            start_weight DECIMAL(10,2),
+            is_consumed INTEGER DEFAULT 0,
+            consumed_at DATETIME DEFAULT NULL,
+            consumed_weight DECIMAL(10,2) DEFAULT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (job_id) REFERENCES jobs(id),
+            FOREIGN KEY (created_by) REFERENCES users(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS output_rolls (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            input_roll_id INTEGER,
+            from_input_batch TEXT,
+            output_batch TEXT,
             final_meter DECIMAL(10,2),
             flag_reason TEXT,
             final_weight DECIMAL(10,2),
             core_weight DECIMAL(10,2),
-            job_id INTEGER,
+            flag_count INTEGER DEFAULT 0,
             created_by INTEGER,
+            updated_by INTEGER,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            flag_count INTEGER DEFAULT 0,
-            FOREIGN KEY (job_id) REFERENCES jobs(id),
-            FOREIGN KEY (created_by) REFERENCES users(id)
+            FOREIGN KEY (input_roll_id) REFERENCES input_rolls(id),
+            FOREIGN KEY (created_by) REFERENCES users(id),
+            FOREIGN KEY (updated_by) REFERENCES users(id)
         );
         CREATE TABLE IF NOT EXISTS downtimes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -227,6 +241,8 @@ pub fn init_local_db(path: &str) -> Result<()> {
         "permissions",
         "jobs",
         "rolls",
+        "input_rolls",
+        "output_rolls",
         "downtimes",
         "scraps",
         "ink_usages",

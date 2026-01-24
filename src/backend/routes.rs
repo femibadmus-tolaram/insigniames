@@ -181,73 +181,134 @@ pub fn init_routes(
                     .route(web::delete().to(delete_job)),
             )
             .service(
-                web::resource("/end")
-                    .wrap(CheckUpdate {
-                        model: "jobs",
-                        conn_data: conn_data.clone(),
-                    })
-                    .route(web::post().to(end_job)),
-            )
-            .service(
                 web::resource("/filter")
-                    .wrap(CheckDelete {
+                    .wrap(CheckRead {
                         model: "jobs",
                         conn_data: conn_data.clone(),
                     })
-                    .route(web::get().to(filter_jobs)),
+                    .route(web::get().to(filter_jobs_with_pending_input_rolls)),
             ),
     );
 
-    // Roll routes
+    // Input Roll routes
     cfg.service(
-        web::scope("/api/rolls")
+        web::scope("/api/input-rolls")
             .service(
                 web::resource("")
                     .wrap(CheckRead {
-                        model: "rolls",
+                        model: "input_rolls",
                         conn_data: conn_data.clone(),
                     })
-                    .route(web::get().to(all_rolls)),
+                    .route(web::get().to(all_input_rolls)),
             )
             .service(
                 web::resource("/create")
                     .wrap(CheckCreate {
-                        model: "rolls",
+                        model: "input_rolls",
                         conn_data: conn_data.clone(),
                     })
-                    .route(web::post().to(create_roll)),
+                    .route(web::post().to(create_input_roll)),
             )
             .service(
                 web::resource("/update")
                     .wrap(CheckUpdate {
-                        model: "rolls",
+                        model: "input_rolls",
                         conn_data: conn_data.clone(),
                     })
-                    .route(web::put().to(update_roll)),
+                    .route(web::put().to(update_input_roll)),
             )
             .service(
                 web::resource("/delete")
                     .wrap(CheckDelete {
-                        model: "rolls",
+                        model: "input_rolls",
                         conn_data: conn_data.clone(),
                     })
-                    .route(web::delete().to(delete_roll)),
+                    .route(web::delete().to(delete_input_roll)),
             )
             .service(
                 web::resource("/filter")
-                    .wrap(CheckDelete {
-                        model: "rolls",
+                    .wrap(CheckRead {
+                        model: "input_rolls",
                         conn_data: conn_data.clone(),
                     })
-                    .route(web::get().to(filter_rolls)),
+                    .route(web::get().to(filter_input_rolls)),
+            )
+            .service(
+                web::resource("/filter-with-stats")
+                    .wrap(CheckRead {
+                        model: "input_rolls",
+                        conn_data: conn_data.clone(),
+                    })
+                    .route(web::get().to(filter_input_rolls_with_stats)),
             )
             .service(
                 web::resource("/details")
                     .wrap(CheckRead {
-                        model: "rolls",
+                        model: "input_rolls",
                         conn_data: conn_data.clone(),
                     })
-                    .route(web::get().to(roll_details)),
+                    .route(web::get().to(input_roll_details)),
+            )
+            .service(
+                web::resource("/end")
+                    .wrap(CheckUpdate {
+                        model: "input_rolls",
+                        conn_data: conn_data.clone(),
+                    })
+                    .route(web::post().to(end_input_roll)),
+            ),
+    );
+
+    // Output Roll routes
+    cfg.service(
+        web::scope("/api/output-rolls")
+            .service(
+                web::resource("")
+                    .wrap(CheckRead {
+                        model: "output_rolls",
+                        conn_data: conn_data.clone(),
+                    })
+                    .route(web::get().to(all_output_rolls)),
+            )
+            .service(
+                web::resource("/create")
+                    .wrap(CheckCreate {
+                        model: "output_rolls",
+                        conn_data: conn_data.clone(),
+                    })
+                    .route(web::post().to(create_output_roll)),
+            )
+            .service(
+                web::resource("/update")
+                    .wrap(CheckUpdate {
+                        model: "output_rolls",
+                        conn_data: conn_data.clone(),
+                    })
+                    .route(web::put().to(update_output_roll)),
+            )
+            .service(
+                web::resource("/delete")
+                    .wrap(CheckDelete {
+                        model: "output_rolls",
+                        conn_data: conn_data.clone(),
+                    })
+                    .route(web::delete().to(delete_output_roll)),
+            )
+            .service(
+                web::resource("/filter")
+                    .wrap(CheckRead {
+                        model: "output_rolls",
+                        conn_data: conn_data.clone(),
+                    })
+                    .route(web::get().to(filter_output_rolls)),
+            )
+            .service(
+                web::resource("/details")
+                    .wrap(CheckRead {
+                        model: "output_rolls",
+                        conn_data: conn_data.clone(),
+                    })
+                    .route(web::get().to(output_roll_details)),
             ),
     );
 
@@ -392,7 +453,7 @@ pub fn init_routes(
             .service(
                 web::resource("")
                     .wrap(CheckRead {
-                        model: "rolls",
+                        model: "output_rolls",
                         conn_data: conn_data.clone(),
                     })
                     .route(web::get().to(get_process_orders)),
@@ -400,7 +461,7 @@ pub fn init_routes(
             .service(
                 web::resource("/all")
                     .wrap(CheckRead {
-                        model: "rolls",
+                        model: "output_rolls",
                         conn_data: conn_data.clone(),
                     })
                     .route(web::get().to(get_all_process_orders)),
@@ -898,12 +959,20 @@ pub fn init_routes(
                     .route(web::get().to(jobs_page)),
             )
             .service(
-                web::resource("/rolls")
+                web::resource("/output-rolls")
                     .wrap(CheckRead {
-                        model: "rolls",
+                        model: "output_rolls",
                         conn_data: conn_data.clone(),
                     })
-                    .route(web::get().to(rolls_page)),
+                    .route(web::get().to(output_rolls_page)),
+            )
+            .service(
+                web::resource("/input-rolls")
+                    .wrap(CheckRead {
+                        model: "input_rolls",
+                        conn_data: conn_data.clone(),
+                    })
+                    .route(web::get().to(input_rolls_page)),
             )
             .service(
                 web::resource("/roles")
@@ -932,7 +1001,7 @@ pub fn init_routes(
             .service(
                 web::resource("/production")
                     .wrap(CheckRead {
-                        model: "rolls",
+                        model: "output_rolls",
                         conn_data: conn_data.clone(),
                     })
                     .route(web::get().to(production_page)),

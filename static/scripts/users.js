@@ -81,7 +81,7 @@ function searchUsers(term) {
 				user.staffid.toLowerCase().includes(searchTerm) ||
 				(user.phone_number && user.phone_number.toLowerCase().includes(searchTerm)) ||
 				user.full_name.toLowerCase().includes(searchTerm) ||
-				(roles.find((r) => r.id === user.role_id)?.name || "").toLowerCase().includes(searchTerm)
+				(roles.find((r) => r.id === user.role_id)?.name || "").toLowerCase().includes(searchTerm),
 		);
 	}
 	updateUserStats(filteredUsers);
@@ -199,7 +199,6 @@ function populateForm(user) {
 	document.getElementById("status").value = user.status;
 	document.getElementById("role").value = user.role_id;
 	document.getElementById("password").value = "";
-	document.getElementById("page").value = user.page_id || "0";
 	populateSectionCheckboxes(user.section_ids);
 }
 
@@ -259,7 +258,6 @@ async function handleFormSubmit(e) {
 		status: document.getElementById("status").value,
 		role_id: parseInt(document.getElementById("role").value),
 		section_ids: getSelectedSections(),
-		page_id: parseInt(document.getElementById("page").value),
 	};
 
 	const password = document.getElementById("password").value;

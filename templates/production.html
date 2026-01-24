@@ -12,288 +12,321 @@
 		<script src="/static/scripts/script.js?v=1.8"></script>
 	</head>
 	<body class="bg-gray-50 min-h-screen">
-		<header class="bg-white shadow-sm sticky top-0 z-40">
-			<div class="max-w-7xl mx-auto px-6 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
-				<div class="flex items-center gap-3">
-					<div class="bg-blue-100 p-2 rounded-lg">
-						<i class="fas fa-industry text-blue-600 text-xl"></i>
-					</div>
-					<h1 class="text-xl font-bold text-gray-800">Production</h1>
+		<div class="min-h-screen bg-gray-50 flex">
+			<!-- SIDEBAR -->
+			<aside class="w-64 bg-white border-r border-gray-200 sticky top-0 h-screen">
+				<div class="px-6 py-5 flex items-center gap-3 border-b border-gray-200 bg-white-600">
+					<i class="fas fa-chart-simple text-white text-xl"></i>
 				</div>
-				<nav>
-					<ul id="main-nav" class="flex flex-wrap gap-1 text-gray-600 font-medium">
-						<li class="relative group">
-							<a href="/" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
-								><i class="fas fa-chart-simple"></i> Dashboard <i class="fas fa-chevron-down text-xs ml-1"></i
-							></a>
-							<div
-								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
-							>
-								<div class="py-2">
-									<a href="/jobs" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm"
-										><i class="fas fa-briefcase"></i> Jobs</a
-									>
-									<a href="/rolls" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm"
-										><i class="fas fa-layer-group"></i> Rolls</a
-									>
-								</div>
-							</div>
+
+				<nav class="px-3 py-3">
+					<ul id="main-nav" class="hidden flex flex-col gap-1 text-gray-700 font-medium">
+						<li>
+							<a href="/" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-chart-simple w-5 text-center"></i> Dashboard
+							</a>
 						</li>
-						<li class="relative group">
-							<a href="/production" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
-								><i class="fas fa-industry"></i> Production <i class="fas fa-chevron-down text-xs ml-1"></i
-							></a>
-							<div
-								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
-							>
-								<div class="py-2">
-									<a href="/downtime" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm"
-										><i class="fas fa-clock"></i> Downtime</a
-									>
-									<a href="/scrap" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm"
-										><i class="fas fa-trash"></i> Scrap</a
-									>
-									<a href="/consumables" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm"
-										><i class="fas fa-flask"></i> Actual Consumable</a
-									>
-								</div>
-							</div>
+
+						<li class="mt-2">
+							<div class="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Operations</div>
 						</li>
-						<li class="relative group">
-							<a href="/settings" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
-								><i class="fas fa-cog"></i> Settings <i class="fas fa-chevron-down text-xs ml-1"></i
-							></a>
-							<div
-								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
-							>
-								<div class="py-2">
-									<a href="/materials" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm"
-										><i class="fas fa-industry"></i> Materials</a
-									>
-									<a href="/machines" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm"
-										><i class="fas fa-cogs"></i> Machines</a
-									>
-									<a href="/sections" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm"
-										><i class="fas fa-building"></i> Sections</a
-									>
-									<a href="/lookups" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm"
-										><i class="fas fa-list"></i> Manage Lookups</a
-									>
-									<div class="border-t border-gray-200 my-1"></div>
-									<a href="/users" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm"
-										><i class="fas fa-users"></i> Users Management</a
-									>
-									<a href="/roles" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm"
-										><i class="fas fa-user-tag"></i> Roles & Permissions</a
-									>
-									<div class="border-t border-gray-200 my-1"></div>
-									<a href="/logout" class="px-4 py-2 hover:bg-red-50 hover:text-red-600 flex items-center gap-2 text-sm"
-										><i class="fas fa-sign-out-alt"></i> Logout</a
-									>
-								</div>
-							</div>
+
+						<li>
+							<a href="/jobs" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-briefcase w-5 text-center"></i> Jobs
+							</a>
+						</li>
+						<li>
+							<a href="/input-rolls" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-layer-group w-5 text-center"></i> Input Rolls
+							</a>
+						</li>
+						<li>
+							<a href="/output-rolls" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-layer-group w-5 text-center"></i> Output Rolls
+							</a>
+						</li>
+						<li>
+							<a href="/production" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-industry w-5 text-center"></i> Production
+							</a>
+						</li>
+						<li>
+							<a href="/downtime" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-clock w-5 text-center"></i> Downtime
+							</a>
+						</li>
+						<li>
+							<a href="/scrap" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-trash w-5 text-center"></i> Scrap
+							</a>
+						</li>
+						<li>
+							<a href="/consumables" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-flask w-5 text-center"></i> Actual Consumable
+							</a>
+						</li>
+
+						<li class="mt-2">
+							<div class="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Admin</div>
+						</li>
+
+						<li>
+							<a href="/settings" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-cog w-5 text-center"></i> Settings
+							</a>
+						</li>
+						<li>
+							<a href="/materials" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-industry w-5 text-center"></i> Materials
+							</a>
+						</li>
+						<li>
+							<a href="/machines" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-cogs w-5 text-center"></i> Machines
+							</a>
+						</li>
+						<li>
+							<a href="/sections" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-building w-5 text-center"></i> Sections
+							</a>
+						</li>
+						<li>
+							<a href="/lookups" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-list w-5 text-center"></i> Manage Lookups
+							</a>
+						</li>
+						<li>
+							<a href="/users" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-users w-5 text-center"></i> Users Management
+							</a>
+						</li>
+						<li>
+							<a href="/roles" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-user-tag w-5 text-center"></i> Roles & Permissions
+							</a>
+						</li>
+
+						<li class="mt-2 border-t border-gray-200 pt-2">
+							<a href="/logout" class="px-3 py-2 rounded-lg hover:bg-red-50 hover:text-red-600 flex items-center gap-2 text-red-600">
+								<i class="fas fa-sign-out-alt w-5 text-center"></i> Logout
+							</a>
 						</li>
 					</ul>
 				</nav>
-			</div>
-		</header>
-		<main class="max-w-7xl mx-auto px-4 py-6">
-			<div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-				<div class="space-y-6">
-					<section class="card p-6 space-y-6">
-						<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-							<h2 class="text-xl font-semibold text-gray-800">Machine Selection</h2>
-							<div class="flex items-center gap-2">
-								<a href="/logout"
-									><span class="last-update" id="last-update"> <i class="fas fa-user"></i>{{ user_name }}</span></a
-								>
+			</aside>
+
+			<!-- MAIN CONTENT -->
+			<div class="flex-1 min-w-0">
+				<header class="bg-white shadow-sm sticky top-0 z-40">
+					<div class="max-w-7xl mx-auto px-6 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
+						<div class="flex items-center gap-3">
+							<div class="bg-blue-100 p-2 rounded-lg">
+								<i class="fas fa-industry text-blue-600 text-xl"></i>
 							</div>
+							<h1 class="text-xl font-bold text-gray-800">Production</h1>
 						</div>
-						<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-							<div class="form-group">
-								<label for="machine" class="form-label">Select Machine *</label>
-								<select id="machine" class="form-input" required>
-									<option value="">Select Machine</option>
-								</select>
-							</div>
-							<div class="form-group">
-								<label for="active-job" class="form-label">Active Job</label>
-								<select id="active-job" class="form-input" disabled>
-									<option value="">No active job</option>
-								</select>
-							</div>
-						</div>
-					</section>
-					<div class="space-y-6">
-						<section id="po-section" class="card p-6 space-y-6" style="display: none">
-							<!-- <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+					</div>
+				</header>
+				<main class="max-w-7xl mx-auto px-4 py-6">
+					<div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+						<div class="space-y-6">
+							<section class="card p-6 space-y-6">
+								<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+									<h2 class="text-xl font-semibold text-gray-800">Machine Selection</h2>
+									<div class="flex items-center gap-2">
+										<a href="/logout"
+											><span class="last-update" id="last-update"> <i class="fas fa-user"></i>{{ user_name }}</span></a
+										>
+									</div>
+								</div>
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+									<div class="form-group">
+										<label for="machine" class="form-label">Select Machine *</label>
+										<select id="machine" class="form-input" required>
+											<option value="">Select Machine</option>
+										</select>
+									</div>
+									<div class="form-group">
+										<label for="active-job" class="form-label">Active Job</label>
+										<select id="active-job" class="form-input" disabled>
+											<option value="">No active job</option>
+										</select>
+									</div>
+								</div>
+							</section>
+							<div class="space-y-6">
+								<section id="po-section" class="card p-6 space-y-6" style="display: none">
+									<!-- <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
 								<h2 class="text-xl font-semibold text-gray-800">Process Order Selection</h2>
 								<button class="btn btn-secondary" id="change-machine-btn"><i class="fas fa-exchange-alt"></i> Change Machine</button>
 							</div> -->
-							<div class="space-y-4">
-								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<div class="form-group">
-										<label for="shift-select" class="form-label">Shift *</label>
-										<select id="shift-select" class="form-input w-full" required>
-											<option value="">Select Shift</option>
-											<option value="1">Day</option>
-											<option value="2">Night</option>
-										</select>
+									<div class="space-y-4">
+										<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+											<div class="form-group">
+												<label for="shift-select" class="form-label">Shift *</label>
+												<select id="shift-select" class="form-input w-full" required>
+													<option value="">Select Shift</option>
+													<option value="1">Day</option>
+													<option value="2">Night</option>
+												</select>
+											</div>
+											<div class="form-group">
+												<label for="date-select" class="form-label">Date *</label>
+												<input type="date" id="date-select" class="form-input w-full" required />
+											</div>
+										</div>
+										<div class="grid grid-cols-1 gap-4">
+											<div class="form-group">
+												<label for="process-order" class="form-label">Process Order *</label>
+												<select id="process-order" class="form-input w-full" required>
+													<option value="">Select Process Order</option>
+												</select>
+											</div>
+										</div>
 									</div>
-									<div class="form-group">
-										<label for="date-select" class="form-label">Date *</label>
-										<input type="date" id="date-select" class="form-input w-full" required />
+									<div id="job-details" class="bg-blue-50 p-4 rounded-xl border border-blue-200" style="display: none">
+										<h3 class="text-lg font-semibold text-blue-800 mb-3">Job Details</h3>
+										<div id="job-materials" class="space-y-3"></div>
 									</div>
+								</section>
+								<section id="input-section" class="card p-6 space-y-6" style="display: none">
+									<div class="flex items-center justify-between">
+										<h3 class="text-lg font-semibold text-gray-800" id="input-title">Currently Consuming (Input)</h3>
+									</div>
+									<form id="input-form">
+										<div class="space-y-4">
+											<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+												<div class="form-group">
+													<label for="consuming-material" class="form-label">Material *</label>
+													<select id="consuming-material" class="form-input" required>
+														<option value="">Select Material</option>
+													</select>
+												</div>
+												<div class="form-group">
+													<label for="batch-roll-no" class="form-label">Batch Roll No. *</label>
+													<select id="batch-roll-no" class="form-input" required disabled>
+														<option value="">Select Material First</option>
+													</select>
+												</div>
+											</div>
+											<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+												<div class="form-group">
+													<label for="start-weight" class="form-label">Start Weight *</label>
+													<input type="text" id="start-weight" class="form-input" readonly required />
+												</div>
+												<div class="form-group">
+													<label for="start-meter" class="form-label">Start Meter *</label>
+													<input
+														type="number"
+														id="start-meter"
+														class="form-input"
+														step="0.01"
+														min="0"
+														placeholder="0.00"
+														required
+													/>
+												</div>
+											</div>
+										</div>
+										<div class="flex justify-end gap-3 mt-6">
+											<button type="button" id="start-new-btn" class="btn btn-secondary">Add Roll</button>
+											<button type="submit" class="btn btn-primary" disabled>Use Roll</button>
+										</div>
+									</form>
+								</section>
+							</div>
+						</div>
+						<div class="space-y-6">
+							<section id="output-section" class="card p-6 space-y-6" style="display: none">
+								<div class="flex items-center justify-between">
+									<h3 class="text-lg font-semibold text-gray-800">Complete Output Roll</h3>
 								</div>
-								<div class="grid grid-cols-1 gap-4">
-									<div class="form-group">
-										<label for="process-order" class="form-label">Process Order *</label>
-										<select id="process-order" class="form-input w-full" required>
-											<option value="">Select Process Order</option>
-										</select>
+								<form id="output-form">
+									<div class="space-y-4">
+										<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+											<div class="form-group">
+												<label for="final-meter" class="form-label">Final Meters *</label>
+												<input
+													type="number"
+													id="final-meter"
+													class="form-input"
+													step="1000"
+													min="0"
+													max="40000"
+													placeholder="0.00"
+													required
+												/>
+											</div>
+											<div class="form-group">
+												<label for="core-weight" class="form-label">Core Weight</label>
+												<input type="number" id="core-weight" class="form-input" step="0.01" min="0" placeholder="0.00" />
+											</div>
+										</div>
+										<div class="form-group">
+											<label class="form-label">Flag Reasons</label>
+											<div id="flag-reasons-list" class="space-y-2 max-h-48 overflow-y-auto p-2 border rounded-lg"></div>
+										</div>
 									</div>
-								</div>
-							</div>
-							<div id="job-details" class="bg-blue-50 p-4 rounded-xl border border-blue-200" style="display: none">
-								<h3 class="text-lg font-semibold text-blue-800 mb-3">Job Details</h3>
-								<div id="job-materials" class="space-y-3"></div>
-							</div>
-						</section>
-						<section id="input-section" class="card p-6 space-y-6" style="display: none">
-							<div class="flex items-center justify-between">
-								<h3 class="text-lg font-semibold text-gray-800" id="input-title">Currently Consuming (Input)</h3>
-							</div>
-							<form id="input-form">
+									<div class="flex justify-end gap-3 mt-6">
+										<button type="submit" class="btn btn-success" disabled>Complete Roll</button>
+									</div>
+								</form>
+							</section>
+							<section id="active-production" class="card p-6 space-y-6" style="display: none">
 								<div class="space-y-4">
-									<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-										<div class="form-group">
-											<label for="consuming-material" class="form-label">Material *</label>
-											<select id="consuming-material" class="form-input" required>
-												<option value="">Select Material</option>
-											</select>
-										</div>
-										<div class="form-group">
-											<label for="batch-roll-no" class="form-label">Batch Roll No. *</label>
-											<select id="batch-roll-no" class="form-input" required disabled>
-												<option value="">Select Material First</option>
-											</select>
-										</div>
+									<div class="flex justify-between items-center">
+										<h3 class="text-lg font-medium text-gray-700">Recent Rolls</h3>
+										<button id="refresh-rolls-btn" class="btn btn-secondary"><i class="fas fa-rotate"></i> Refresh</button>
 									</div>
-									<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-										<div class="form-group">
-											<label for="start-weight" class="form-label">Start Weight *</label>
-											<input type="text" id="start-weight" class="form-input" readonly required />
-										</div>
-										<div class="form-group">
-											<label for="start-meter" class="form-label">Start Meter *</label>
-											<input
-												type="number"
-												id="start-meter"
-												class="form-input"
-												step="0.01"
-												min="0"
-												placeholder="0.00"
-												required
-											/>
-										</div>
+									<div class="table-container max-h-96 overflow-y-auto">
+										<table id="rolls-table" class="table">
+											<thead class="sticky top-0 bg-white">
+												<tr>
+													<th>From Batch</th>
+													<th>Output Batch.</th>
+													<th>Meters</th>
+													<th>Flag Count</th>
+												</tr>
+											</thead>
+											<tbody id="rolls-table-body">
+												<tr>
+													<td colspan="5" class="text-center text-gray-500 py-4">No rolls found</td>
+												</tr>
+											</tbody>
+										</table>
 									</div>
 								</div>
-								<div class="flex justify-end gap-3 mt-6">
-									<button type="button" id="start-new-btn" class="btn btn-secondary">Add Roll</button>
-									<button type="submit" class="btn btn-primary" disabled>Use Roll</button>
-								</div>
-							</form>
-						</section>
-					</div>
-				</div>
-				<div class="space-y-6">
-					<section id="output-section" class="card p-6 space-y-6" style="display: none">
-						<div class="flex items-center justify-between">
-							<h3 class="text-lg font-semibold text-gray-800">Complete Output Roll</h3>
+							</section>
 						</div>
-						<form id="output-form">
-							<input type="hidden" id="final_from_batch" />
-							<div class="space-y-4">
-								<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-									<div class="form-group">
-										<label for="final-meter" class="form-label">Final Meters *</label>
-										<input
-											type="number"
-											id="final-meter"
-											class="form-input"
-											step="1000"
-											min="0"
-											max="40000"
-											placeholder="0.00"
-											required
-										/>
-									</div>
-									<div class="form-group">
-										<label for="core-weight" class="form-label">Core Weight</label>
-										<input type="number" id="core-weight" class="form-input" step="0.01" min="0" placeholder="0.00" />
-									</div>
-								</div>
-								<div class="form-group">
-									<label class="form-label">Flag Reasons</label>
-									<div id="flag-reasons-list" class="space-y-2 max-h-48 overflow-y-auto p-2 border rounded-lg"></div>
-								</div>
+					</div>
+					<div id="start-new-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+						<div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+							<h3 class="text-xl font-semibold text-gray-800 mb-4">End Current Roll</h3>
+
+							<div class="mb-4">
+								<label class="block text-gray-700 text-sm font-medium mb-2">Used Weight *</label>
+								<input
+									type="number"
+									id="used-weight"
+									class="form-input w-full"
+									step="0.01"
+									min="0"
+									placeholder="Enter used weight"
+									required
+								/>
+								<p class="text-xs text-gray-500 mt-1">Enter the amount of weight used for this roll.</p>
 							</div>
-							<div class="flex justify-end gap-3 mt-6">
-								<button type="submit" class="btn btn-success" disabled>Complete Roll</button>
-							</div>
-						</form>
-					</section>
-					<section id="active-production" class="card p-6 space-y-6" style="display: none">
-						<div class="space-y-4">
-							<div class="flex justify-between items-center">
-								<h3 class="text-lg font-medium text-gray-700">Recent Rolls</h3>
-							</div>
-							<div class="table-container max-h-96 overflow-y-auto">
-								<table id="rolls-table" class="table">
-									<thead class="sticky top-0 bg-white">
-										<tr>
-											<th>From Batch</th>
-											<th>Output Roll No.</th>
-											<th>Meters</th>
-											<th>Flag Count</th>
-										</tr>
-									</thead>
-									<tbody id="rolls-table-body">
-										<tr>
-											<td colspan="5" class="text-center text-gray-500 py-4">No rolls found</td>
-										</tr>
-									</tbody>
-								</table>
+
+							<div class="flex justify-end gap-3">
+								<button onclick="cancelStartNew()" class="btn btn-secondary">Cancel</button>
+								<button onclick="confirmStartNew()" class="btn btn-danger">Consume Roll</button>
 							</div>
 						</div>
-					</section>
-				</div>
-			</div>
-			<div id="start-new-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-				<div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-					<h3 class="text-xl font-semibold text-gray-800 mb-4">End Current Roll</h3>
-
-					<div class="mb-4">
-						<label class="block text-gray-700 text-sm font-medium mb-2">Used Weight *</label>
-						<input
-							type="number"
-							id="used-weight"
-							class="form-input w-full"
-							step="0.01"
-							min="0"
-							placeholder="Enter used weight"
-							required
-						/>
-						<p class="text-xs text-gray-500 mt-1">Enter the amount of weight used for this roll.</p>
 					</div>
-
-					<div class="flex justify-end gap-3">
-						<button onclick="cancelStartNew()" class="btn btn-secondary">Cancel</button>
-						<button onclick="confirmStartNew()" class="btn btn-danger">Complete Roll</button>
-					</div>
-				</div>
+				</main>
 			</div>
-		</main>
+		</div>
 		<script src="/static/scripts/production.js"></script>
 	</body>
 </html>

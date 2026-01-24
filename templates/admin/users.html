@@ -5,11 +5,12 @@
 	<head>
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Jobs - Insignia</title>
+		<title>Users Management - Insignia</title>
 		<script src="/static/scripts/downloads/tailwind.js"></script>
-		<link rel="stylesheet" href="/static/styles/theme.css" />
 		<link rel="stylesheet" href="/static/styles/downloads/fa.css" />
-		<link rel="stylesheet" href="/static/styles/styles.css?v=1.0" />
+		<link rel="stylesheet" href="/static/styles/users.css" />
+		<link rel="stylesheet" href="/static/styles/theme.css" />
+		<script src="/static/scripts/downloads/tailwind.js"></script>
 		<script src="/static/scripts/downloads/xlsx.js"></script>
 		<script src="/static/scripts/script.js?v=1.8"></script>
 	</head>
@@ -124,9 +125,9 @@
 					<div class="max-w-7xl mx-auto px-6 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
 						<div class="flex items-center gap-3">
 							<div class="bg-blue-100 p-2 rounded-lg">
-								<i class="fas fa-briefcase text-blue-600 text-xl"></i>
+								<i class="fas fa-users text-blue-600 text-xl"></i>
 							</div>
-							<h1 class="text-xl font-bold text-gray-800">Jobs</h1>
+							<h1 class="text-xl font-bold text-gray-800">Users Management</h1>
 						</div>
 					</div>
 				</header>
@@ -134,131 +135,89 @@
 				<main class="max-w-7xl mx-auto px-4 py-6">
 					<section class="card p-6 space-y-6 mb-6">
 						<div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-							<h2 class="text-xl font-semibold text-gray-800">Job Records</h2>
+							<h2 class="text-xl font-semibold text-gray-800">User Management</h2>
 							<div class="flex items-center gap-2">
 								<a href="/logout"
 									><span class="last-update" id="last-update"> <i class="fas fa-user"></i>{{ user_name }}</span></a
 								>
+								<button class="btn btn-primary" id="add-user-btn"><i class="fas fa-plus"></i> Add User</button>
 							</div>
 						</div>
 
 						<div class="bg-gray-50 p-5 rounded-xl border border-gray-200 space-y-5">
 							<h3 class="text-lg font-medium text-gray-700 flex items-center gap-2"><i class="fas fa-filter"></i> Filters</h3>
 
-							<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+							<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3">
 								<div>
-									<label class="block text-sm font-medium text-gray-700 mb-1">Production Order</label>
-									<input type="text" id="filter-production-order" class="filter-input" placeholder="Enter production order" />
-								</div>
-								<div>
-									<label class="block text-sm font-medium text-gray-700 mb-1">Batch Roll No</label>
-									<input type="text" id="filter-batch-roll-no" class="filter-input" placeholder="Enter batch roll number" />
+									<label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+									<select id="filter-role" class="filter-select">
+										<option value="">All Roles</option>
+									</select>
 								</div>
 								<div>
 									<label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
 									<select id="filter-status" class="filter-select">
-										<option value="">All Jobs</option>
-										<option value="active">Active Jobs</option>
-										<option value="completed">Completed Jobs</option>
+										<option value="">All Status</option>
+										<option value="active">Active</option>
+										<option value="inactive">Inactive</option>
 									</select>
 								</div>
 								<div>
-									<label class="block text-sm font-medium text-gray-700 mb-1">Shift</label>
-									<select id="filter-shift" class="filter-select">
-										<option value="">All Shifts</option>
-										<option value="1">Day</option>
-										<option value="2">Night</option>
-									</select>
-								</div>
-								<div>
-									<label class="block text-sm font-medium text-gray-700 mb-1">Machine</label>
-									<select id="filter-machine" class="filter-select">
-										<option value="">All Machines</option>
-									</select>
-								</div>
-								<div>
-									<label class="block text-sm font-medium text-gray-700 mb-1">Created By</label>
-									<select id="filter-user" class="filter-select">
-										<option value="">All Users</option>
+									<label class="block text-sm font-medium text-gray-700 mb-1">Section</label>
+									<select id="filter-section" class="filter-select">
+										<option value="">All Sections</option>
 									</select>
 								</div>
 							</div>
 
 							<div class="flex flex-wrap gap-3 items-center pt-2">
-								<div>
-									<label class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
-									<div class="flex gap-2">
-										<input type="date" id="filter-start-date" class="filter-input" />
-										<input type="date" id="filter-end-date" class="filter-input" />
-									</div>
-								</div>
-								<div>
-									<label class="block text-sm font-medium text-gray-700 mb-1">Items per page</label>
-									<select id="per-page" class="filter-select">
-										<option value="10" selected>10 per page</option>
-										<option value="20">20 per page</option>
-										<option value="50">50 per page</option>
-										<option value="100">100 per page</option>
-									</select>
-								</div>
 								<button id="apply-filter" class="btn btn-success"><i class="fas fa-check"></i> Apply Filters</button>
 								<button id="clear-filter" class="btn btn-secondary"><i class="fas fa-times"></i> Clear Filters</button>
 							</div>
 						</div>
 
-						<div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+						<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
 							<div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
 								<div class="flex items-center gap-3">
 									<div class="bg-blue-100 p-3 rounded-lg">
-										<i class="fas fa-briefcase text-blue-600"></i>
+										<i class="fas fa-users text-blue-600"></i>
 									</div>
 									<div>
-										<h3 class="text-sm font-medium text-blue-600">Total Jobs</h3>
-										<p class="text-2xl font-bold text-gray-800" id="total-jobs">0</p>
+										<h3 class="text-sm font-medium text-blue-600">Total Users</h3>
+										<p class="text-2xl font-bold text-gray-800" id="total-users">0</p>
 									</div>
 								</div>
 							</div>
 							<div class="bg-green-50 p-4 rounded-xl border border-green-100">
 								<div class="flex items-center gap-3">
 									<div class="bg-green-100 p-3 rounded-lg">
-										<i class="fas fa-play-circle text-green-600"></i>
+										<i class="fas fa-check-circle text-green-600"></i>
 									</div>
 									<div>
-										<h3 class="text-sm font-medium text-green-600">Active Jobs</h3>
-										<p class="text-2xl font-bold text-gray-800" id="active-jobs">0</p>
+										<h3 class="text-sm font-medium text-green-600">Active Users</h3>
+										<p class="text-2xl font-bold text-gray-800" id="active-users">0</p>
+									</div>
+								</div>
+							</div>
+							<div class="bg-amber-50 p-4 rounded-xl border border-amber-100">
+								<div class="flex items-center gap-3">
+									<div class="bg-amber-100 p-3 rounded-lg">
+										<i class="fas fa-ban text-amber-600"></i>
+									</div>
+									<div>
+										<h3 class="text-sm font-medium text-amber-600">Inactive Users</h3>
+										<p class="text-2xl font-bold text-gray-800" id="inactive-users">0</p>
 									</div>
 								</div>
 							</div>
 							<div class="bg-purple-50 p-4 rounded-xl border border-purple-100">
 								<div class="flex items-center gap-3">
 									<div class="bg-purple-100 p-3 rounded-lg">
-										<i class="fas fa-layer-group text-purple-600"></i>
+										<i class="fas fa-building text-purple-600"></i>
 									</div>
 									<div>
-										<h3 class="text-sm font-medium text-purple-600">Total Rolls</h3>
-										<p class="text-2xl font-bold text-gray-800" id="total-rolls">0</p>
-									</div>
-								</div>
-							</div>
-							<div class="bg-yellow-50 p-4 rounded-xl border border-yellow-100">
-								<div class="flex items-center gap-3">
-									<div class="bg-yellow-100 p-3 rounded-lg">
-										<i class="fas fa-clock text-yellow-600"></i>
-									</div>
-									<div>
-										<h3 class="text-sm font-medium text-yellow-600">Pending Rolls</h3>
-										<p class="text-2xl font-bold text-gray-800" id="pending-rolls">0</p>
-									</div>
-								</div>
-							</div>
-							<div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
-								<div class="flex items-center gap-3">
-									<div class="bg-indigo-100 p-3 rounded-lg">
-										<i class="fas fa-weight-hanging text-indigo-600"></i>
-									</div>
-									<div>
-										<h3 class="text-sm font-medium text-indigo-600">Total Weight</h3>
-										<p class="text-2xl font-bold text-gray-800" id="total-weight">0</p>
+										<h3 class="text-sm font-medium text-purple-600">Assigned Sections</h3>
+										<p class="text-2xl font-bold text-gray-800" id="section-users">0</p>
 									</div>
 								</div>
 							</div>
@@ -266,110 +225,79 @@
 
 						<div class="mt-6">
 							<div class="flex justify-between items-center mb-4">
-								<div class="flex items-center gap-3">
-									<h3 class="text-lg font-medium text-gray-700">Job Records</h3>
-									<div class="flex items-center gap-2">
-										<span class="text-sm text-gray-600">Details</span>
-										<label class="relative inline-flex items-center cursor-pointer">
-											<input type="checkbox" id="details-toggle" class="sr-only peer" />
-											<div
-												class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"
-											></div>
-										</label>
-									</div>
-								</div>
+								<h3 class="text-lg font-medium text-gray-700">User Records</h3>
 								<div class="flex items-center gap-2">
+									<div class="relative">
+										<input
+											type="text"
+											id="search-users"
+											placeholder="Search by Staff ID, Phone, Name..."
+											class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+										/>
+										<i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+									</div>
 									<button class="btn btn-secondary" id="export-btn"><i class="fas fa-file-export"></i> Export</button>
 								</div>
 							</div>
+
 							<div class="table-container">
-								<table id="jobs-table" class="table" style="display: none">
+								<table id="users-table" class="table" style="display: none">
 									<thead>
 										<tr>
-											<th class="cursor-pointer">
+											<th class="cursor-pointer w-1/6">
+												<div class="flex items-center gap-1">
+													<span>Staff ID</span>
+													<i class="fas fa-sort text-gray-400"></i>
+												</div>
+											</th>
+											<th class="cursor-pointer w-1/6">
+												<div class="flex items-center gap-1">
+													<span>Full Name</span>
+													<i class="fas fa-sort text-gray-400"></i>
+												</div>
+											</th>
+											<th class="cursor-pointer w-1/6">
+												<div class="flex items-center gap-1">
+													<span>Role</span>
+													<i class="fas fa-sort text-gray-400"></i>
+												</div>
+											</th>
+											<th class="cursor-pointer w-1/6">
+												<div class="flex items-center gap-1">
+													<span>Phone</span>
+													<i class="fas fa-sort text-gray-400"></i>
+												</div>
+											</th>
+											<th class="cursor-pointer w-1/6">
 												<div class="flex items-center gap-1">
 													<span>Status</span>
 													<i class="fas fa-sort text-gray-400"></i>
 												</div>
 											</th>
-											<th class="cursor-pointer">
+											<th class="cursor-pointer w-1/6">
 												<div class="flex items-center gap-1">
-													<span>Production Order</span>
+													<span>Sections</span>
 													<i class="fas fa-sort text-gray-400"></i>
 												</div>
 											</th>
-											<th class="cursor-pointer">
-												<div class="flex items-center gap-1">
-													<span>Batch Roll No</span>
-													<i class="fas fa-sort text-gray-400"></i>
-												</div>
-											</th>
-											<th class="cursor-pointer">
-												<div class="flex items-center gap-1">
-													<span>Shift</span>
-													<i class="fas fa-sort text-gray-400"></i>
-												</div>
-											</th>
-											<th class="cursor-pointer">
-												<div class="flex items-center gap-1">
-													<span>Machine</span>
-													<i class="fas fa-sort text-gray-400"></i>
-												</div>
-											</th>
-											<th class="cursor-pointer details-column">
-												<div class="flex items-center gap-1">
-													<span>Start Time</span>
-													<i class="fas fa-sort text-gray-400"></i>
-												</div>
-											</th>
-											<th class="cursor-pointer details-column">
-												<div class="flex items-center gap-1">
-													<span>End Time</span>
-													<i class="fas fa-sort text-gray-400"></i>
-												</div>
-											</th>
-											<th class="cursor-pointer details-column">
-												<div class="flex items-center gap-1">
-													<span>Rolls</span>
-													<i class="fas fa-sort text-gray-400"></i>
-												</div>
-											</th>
-											<th class="cursor-pointer details-column">
-												<div class="flex items-center gap-1">
-													<span>Pending</span>
-													<i class="fas fa-sort text-gray-400"></i>
-												</div>
-											</th>
-											<th class="cursor-pointer">
-												<div class="flex items-center gap-1">
-													<span>Total Weight</span>
-													<i class="fas fa-sort text-gray-400"></i>
-												</div>
-											</th>
-											<th class="cursor-pointer">
-												<div class="flex items-center gap-1">
-													<span>Last Update</span>
-													<i class="fas fa-sort text-gray-400"></i>
-												</div>
-											</th>
-											<!-- <th>Actions</th> -->
+											<th class="w-1/6 text-center">Actions</th>
 										</tr>
 									</thead>
-									<tbody id="jobs-table-body" class="divide-y divide-gray-200">
+									<tbody id="users-table-body" class="divide-y divide-gray-200">
 										<tr>
-											<td colspan="12" class="text-center text-gray-500 py-4">Loading job records...</td>
+											<td colspan="7" class="text-center text-gray-500 py-4">Loading users...</td>
 										</tr>
 									</tbody>
 								</table>
 							</div>
 
 							<div id="loading-message" class="text-center text-gray-500 py-8">
-								<i class="fas fa-spinner fa-spin mr-2"></i> Loading job records...
+								<i class="fas fa-spinner fa-spin mr-2"></i> Loading users...
 							</div>
-						</div>
 
-						<div id="pagination" class="flex justify-center items-center space-x-2 my-4">
-							<span id="page-info" class="text-sm text-gray-700"></span>
+							<div id="pagination" class="flex justify-center items-center space-x-2 my-4">
+								<span id="page-info" class="text-sm text-gray-700"></span>
+							</div>
 						</div>
 					</section>
 				</main>
@@ -377,56 +305,63 @@
 			</div>
 		</div>
 
-		<div id="job-modal" class="modal">
-			<div class="modal-content max-w-2xl">
+		<div id="user-modal" class="modal">
+			<div class="modal-content max-w-4xl">
 				<div class="flex justify-between items-center mb-4">
-					<h3 class="text-lg font-semibold" id="modal-title">Update Job</h3>
+					<h3 class="text-lg font-semibold" id="modal-title">Add User</h3>
 					<button id="close-modal" class="text-gray-400 hover:text-gray-600">
 						<i class="fas fa-times"></i>
 					</button>
 				</div>
-				<form id="job-form">
-					<input type="hidden" id="job-id" />
+				<form id="user-form">
+					<input type="hidden" id="user-id" />
 					<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 						<div class="form-group">
-							<label for="production-order" class="form-label">Production Order *</label>
-							<input type="text" id="production-order" class="form-input" required />
+							<label for="full-name" class="form-label">Full Name *</label>
+							<input type="text" id="full-name" class="form-input" required />
 						</div>
 						<div class="form-group">
-							<label for="batch-roll-no" class="form-label">Batch Roll No *</label>
-							<input type="text" id="batch-roll-no" class="form-input" required />
+							<label for="staff-id" class="form-label">Staff ID *</label>
+							<input type="text" id="staff-id" class="form-input" required />
 						</div>
 						<div class="form-group">
-							<label for="start-weight" class="form-label">Start Weight (kg) *</label>
-							<input type="number" id="start-weight" class="form-input" step="0.01" min="0" required />
+							<label for="phone-number" class="form-label">Phone Number *</label>
+							<input type="tel" id="phone-number" class="form-input" required />
 						</div>
 						<div class="form-group">
-							<label for="start-meter" class="form-label">Start Meter *</label>
-							<input type="number" id="start-meter" class="form-input" step="0.01" min="0" required />
+							<label for="password" class="form-label"
+								>Password <span class="text-sm text-gray-500">(leave empty to keep current)</span></label
+							>
+							<input type="password" id="password" class="form-input" />
 						</div>
 						<div class="form-group">
-							<label for="shift" class="form-label">Shift *</label>
-							<select id="shift" class="form-input" required>
-								<option value="">Select Shift</option>
-								<option value="1">Day</option>
-								<option value="2">Night</option>
+							<label for="status" class="form-label">Status *</label>
+							<select id="status" class="form-input" required>
+								<option value="active">Active</option>
+								<option value="inactive">Inactive</option>
 							</select>
 						</div>
 						<div class="form-group">
-							<label for="machine" class="form-label">Machine *</label>
-							<select id="machine" class="form-input" required>
-								<option value="">Select Machine</option>
-							</select>
+							<label for="role" class="form-label">Role *</label>
+							<select id="role" class="form-input" required></select>
 						</div>
 					</div>
+
+					<div class="mt-6">
+						<label class="form-label">Assigned Sections</label>
+						<div class="bg-gray-50 p-4 rounded-lg border border-gray-200 max-h-60 overflow-y-auto">
+							<div id="sections-checkboxes" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+						</div>
+					</div>
+
 					<div class="flex justify-end gap-3 mt-6">
 						<button type="button" id="cancel-btn" class="btn btn-secondary">Cancel</button>
-						<button type="submit" id="submit-btn" class="btn btn-primary">Update Job</button>
+						<button type="submit" class="btn btn-primary">Save User</button>
 					</div>
 				</form>
 			</div>
 		</div>
 
-		<script src="/static/scripts/jobs.js?v=1.0"></script>
+		<script src="/static/scripts/users.js"></script>
 	</body>
 </html>

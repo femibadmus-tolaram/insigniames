@@ -1,55 +1,66 @@
 use std::io::{Error, ErrorKind};
 
 use crate::{
-    backend::models::{FilterResponse, Job},
+    backend::models::FilterResponse,
     sap::{RollData, post_rolls},
 };
 use chrono::{Datelike, Local};
-use rusqlite::{Connection, Result, params};
+use rusqlite::{Connection, OptionalExtension, Result, params};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
-pub struct Roll {
+pub struct OutputRoll {
     pub id: i32,
-    pub output_roll_no: String,
+    pub output_batch: String,
     pub final_meter: f64,
     pub flag_reason: Option<String>,
     pub final_weight: f64,
     pub core_weight: Option<f64>,
+    pub input_roll_id: i32,
     pub job_id: i32,
+    pub from_input_batch: String,
+    pub flag_count: i32,
     pub created_by: i32,
+    pub updated_by: Option<i32>,
     pub created_at: String,
     pub updated_at: String,
-    pub from_batch: String,
-    pub flag_count: i32,
 }
 
 #[derive(Deserialize)]
-pub struct RollCreatePayload {
+pub struct OutputRollCreatePayload {
     pub final_meter: f64,
+    pub batch: String,
     pub flag_reason: Option<String>,
-    pub final_weight: f64,
     pub core_weight: Option<f64>,
+    pub shift_id: i32,
     pub job_id: i32,
+    pub machine_id: i32,
+    pub input_roll_id: i32,
     pub flag_count: i32,
 }
 
 #[derive(Deserialize)]
-pub struct RollPayload {
+pub struct OutputRollPayload {
     pub id: i32,
-    pub output_roll_no: Option<String>,
+    pub output_batch: Option<String>,
     pub final_meter: Option<f64>,
     pub flag_reason: Option<String>,
     pub final_weight: Option<f64>,
     pub core_weight: Option<f64>,
-    pub job_id: Option<i32>,
+    pub input_roll_id: Option<i32>,
+    pub from_input_batch: Option<String>,
+    pub flag_count: Option<i32>,
+    pub created_by: Option<i32>,
+    pub updated_by: Option<i32>,
+    pub created_at: Option<String>,
+    pub updated_at: Option<String>,
 }
 
 #[derive(Deserialize)]
-pub struct RollFilterPayload {
+pub struct OutputRollFilterPayload {
     pub job_id: Option<String>,
     pub shift_id: Option<String>,
-    pub output_roll_no: Option<String>,
+    pub output_batch: Option<String>,
     pub flag_reason: Option<String>,
     pub created_by: Option<String>,
     pub section_ids: Option<Vec<String>>,
@@ -62,12 +73,12 @@ pub struct RollFilterPayload {
 }
 
 #[derive(Debug, Serialize)]
-pub struct RollDetails {
+pub struct OutputRollDetails {
     pub material_number: String,
     pub material_description: String,
     pub process_order_description: String,
     pub production_order: String,
-    pub output_roll_no: String,
+    pub output_batch: String,
     pub final_weight: f64,
     pub final_meter: f64,
     pub flag_reason: Option<String>,
@@ -76,111 +87,163 @@ pub struct RollDetails {
     pub flag_count: i32,
 }
 
-impl Roll {
-    pub fn create(conn: &Connection, data: &RollCreatePayload, user_id: i32) -> Result<Self> {
+impl OutputRoll {
+    pub fn build_from_input_batch(
+        conn: &mut Connection,
+        job_id: i64,
+        input_roll_id: i64,
+        current_batch: &str,
+    ) -> Result<String> {
+        let mut unconsumed: Vec<(i64, String)> = vec![];
+
+        {
+            let mut stmt = conn.prepare(
+                r#"
+            SELECT id, batch
+            FROM input_rolls
+            WHERE job_id = ?
+              AND is_consumed = 0
+            ORDER BY id ASC
+            "#,
+            )?;
+
+            let rows = stmt.query_map(params![job_id], |r| {
+                Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?))
+            })?;
+
+            for row in rows {
+                unconsumed.push(row?);
+            }
+        }
+
+        let current_is_unconsumed = unconsumed.iter().any(|(_, b)| b == current_batch);
+
+        let prev_output_batch: Option<String> = conn
+            .query_row(
+                r#"
+            SELECT ir.batch
+            FROM output_rolls o
+            JOIN input_rolls ir ON o.input_roll_id = ir.id
+            WHERE ir.job_id = ?
+            ORDER BY COALESCE(o.created_at, o.updated_at) DESC, o.id DESC
+            LIMIT 1
+            "#,
+                params![job_id],
+                |r| r.get(0),
+            )
+            .optional()?;
+
+        let mut include_ids: Vec<i64> = vec![];
+        let mut batches: Vec<String> = vec![];
+
+        if current_is_unconsumed {
+            if let Some(p) = prev_output_batch {
+                batches.push(p);
+            }
+            for (id, b) in &unconsumed {
+                include_ids.push(*id);
+                batches.push(b.clone());
+            }
+            if !include_ids.contains(&input_roll_id) {
+                include_ids.push(input_roll_id);
+            }
+        } else {
+            batches.push(current_batch.to_string());
+        }
+
+        include_ids.sort_unstable();
+        include_ids.dedup();
+
+        let from_input = batches.join(", ");
+
+        if current_is_unconsumed {
+            let now = chrono::Utc::now().naive_utc().to_string();
+            let tx = conn.transaction()?;
+            for id in &include_ids {
+                tx.execute(
+                "UPDATE input_rolls SET is_consumed = 1, consumed_at = ? WHERE id = ? AND job_id = ?",
+                params![now, id, job_id],
+            )?;
+            }
+            tx.commit()?;
+        }
+
+        Ok(from_input)
+    }
+
+    pub fn create(
+        conn: &mut Connection,
+        data: &OutputRollCreatePayload,
+        user_id: i32,
+    ) -> Result<Self> {
         let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-        let job = Job::find_by_id(conn, data.job_id)?;
+        let machine_id = data.machine_id;
+        let shift_id = data.shift_id;
+        let current_batch = &data.batch;
+        let job_id = data.job_id;
+        let input_roll_id = data.input_roll_id;
 
         let machine = conn.query_row(
             "SELECT label FROM machines WHERE id = ?1",
-            params![job.machine_id],
+            params![machine_id],
             |row| row.get::<_, String>(0),
         )?;
 
         let current_date = Local::now();
         let year = current_date.format("%y").to_string();
         let day_of_year = current_date.date_naive().ordinal() as i32;
-        let shift_number = (day_of_year - 1) * 2 + job.shift_id;
+        let shift_number = (day_of_year - 1) * 2 + shift_id;
         let today_start = current_date.format("%Y-%m-%d").to_string();
 
-        let process_order = &job.production_order;
-
-        // Get all jobs for this production_order, order by id asc
-        let mut stmt = conn.prepare(
-            "SELECT id, batch_roll_no FROM jobs WHERE production_order = ? ORDER BY id ASC",
+        let from_batch = OutputRoll::build_from_input_batch(
+            conn,
+            job_id as i64,
+            input_roll_id as i64,
+            current_batch,
         )?;
-        let jobs: Vec<(i32, String)> = stmt
-            .query_map(params![process_order], |row| Ok((row.get(0)?, row.get(1)?)))?
-            .filter_map(|r| r.ok())
-            .collect();
-
-        // Find jobs with at least one roll
-        let mut jobs_with_rolls = Vec::new();
-        let mut jobs_without_rolls = Vec::new();
-        for (job_id, batch_roll_no) in &jobs {
-            let count: i32 = conn
-                .query_row(
-                    "SELECT COUNT(*) FROM rolls WHERE job_id = ?1",
-                    params![job_id],
-                    |row| row.get(0),
-                )
-                .unwrap_or(0);
-            if count > 0 {
-                jobs_with_rolls.push(batch_roll_no.clone());
-            } else {
-                jobs_without_rolls.push(batch_roll_no.clone());
-            }
-        }
-
-        // Merge all previous scenarios and add the new priority condition
-        let from_batch = if !jobs_with_rolls.is_empty() {
-            let last_with_roll = jobs_with_rolls.last().unwrap();
-            if *last_with_roll != job.batch_roll_no {
-                // Last job with roll is not the current job, join their batch_roll_no and the current job's batch_roll_no
-                format!("{},{}", last_with_roll, job.batch_roll_no)
-            } else if jobs_without_rolls.is_empty() {
-                // Only jobs with rolls, take the last one's batch_roll_no
-                last_with_roll.clone()
-            } else {
-                // Both exist, join last with rolls and all without rolls
-                let mut batches = Vec::new();
-                batches.push(last_with_roll.clone());
-                batches.extend(jobs_without_rolls.iter().cloned());
-                batches.join(",")
-            }
-        } else if !jobs_without_rolls.is_empty() {
-            // Only jobs without rolls, join all batch_roll_no with ","
-            jobs_without_rolls.join(",")
-        } else {
-            job.batch_roll_no.clone()
-        };
-
-        let roll_count_for_process_order: i32 = conn
+        let roll_count_for_job: i32 = conn
             .query_row(
-                "SELECT COUNT(*) FROM rolls r JOIN jobs j ON r.job_id = j.id WHERE j.production_order = ?1 AND date(r.created_at) = date(?2)",
-                params![process_order, today_start],
+                "SELECT COUNT(*) FROM output_rolls o JOIN input_rolls ir ON o.input_roll_id = ir.id WHERE ir.job_id = ?1 AND date(o.created_at) = date(?2)",
+                params![job_id, today_start],
                 |row| row.get(0),
             )
             .unwrap_or(0);
 
-        let roll_number = roll_count_for_process_order + 1;
-        let output_roll_no = format!("{}{:03}{}{:03}", year, shift_number, machine, roll_number);
+        let roll_number = roll_count_for_job + 1;
+        let output_batch = format!("{}{:03}{}{:03}", year, shift_number, machine, roll_number);
 
         conn.execute(
-            "INSERT INTO rolls (output_roll_no, final_meter, flag_reason, final_weight, core_weight, job_id, created_by, created_at, updated_at, from_batch, flag_count) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
-            params![output_roll_no, data.final_meter, data.flag_reason, data.final_weight, data.core_weight, data.job_id, user_id, now, now, from_batch, data.flag_count],
+            "INSERT INTO output_rolls (output_batch, final_meter, flag_reason, final_weight, core_weight, input_roll_id, created_by, created_at, updated_at, from_input_batch, flag_count) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![output_batch, data.final_meter, data.flag_reason, 0.0, data.core_weight, data.input_roll_id, user_id, now, now, from_batch, data.flag_count],
         )?;
 
         let id = conn.last_insert_rowid() as i32;
-        Ok(Roll {
+        Ok(OutputRoll {
             id,
-            output_roll_no,
+            output_batch,
             final_meter: data.final_meter,
             flag_reason: data.flag_reason.clone(),
-            final_weight: data.final_weight,
+            final_weight: 0.0,
             core_weight: data.core_weight,
-            job_id: data.job_id,
+            input_roll_id: data.input_roll_id,
+            job_id,
             created_by: user_id,
+            updated_by: None,
             created_at: now.clone(),
             updated_at: now.clone(),
-            from_batch,
+            from_input_batch: from_batch,
             flag_count: data.flag_count,
         })
     }
 
-    pub async fn update(&mut self, conn: &Connection, data: &RollPayload) -> Result<()> {
+    pub async fn update(&mut self, conn: &Connection, data: &OutputRollPayload) -> Result<()> {
         if let Some(final_weight) = data.final_weight {
-            let job = Job::find_by_id(conn, self.job_id)?;
+            // Fetch job info via input_rolls (using input_roll_id)
+            let (job_production_order,): (String,) = conn.query_row(
+                "SELECT j.production_order FROM input_rolls ir JOIN jobs j ON ir.job_id = j.id WHERE ir.id = ?1",
+                params![self.input_roll_id],
+                |row| Ok((row.get(0)?,)),
+            )?;
 
             // Find core_weight from DB (self.core_weight)
             let core_weight = self.core_weight.unwrap_or(0.0);
@@ -202,8 +265,8 @@ impl Roll {
             let roll_data = RollData {
                 meter: new_alternate_quantity.to_string(),
                 weight: net_weight.to_string(),
-                batch: self.output_roll_no.to_string(),
-                production_order: job.production_order.clone(),
+                batch: self.output_batch.to_string(),
+                production_order: job_production_order,
             };
 
             if let Err(e) = post_rolls(roll_data).await {
@@ -213,7 +276,7 @@ impl Roll {
             }
 
             conn.execute(
-                "UPDATE rolls SET final_meter = ?1, final_weight = ?2 WHERE id = ?3",
+                "UPDATE output_rolls SET final_meter = ?1, final_weight = ?2 WHERE id = ?3",
                 params![new_alternate_quantity, net_weight, self.id],
             )?;
             self.final_meter = new_alternate_quantity;
@@ -222,45 +285,57 @@ impl Roll {
 
         let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
 
-        if let Some(output_roll_no) = &data.output_roll_no {
+        if let Some(output_batch) = &data.output_batch {
             conn.execute(
-                "UPDATE rolls SET output_roll_no = ?1 WHERE id = ?2",
-                params![output_roll_no, self.id],
+                "UPDATE output_rolls SET output_batch = ?1 WHERE id = ?2",
+                params![output_batch, self.id],
             )?;
-            self.output_roll_no = output_roll_no.clone();
+            self.output_batch = output_batch.clone();
         }
         if let Some(final_meter) = data.final_meter {
             conn.execute(
-                "UPDATE rolls SET final_meter = ?1 WHERE id = ?2",
+                "UPDATE output_rolls SET final_meter = ?1 WHERE id = ?2",
                 params![final_meter, self.id],
             )?;
             self.final_meter = final_meter;
         }
         if let Some(flag_reason) = &data.flag_reason {
             conn.execute(
-                "UPDATE rolls SET flag_reason = ?1 WHERE id = ?2",
+                "UPDATE output_rolls SET flag_reason = ?1 WHERE id = ?2",
                 params![flag_reason, self.id],
             )?;
             self.flag_reason = Some(flag_reason.to_string());
         }
         if let Some(final_weight) = data.final_weight {
             conn.execute(
-                "UPDATE rolls SET final_weight = ?1 WHERE id = ?2",
+                "UPDATE output_rolls SET final_weight = ?1 WHERE id = ?2",
                 params![final_weight, self.id],
             )?;
             self.final_weight = final_weight;
         }
-        if let Some(job_id) = data.job_id {
-            let job = Job::find_by_id(conn, job_id)?;
+        if let Some(input_roll_id) = data.input_roll_id {
             conn.execute(
-                "UPDATE rolls SET job_id = ?1, from_batch = ?2 WHERE id = ?3",
-                params![job_id, job.batch_roll_no, self.id],
+                "UPDATE output_rolls SET input_roll_id = ?1 WHERE id = ?2",
+                params![input_roll_id, self.id],
             )?;
-            self.job_id = job_id;
-            self.from_batch = job.batch_roll_no;
+            self.input_roll_id = input_roll_id;
+        }
+        if let Some(from_input_batch) = &data.from_input_batch {
+            conn.execute(
+                "UPDATE output_rolls SET from_input_batch = ?1 WHERE id = ?2",
+                params![from_input_batch, self.id],
+            )?;
+            self.from_input_batch = from_input_batch.clone();
+        }
+        if let Some(updated_by) = data.updated_by {
+            conn.execute(
+                "UPDATE output_rolls SET updated_by = ?1 WHERE id = ?2",
+                params![updated_by, self.id],
+            )?;
+            self.updated_by = Some(updated_by);
         }
         conn.execute(
-            "UPDATE rolls SET updated_at = ?1 WHERE id = ?2",
+            "UPDATE output_rolls SET updated_at = ?1 WHERE id = ?2",
             params![now, self.id],
         )?;
         self.updated_at = now;
@@ -268,65 +343,76 @@ impl Roll {
     }
 
     pub fn delete(&self, conn: &Connection) -> Result<()> {
-        conn.execute("DELETE FROM rolls WHERE id = ?1", params![self.id])?;
+        conn.execute(
+            "DELETE FROM output_rolls WHERE id = ?1",
+            params![self.id],
+        )?;
         Ok(())
     }
 
     pub fn find_by_id(conn: &Connection, id: i32) -> Result<Self> {
         let mut stmt = conn.prepare(
-                "SELECT id, output_roll_no, final_meter, flag_reason, final_weight, core_weight, job_id, created_by, created_at, updated_at, from_batch, flag_count 
-                 FROM rolls WHERE id = ?1"
+                "SELECT o.id, o.output_batch, o.final_meter, o.flag_reason, o.final_weight, o.core_weight, o.input_roll_id, j.id as job_id, o.created_by, o.updated_by, o.created_at, o.updated_at, o.from_input_batch, o.flag_count \
+                 FROM output_rolls o JOIN input_rolls ir ON o.input_roll_id = ir.id JOIN jobs j ON ir.job_id = j.id WHERE o.id = ?1"
             )?;
         stmt.query_row(params![id], |row| {
-            Ok(Roll {
+            Ok(OutputRoll {
                 id: row.get(0)?,
-                output_roll_no: row.get(1)?,
+                output_batch: row.get(1)?,
                 final_meter: row.get(2)?,
                 flag_reason: row.get(3)?,
                 final_weight: row.get(4)?,
                 core_weight: row.get(5)?,
-                job_id: row.get(6)?,
-                created_by: row.get(7)?,
-                created_at: row.get(8)?,
-                updated_at: row.get(9)?,
-                from_batch: row.get(10)?,
-                flag_count: row.get(11)?,
+                input_roll_id: row.get(6)?,
+                job_id: row.get(7)?,
+                created_by: row.get(8)?,
+                updated_by: row.get(9)?,
+                created_at: row.get(10)?,
+                updated_at: row.get(11)?,
+                from_input_batch: row.get(12)?,
+                flag_count: row.get(13)?,
             })
         })
     }
 
     pub fn all(conn: &Connection) -> Result<Vec<Self>> {
         let mut stmt = conn.prepare(
-                "SELECT id, output_roll_no, final_meter, flag_reason, final_weight, core_weight, job_id, created_by, created_at, updated_at, from_batch, flag_count 
-                 FROM rolls ORDER BY created_at DESC"
+                "SELECT o.id, o.output_batch, o.final_meter, o.flag_reason, o.final_weight, o.core_weight, o.input_roll_id, j.id as job_id, o.created_by, o.updated_by, o.created_at, o.updated_at, o.from_input_batch, o.flag_count \
+                 FROM output_rolls o JOIN input_rolls ir ON o.input_roll_id = ir.id JOIN jobs j ON ir.job_id = j.id ORDER BY o.created_at DESC"
         )?;
         let rolls = stmt
             .query_map([], |row| {
-                Ok(Roll {
+                Ok(OutputRoll {
                     id: row.get(0)?,
-                    output_roll_no: row.get(1)?,
+                    output_batch: row.get(1)?,
                     final_meter: row.get(2)?,
                     flag_reason: row.get(3)?,
                     final_weight: row.get(4)?,
                     core_weight: row.get(5)?,
-                    job_id: row.get(6)?,
-                    created_by: row.get(7)?,
-                    created_at: row.get(8)?,
-                    updated_at: row.get(9)?,
-                    from_batch: row.get(10)?,
-                    flag_count: row.get(11)?,
+                    input_roll_id: row.get(6)?,
+                    job_id: row.get(7)?,
+                    created_by: row.get(8)?,
+                    updated_by: row.get(9)?,
+                    created_at: row.get(10)?,
+                    updated_at: row.get(11)?,
+                    from_input_batch: row.get(12)?,
+                    flag_count: row.get(13)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(rolls)
     }
 
-    pub fn filter(conn: &Connection, filter: &RollFilterPayload) -> Result<FilterResponse<Roll>> {
+    pub fn filter(
+        conn: &Connection,
+        filter: &OutputRollFilterPayload,
+    ) -> Result<FilterResponse<OutputRoll>> {
         let mut count_query =
-            "SELECT COUNT(*) FROM rolls r JOIN jobs j ON r.job_id = j.id WHERE 1=1".to_string();
+            "SELECT COUNT(*) FROM output_rolls r JOIN input_rolls ir ON r.input_roll_id = ir.id JOIN jobs j ON ir.job_id = j.id WHERE 1=1"
+                .to_string();
         let mut data_query =
-            "SELECT r.id, r.output_roll_no, r.final_meter, r.flag_reason, r.final_weight, r.core_weight, r.job_id, r.created_by, r.created_at, r.updated_at, r.from_batch, r.flag_count 
-             FROM rolls r JOIN jobs j ON r.job_id = j.id WHERE 1=1".to_string();
+            "SELECT r.id, r.output_batch, r.final_meter, r.flag_reason, r.final_weight, r.core_weight, r.input_roll_id, j.id as job_id, r.created_by, r.updated_by, r.created_at, r.updated_at, r.from_input_batch, r.flag_count \
+             FROM output_rolls r JOIN input_rolls ir ON r.input_roll_id = ir.id JOIN jobs j ON ir.job_id = j.id WHERE 1=1".to_string();
         let mut params_vec: Vec<&dyn rusqlite::ToSql> = vec![];
         // Hold boxed section_ids for params_vec lifetime
         let mut boxed_section_ids: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
@@ -334,7 +420,7 @@ impl Roll {
         let mut job_ids: Vec<i32> = vec![];
         let mut flag_reasons: Vec<String> = vec![];
         let mut created_bys: Vec<i32> = vec![];
-        let mut output_roll_nos: Vec<String> = vec![];
+        let mut output_batchs: Vec<String> = vec![];
         let mut start_dates: Vec<String> = vec![];
         let mut end_dates: Vec<String> = vec![];
         let mut shift_ids: Vec<i32> = vec![];
@@ -372,8 +458,8 @@ impl Roll {
             if let Ok(parsed) = val.parse::<i32>() {
                 job_ids.push(parsed);
                 params_vec.push(job_ids.last().unwrap());
-                count_query.push_str(" AND r.job_id = ?");
-                data_query.push_str(" AND r.job_id = ?");
+                count_query.push_str(" AND ir.job_id = ?");
+                data_query.push_str(" AND ir.job_id = ?");
             }
         }
 
@@ -390,12 +476,12 @@ impl Roll {
             }
         }
 
-        if let Some(val) = &filter.output_roll_no {
+        if let Some(val) = &filter.output_batch {
             if !val.is_empty() {
-                output_roll_nos.push(format!("%{}%", val));
-                params_vec.push(output_roll_nos.last().unwrap());
-                count_query.push_str(" AND r.output_roll_no LIKE ?");
-                data_query.push_str(" AND r.output_roll_no LIKE ?");
+                output_batchs.push(format!("%{}%", val));
+                params_vec.push(output_batchs.last().unwrap());
+                count_query.push_str(" AND r.output_batch LIKE ?");
+                data_query.push_str(" AND r.output_batch LIKE ?");
             }
         }
 
@@ -463,19 +549,21 @@ impl Roll {
 
         let mut stmt = conn.prepare(&data_query)?;
         let rows = stmt.query_map(params_vec.as_slice(), |row| {
-            Ok(Roll {
+            Ok(OutputRoll {
                 id: row.get(0)?,
-                output_roll_no: row.get(1)?,
+                output_batch: row.get(1)?,
                 final_meter: row.get(2)?,
                 flag_reason: row.get(3)?,
                 final_weight: row.get(4)?,
                 core_weight: row.get(5)?,
-                job_id: row.get(6)?,
-                created_by: row.get(7)?,
-                created_at: row.get(8)?,
-                updated_at: row.get(9)?,
-                from_batch: row.get(10)?,
-                flag_count: row.get(11)?,
+                input_roll_id: row.get(6)?,
+                job_id: row.get(7)?,
+                created_by: row.get(8)?,
+                updated_by: row.get(9)?,
+                created_at: row.get(10)?,
+                updated_at: row.get(11)?,
+                from_input_batch: row.get(12)?,
+                flag_count: row.get(13)?,
             })
         })?;
 
@@ -484,19 +572,20 @@ impl Roll {
         Ok(FilterResponse { total_count, data })
     }
 
-    pub fn get_details(conn: &Connection, roll_id: i32) -> Result<RollDetails> {
+    pub fn get_details(conn: &Connection, roll_id: i32) -> Result<OutputRollDetails> {
         let mut stmt = conn.prepare(
-            "SELECT r.output_roll_no, r.final_weight, r.final_meter, r.flag_reason, r.created_at,
-                j.production_order, j.material_number, j.machine_id,
+            "SELECT r.output_batch, r.final_weight, r.final_meter, r.flag_reason, r.created_at,
+                j.production_order, ir.material_number, j.machine_id,
                 po.description, r.flag_count
-         FROM rolls r
-         JOIN jobs j ON r.job_id = j.id
+         FROM output_rolls r
+         JOIN input_rolls ir ON r.input_roll_id = ir.id
+         JOIN jobs j ON ir.job_id = j.id
          LEFT JOIN process_order po ON j.production_order = po.process_order
          WHERE r.id = ?1",
         )?;
 
         stmt.query_row(params![roll_id], |row| {
-            let output_roll_no: String = row.get(0)?;
+            let output_batch: String = row.get(0)?;
             let final_weight: f64 = row.get(1)?;
             let final_meter: f64 = row.get(2)?;
             let flag_reason_raw: Option<String> = row.get(3)?;
@@ -557,12 +646,12 @@ impl Roll {
                 None
             };
 
-            Ok(RollDetails {
+            Ok(OutputRollDetails {
                 material_number: material_number.unwrap_or_default(),
                 material_description: material_description.unwrap_or_default(),
                 process_order_description: process_order_description.unwrap_or_default(),
                 production_order,
-                output_roll_no,
+                output_batch,
                 final_weight,
                 final_meter,
                 flag_reason,

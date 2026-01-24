@@ -79,7 +79,7 @@ async function loadShiftOverview() {
 
 		const [jobsResponse, rollsResponse, downtimesResponse, scrapsResponse] = await Promise.all([
 			fetch(`/api/jobs/filter?shift_id=${currentShift}&start_date=${today}&end_date=${today}`).then((r) => r.json()),
-			fetch(`/api/rolls/filter?shift_id=${currentShift}&start_date=${today}&end_date=${today}`).then((r) => r.json()),
+			fetch(`/api/output-rolls/filter?shift_id=${currentShift}&start_date=${today}&end_date=${today}`).then((r) => r.json()),
 			fetch(`/api/downtimes/filter?shift_id=${currentShift}&start_date=${today}&end_date=${today}`).then((r) => r.json()),
 			fetch(`/api/scraps/filter?shift_id=${currentShift}&start_date=${today}&end_date=${today}`).then((r) => r.json()),
 		]);
@@ -183,7 +183,7 @@ function renderRecentJobs(jobs) {
 
 async function loadRecentRolls() {
 	try {
-		const response = await fetch(`/api/rolls/filter?per_page=5&page=1`);
+		const response = await fetch(`/api/output-rolls/filter?per_page=5&page=1`);
 		const result = await response.json();
 		renderRecentRolls(result.data);
 	} catch (error) {
@@ -403,7 +403,7 @@ async function searchRoll() {
 	setButtonLoading(searchBtn, true);
 
 	try {
-		const response = await fetch(`/api/rolls/filter?output_roll_no=${encodeURIComponent(rollNumber)}&per_page=1`);
+		const response = await fetch(`/api/output-rolls/filter?output_roll_no=${encodeURIComponent(rollNumber)}&per_page=1`);
 		const result = await response.json();
 
 		if (result.data.length === 0) {

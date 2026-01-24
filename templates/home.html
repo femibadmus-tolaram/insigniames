@@ -1,6 +1,6 @@
 <!-- @format -->
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 	<head>
 		<meta charset="UTF-8" />
@@ -13,210 +13,245 @@
 		<script src="/static/scripts/script.js?v=1.8"></script>
 	</head>
 	<body class="bg-gray-50 min-h-screen">
-		<header class="bg-white shadow-sm sticky top-0 z-40">
-			<div class="max-w-7xl mx-auto px-6 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
-				<div class="flex items-center gap-3">
-					<div class="bg-blue-100 p-2 rounded-lg">
-						<i class="fas fa-chart-simple text-blue-600 text-xl"></i>
-					</div>
-					<h1 class="text-xl font-bold text-gray-800">Dashboard</h1>
+		<div class="min-h-screen bg-gray-50 flex">
+			<!-- SIDEBAR -->
+			<aside class="w-64 bg-white border-r border-gray-200 sticky top-0 h-screen">
+				<div class="px-6 py-5 flex items-center gap-3 border-b border-gray-200 bg-white-600">
+					<i class="fas fa-chart-simple text-white text-xl"></i>
 				</div>
-				<nav>
-					<ul id="main-nav" class="flex flex-wrap gap-1 text-gray-600 font-medium">
-						<li class="relative group">
-							<a href="/" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
-								><i class="fas fa-chart-simple"></i> Dashboard <i class="fas fa-chevron-down text-xs ml-1"></i
-							></a>
-							<div
-								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
-							>
-								<div class="py-2">
-									<a href="/jobs" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-										<i class="fas fa-briefcase"></i> Jobs
-									</a>
-									<a href="/rolls" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-										<i class="fas fa-layer-group"></i> Rolls
-									</a>
-								</div>
-							</div>
+
+				<nav class="px-3 py-3">
+					<ul id="main-nav" class="hidden flex flex-col gap-1 text-gray-700 font-medium">
+						<li>
+							<a href="/" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-chart-simple w-5 text-center"></i> Dashboard
+							</a>
 						</li>
 
-						<li class="relative group">
-							<a href="/production" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
-								><i class="fas fa-industry"></i> Production <i class="fas fa-chevron-down text-xs ml-1"></i
-							></a>
-							<div
-								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
-							>
-								<div class="py-2">
-									<a href="/downtime" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-										<i class="fas fa-clock"></i> Downtime
-									</a>
-									<a href="/scrap" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-										<i class="fas fa-trash"></i> Scrap
-									</a>
-									<a href="/consumables" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-										<i class="fas fa-flask"></i> Actual Consumable
-									</a>
-								</div>
-							</div>
+						<li class="mt-2">
+							<div class="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Operations</div>
 						</li>
 
-						<li class="relative group">
-							<a href="/settings" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2"
-								><i class="fas fa-cog"></i> Settings <i class="fas fa-chevron-down text-xs ml-1"></i
-							></a>
-							<div
-								class="absolute left-0 top-full mt-1 w-48 bg-white shadow-lg rounded-lg border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
-							>
-								<div class="py-2">
-									<a href="/materials" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-										<i class="fas fa-industry"></i> Materials
-									</a>
-									<a href="/machines" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-										<i class="fas fa-cogs"></i> Machines
-									</a>
-									<a href="/sections" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-										<i class="fas fa-building"></i> Sections
-									</a>
-									<a href="/lookups" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-										<i class="fas fa-list"></i> Manage Lookups
-									</a>
-									<div class="border-t border-gray-200 my-1"></div>
-									<a href="/users" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-										<i class="fas fa-users"></i> Users Management
-									</a>
-									<a href="/roles" class="px-4 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 text-sm">
-										<i class="fas fa-user-tag"></i> Roles & Permissions
-									</a>
-									<div class="border-t border-gray-200 my-1"></div>
-									<a href="/logout" class="px-4 py-2 hover:bg-red-50 hover:text-red-600 flex items-center gap-2 text-sm">
-										<i class="fas fa-sign-out-alt"></i> Logout
-									</a>
-								</div>
-							</div>
+						<li>
+							<a href="/jobs" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-briefcase w-5 text-center"></i> Jobs
+							</a>
+						</li>
+						<li>
+							<a href="/input-rolls" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-layer-group w-5 text-center"></i> Input Rolls
+							</a>
+						</li>
+						<li>
+							<a href="/output-rolls" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-layer-group w-5 text-center"></i> Output Rolls
+							</a>
+						</li>
+						<li>
+							<a href="/production" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-industry w-5 text-center"></i> Production
+							</a>
+						</li>
+						<li>
+							<a href="/downtime" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-clock w-5 text-center"></i> Downtime
+							</a>
+						</li>
+						<li>
+							<a href="/scrap" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-trash w-5 text-center"></i> Scrap
+							</a>
+						</li>
+						<li>
+							<a href="/consumables" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-flask w-5 text-center"></i> Actual Consumable
+							</a>
+						</li>
+
+						<li class="mt-2">
+							<div class="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Admin</div>
+						</li>
+
+						<li>
+							<a href="/settings" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-cog w-5 text-center"></i> Settings
+							</a>
+						</li>
+						<li>
+							<a href="/materials" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-industry w-5 text-center"></i> Materials
+							</a>
+						</li>
+						<li>
+							<a href="/machines" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-cogs w-5 text-center"></i> Machines
+							</a>
+						</li>
+						<li>
+							<a href="/sections" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-building w-5 text-center"></i> Sections
+							</a>
+						</li>
+						<li>
+							<a href="/lookups" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-list w-5 text-center"></i> Manage Lookups
+							</a>
+						</li>
+						<li>
+							<a href="/users" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-users w-5 text-center"></i> Users Management
+							</a>
+						</li>
+						<li>
+							<a href="/roles" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2">
+								<i class="fas fa-user-tag w-5 text-center"></i> Roles & Permissions
+							</a>
+						</li>
+
+						<li class="mt-2 border-t border-gray-200 pt-2">
+							<a href="/logout" class="px-3 py-2 rounded-lg hover:bg-red-50 hover:text-red-600 flex items-center gap-2 text-red-600">
+								<i class="fas fa-sign-out-alt w-5 text-center"></i> Logout
+							</a>
 						</li>
 					</ul>
 				</nav>
+			</aside>
+
+			<!-- MAIN CONTENT -->
+			<div class="flex-1 min-w-0">
+				<header class="bg-white shadow-sm sticky top-0 z-40">
+					<div class="max-w-7xl mx-auto px-6 py-3 flex flex-col md:flex-row justify-between items-center gap-3">
+						<div class="flex items-center gap-3">
+							<div class="bg-blue-100 p-2 rounded-lg">
+								<i class="fas fa-chart-simple text-blue-600 text-xl"></i>
+							</div>
+							<h1 class="text-xl font-bold text-gray-800">Dashboard</h1>
+						</div>
+						<div class="flex items-center gap-2">
+							<a href="/logout">
+								<span class="last-update" id="last-update"> <i class="fas fa-user"></i>{{ user_name }}</span>
+							</a>
+							<span id="current-shift" class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">Day Shift</span>
+							<button id="open-roll-lookup" class="btn btn-primary"><i class="fas fa-search mr-2"></i> Lookup Roll</button>
+						</div>
+					</div>
+				</header>
+
+				<main class="max-w-7xl mx-auto px-4 py-6">
+					<!-- Shift Overview -->
+					<section class="card p-6 mb-6">
+						<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+							<h2 class="text-xl font-semibold text-gray-800">Current Shift Overview</h2>
+						</div>
+
+						<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+							<div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
+								<div class="flex items-center gap-3">
+									<div class="bg-blue-100 p-3 rounded-lg">
+										<i class="fas fa-briefcase text-blue-600"></i>
+									</div>
+									<div>
+										<h3 class="text-sm font-medium text-blue-600">Shift Jobs</h3>
+										<p class="text-2xl font-bold text-gray-800" id="shift-jobs">0</p>
+									</div>
+								</div>
+							</div>
+							<div class="bg-green-50 p-4 rounded-xl border border-green-100">
+								<div class="flex items-center gap-3">
+									<div class="bg-green-100 p-3 rounded-lg">
+										<i class="fas fa-layer-group text-green-600"></i>
+									</div>
+									<div>
+										<h3 class="text-sm font-medium text-green-600">Shift Rolls</h3>
+										<p class="text-2xl font-bold text-gray-800" id="shift-rolls">0</p>
+									</div>
+								</div>
+							</div>
+							<div class="bg-orange-50 p-4 rounded-xl border border-orange-100">
+								<div class="flex items-center gap-3">
+									<div class="bg-orange-100 p-3 rounded-lg">
+										<i class="fas fa-clock text-orange-600"></i>
+									</div>
+									<div>
+										<h3 class="text-sm font-medium text-orange-600">Downtime</h3>
+										<p class="text-2xl font-bold text-gray-800" id="shift-downtime">0 min</p>
+									</div>
+								</div>
+							</div>
+							<div class="bg-red-50 p-4 rounded-xl border border-red-100">
+								<div class="flex items-center gap-3">
+									<div class="bg-red-100 p-3 rounded-lg">
+										<i class="fas fa-trash text-red-600"></i>
+									</div>
+									<div>
+										<h3 class="text-sm font-medium text-red-600">Scrap Weight</h3>
+										<p class="text-2xl font-bold text-gray-800" id="shift-scrap">0 kg</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</section>
+
+					<div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+						<section class="card p-6">
+							<div class="flex items-center justify-between mb-4">
+								<h3 class="text-lg font-semibold text-gray-800">Recent Jobs</h3>
+								<a href="/jobs" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</a>
+							</div>
+							<div class="space-y-4">
+								<div id="recent-jobs">
+									<div class="text-center text-gray-500 py-4">
+										<i class="fas fa-spinner fa-spin mr-2"></i> Loading recent jobs...
+									</div>
+								</div>
+							</div>
+						</section>
+
+						<section class="card p-6">
+							<div class="flex items-center justify-between mb-4">
+								<h3 class="text-lg font-semibold text-gray-800">Recent Rolls</h3>
+								<a href="/rolls" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</a>
+							</div>
+							<div class="space-y-4">
+								<div id="recent-rolls">
+									<div class="text-center text-gray-500 py-4">
+										<i class="fas fa-spinner fa-spin mr-2"></i> Loading recent rolls...
+									</div>
+								</div>
+							</div>
+						</section>
+
+						<section class="card p-6">
+							<div class="flex items-center justify-between mb-4">
+								<h3 class="text-lg font-semibold text-gray-800">Recent Downtimes</h3>
+								<a href="/downtime" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</a>
+							</div>
+							<div class="space-y-4">
+								<div id="recent-downtimes">
+									<div class="text-center text-gray-500 py-4">
+										<i class="fas fa-spinner fa-spin mr-2"></i> Loading recent downtimes...
+									</div>
+								</div>
+							</div>
+						</section>
+
+						<section class="card p-6">
+							<div class="flex items-center justify-between mb-4">
+								<h3 class="text-lg font-semibold text-gray-800">Recent Scraps</h3>
+								<a href="/scrap" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</a>
+							</div>
+							<div class="space-y-4">
+								<div id="recent-scraps">
+									<div class="text-center text-gray-500 py-4">
+										<i class="fas fa-spinner fa-spin mr-2"></i> Loading recent scraps...
+									</div>
+								</div>
+							</div>
+						</section>
+					</div>
+				</main>
 			</div>
-		</header>
-
-		<main class="max-w-7xl mx-auto px-4 py-6">
-			<!-- Shift Overview -->
-			<section class="card p-6 mb-6">
-				<div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-					<h2 class="text-xl font-semibold text-gray-800">Current Shift Overview</h2>
-					<div class="flex items-center gap-2">
-						<a href="/logout"
-							><span class="last-update" id="last-update"> <i class="fas fa-user"></i>{{ user_name }}</span></a
-						>
-						<span id="current-shift" class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">Day Shift</span>
-						<button id="open-roll-lookup" class="btn btn-primary"><i class="fas fa-search mr-2"></i> Lookup Roll</button>
-					</div>
-				</div>
-
-				<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-					<div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
-						<div class="flex items-center gap-3">
-							<div class="bg-blue-100 p-3 rounded-lg">
-								<i class="fas fa-briefcase text-blue-600"></i>
-							</div>
-							<div>
-								<h3 class="text-sm font-medium text-blue-600">Shift Jobs</h3>
-								<p class="text-2xl font-bold text-gray-800" id="shift-jobs">0</p>
-							</div>
-						</div>
-					</div>
-					<div class="bg-green-50 p-4 rounded-xl border border-green-100">
-						<div class="flex items-center gap-3">
-							<div class="bg-green-100 p-3 rounded-lg">
-								<i class="fas fa-layer-group text-green-600"></i>
-							</div>
-							<div>
-								<h3 class="text-sm font-medium text-green-600">Shift Rolls</h3>
-								<p class="text-2xl font-bold text-gray-800" id="shift-rolls">0</p>
-							</div>
-						</div>
-					</div>
-					<div class="bg-orange-50 p-4 rounded-xl border border-orange-100">
-						<div class="flex items-center gap-3">
-							<div class="bg-orange-100 p-3 rounded-lg">
-								<i class="fas fa-clock text-orange-600"></i>
-							</div>
-							<div>
-								<h3 class="text-sm font-medium text-orange-600">Downtime</h3>
-								<p class="text-2xl font-bold text-gray-800" id="shift-downtime">0 min</p>
-							</div>
-						</div>
-					</div>
-					<div class="bg-red-50 p-4 rounded-xl border border-red-100">
-						<div class="flex items-center gap-3">
-							<div class="bg-red-100 p-3 rounded-lg">
-								<i class="fas fa-trash text-red-600"></i>
-							</div>
-							<div>
-								<h3 class="text-sm font-medium text-red-600">Scrap Weight</h3>
-								<p class="text-2xl font-bold text-gray-800" id="shift-scrap">0 kg</p>
-							</div>
-						</div>
-					</div>
-				</div>
-			</section>
-
-			<div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-				<!-- Recent Jobs -->
-				<section class="card p-6">
-					<div class="flex items-center justify-between mb-4">
-						<h3 class="text-lg font-semibold text-gray-800">Recent Jobs</h3>
-						<a href="/jobs" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</a>
-					</div>
-					<div class="space-y-4">
-						<div id="recent-jobs">
-							<div class="text-center text-gray-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i> Loading recent jobs...</div>
-						</div>
-					</div>
-				</section>
-
-				<!-- Recent Rolls -->
-				<section class="card p-6">
-					<div class="flex items-center justify-between mb-4">
-						<h3 class="text-lg font-semibold text-gray-800">Recent Rolls</h3>
-						<a href="/rolls" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</a>
-					</div>
-					<div class="space-y-4">
-						<div id="recent-rolls">
-							<div class="text-center text-gray-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i> Loading recent rolls...</div>
-						</div>
-					</div>
-				</section>
-
-				<!-- Recent Downtimes -->
-				<section class="card p-6">
-					<div class="flex items-center justify-between mb-4">
-						<h3 class="text-lg font-semibold text-gray-800">Recent Downtimes</h3>
-						<a href="/downtime" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</a>
-					</div>
-					<div class="space-y-4">
-						<div id="recent-downtimes">
-							<div class="text-center text-gray-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i> Loading recent downtimes...</div>
-						</div>
-					</div>
-				</section>
-
-				<!-- Recent Scraps -->
-				<section class="card p-6">
-					<div class="flex items-center justify-between mb-4">
-						<h3 class="text-lg font-semibold text-gray-800">Recent Scraps</h3>
-						<a href="/scrap" class="text-blue-600 hover:text-blue-800 text-sm font-medium">View All</a>
-					</div>
-					<div class="space-y-4">
-						<div id="recent-scraps">
-							<div class="text-center text-gray-500 py-4"><i class="fas fa-spinner fa-spin mr-2"></i> Loading recent scraps...</div>
-						</div>
-					</div>
-				</section>
-			</div>
-		</main>
+		</div>
 
 		<!-- Roll Lookup Modal -->
 		<div id="roll-lookup-modal" class="modal">

@@ -421,11 +421,6 @@ function setupEventListeners() {
 		updateStartWeight(selectedOption);
 	});
 
-	const refreshBtn = document.getElementById("refresh-rolls-btn");
-	if (refreshBtn) {
-		refreshBtn.addEventListener("click", refreshRecentRolls);
-	}
-
 	const today = new Date().toISOString().split("T")[0];
 	document.getElementById("date-select").value = today;
 }
@@ -1044,11 +1039,16 @@ async function loadActiveJobData(job) {
 			if (poData) {
 				processOrders[poData.process_order] = poData;
 				const poSelect = document.getElementById("process-order");
+				// Populate options first
 				poSelect.innerHTML = "";
-				const option = document.createElement("option");
-				option.value = poData.process_order;
-				option.textContent = `${poData.process_order} - ${poData.description || "-"}`;
-				poSelect.appendChild(option);
+				if (result.data && Array.isArray(result.data)) {
+					result.data.forEach((po) => {
+						const option = document.createElement("option");
+						option.value = po.process_order;
+						option.textContent = `${po.process_order} - ${po.description || "-"}`;
+						poSelect.appendChild(option);
+					});
+				}
 				poSelect.value = poData.process_order;
 				poSelect.disabled = true;
 				document.getElementById("date-select").value = poData.posting_date;
@@ -1159,28 +1159,6 @@ async function loadJobRolls(production_order) {
 		}
 	} catch (error) {
 		console.error("Failed to load rolls:", error);
-	}
-}
-
-function getActiveProductionOrder() {
-	if (currentJob && currentJob.production_order) return currentJob.production_order;
-	const poSelect = document.getElementById("process-order");
-	if (poSelect && poSelect.value) return poSelect.value;
-	return "";
-}
-
-async function refreshRecentRolls() {
-	const refreshBtn = document.getElementById("refresh-rolls-btn");
-	if (refreshBtn) setButtonLoading(refreshBtn, true);
-	try {
-		const productionOrder = getActiveProductionOrder();
-		if (!productionOrder) {
-			showNotification("Select a process order to refresh rolls", "error");
-			return;
-		}
-		await loadJobRolls(productionOrder);
-	} finally {
-		if (refreshBtn) setButtonLoading(refreshBtn, false);
 	}
 }
 

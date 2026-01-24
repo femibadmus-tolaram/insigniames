@@ -1,7 +1,7 @@
 use chrono::Local;
-use rusqlite::{params, Connection, Result};
-use serde::{Serialize, Deserialize};
-use sha2::{Sha256, Digest};
+use rusqlite::{Connection, Result, params};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 
 #[derive(Debug, Serialize)]
 pub struct User {
@@ -12,7 +12,8 @@ pub struct User {
     pub phone_number: Option<String>,
     pub status: String,
     pub role_id: i32,
-    pub page_id: i32,
+    pub role_name: String,
+    pub page_id: String,
     pub created_at: String,
     pub updated_at: String,
     pub section_ids: Vec<i32>,
@@ -24,7 +25,7 @@ pub struct SignInResponse {
     pub staffid: String,
     pub role: String,
     pub whois: String,
-    pub page_id: i32,
+    pub page_id: String,
 }
 
 #[derive(Deserialize)]
@@ -46,7 +47,7 @@ impl User {
         let count: i32 = conn.query_row(
             "SELECT COUNT(*) FROM users WHERE staffid = ?1",
             params![staffid],
-            |row| row.get(0)
+            |row| row.get(0),
         )?;
         Ok(count > 0)
     }
@@ -101,9 +102,12 @@ impl User {
 
     pub fn create(conn: &Connection, u: &UserCreatePayload) -> Result<User> {
         let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        let mut hasher = Sha256::new();
+        hasher.update(u.password.as_ref().expect("Password is required"));
+        let hashed_password = format!("{:x}", hasher.finalize());
         conn.execute(
             "INSERT INTO users (full_name, staffid, password, phone_number, status, role_id, page_id, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-            params![u.full_name, u.staffid, u.password, u.phone_number, u.status, u.role_id, u.page_id, now, now],
+            params![u.full_name, u.staffid, hashed_password, u.phone_number, u.status, u.role_id, u.page_id, now, now],
         )?;
         let id = conn.last_insert_rowid() as i32;
 
@@ -118,6 +122,15 @@ impl User {
             }
         }
 
+        // Fetch role_name from roles table
+        let role_name: String = conn
+            .query_row(
+                "SELECT name FROM roles WHERE id = ?1",
+                params![u.role_id],
+                |row| row.get(0),
+            )
+            .unwrap_or_else(|_| "".to_string());
+
         Ok(User {
             id,
             full_name: u.full_name.clone(),
@@ -126,7 +139,8 @@ impl User {
             phone_number: u.phone_number.clone(),
             status: u.status.clone(),
             role_id: u.role_id,
-            page_id: u.page_id,
+            role_name,
+            page_id: u.page_id.clone(),
             created_at: now.clone(),
             updated_at: now.clone(),
             section_ids,
@@ -136,58 +150,88 @@ impl User {
     pub fn update(&mut self, conn: &Connection, u: &UserPayload) -> Result<()> {
         let now = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         if let Some(full_name) = &u.full_name {
-            conn.execute("UPDATE users SET full_name = ?1 WHERE id = ?2", params![full_name, self.id])?;
+            conn.execute(
+                "UPDATE users SET full_name = ?1 WHERE id = ?2",
+                params![full_name, self.id],
+            )?;
             self.full_name = full_name.clone();
         }
         if let Some(staffid) = &u.staffid {
-            conn.execute("UPDATE users SET staffid = ?1 WHERE id = ?2", params![staffid, self.id])?;
+            conn.execute(
+                "UPDATE users SET staffid = ?1 WHERE id = ?2",
+                params![staffid, self.id],
+            )?;
             self.staffid = staffid.clone();
         }
         if let Some(password) = &u.password {
             let mut hasher = Sha256::new();
             hasher.update(password);
             let hashed_password = format!("{:x}", hasher.finalize());
-            conn.execute("UPDATE users SET password = ?1 WHERE id = ?2", params![hashed_password, self.id])?;
+            conn.execute(
+                "UPDATE users SET password = ?1 WHERE id = ?2",
+                params![hashed_password, self.id],
+            )?;
             self.password = hashed_password;
         }
         if let Some(phone_number) = &u.phone_number {
-            conn.execute("UPDATE users SET phone_number = ?1 WHERE id = ?2", params![phone_number, self.id])?;
+            conn.execute(
+                "UPDATE users SET phone_number = ?1 WHERE id = ?2",
+                params![phone_number, self.id],
+            )?;
             self.phone_number = Some(phone_number.clone());
         }
         if let Some(status) = &u.status {
-            conn.execute("UPDATE users SET status = ?1 WHERE id = ?2", params![status, self.id])?;
+            conn.execute(
+                "UPDATE users SET status = ?1 WHERE id = ?2",
+                params![status, self.id],
+            )?;
             self.status = status.clone();
         }
         if let Some(role_id) = u.role_id {
-            conn.execute("UPDATE users SET role_id = ?1 WHERE id = ?2", params![role_id, self.id])?;
+            conn.execute(
+                "UPDATE users SET role_id = ?1 WHERE id = ?2",
+                params![role_id, self.id],
+            )?;
             self.role_id = role_id;
         }
-        if let Some(page_id) = u.page_id {
-            conn.execute("UPDATE users SET page_id = ?1 WHERE id = ?2", params![page_id, self.id])?;
-            self.page_id = page_id;
+        if let Some(page_id) = &u.page_id {
+            conn.execute(
+                "UPDATE users SET page_id = ?1 WHERE id = ?2",
+                params![page_id, self.id],
+            )?;
+            self.page_id = page_id.clone();
         }
-        
+
         if let Some(section_ids) = &u.section_ids {
-            conn.execute("DELETE FROM user_sections WHERE user_id = ?1", params![self.id])?;
-            
+            conn.execute(
+                "DELETE FROM user_sections WHERE user_id = ?1",
+                params![self.id],
+            )?;
+
             for &section_id in section_ids {
                 conn.execute(
                     "INSERT INTO user_sections (user_id, section_id) VALUES (?1, ?2)",
                     params![self.id, section_id],
                 )?;
             }
-            
+
             self.section_ids = section_ids.clone();
         }
-        
-        conn.execute("UPDATE users SET updated_at = ?1 WHERE id = ?2", params![now, self.id])?;
+
+        conn.execute(
+            "UPDATE users SET updated_at = ?1 WHERE id = ?2",
+            params![now, self.id],
+        )?;
         self.updated_at = now;
         self.password = "******".to_string();
         Ok(())
     }
 
     pub fn delete(&self, conn: &Connection) -> Result<()> {
-        conn.execute("DELETE FROM user_sections WHERE user_id = ?1", params![self.id])?;
+        conn.execute(
+            "DELETE FROM user_sections WHERE user_id = ?1",
+            params![self.id],
+        )?;
         conn.execute("DELETE FROM users WHERE id = ?1", params![self.id])?;
         Ok(())
     }
@@ -198,21 +242,32 @@ impl User {
              FROM users u
              WHERE u.id = ?1"
         )?;
-        
-        let mut user = stmt.query_row(params![id], |row| Ok(User {
-            id: row.get(0)?,
-            full_name: row.get(1)?,
-            staffid: row.get(2)?,
-            password: "******".to_string(),
-            phone_number: row.get(4)?,
-            status: row.get(5)?,
-            role_id: row.get(6)?,
-            page_id: row.get(7)?,
-            created_at: row.get(8)?,
-            updated_at: row.get(9)?,
-            section_ids: Vec::new(),
-        }))?;
-        
+
+        let mut user = stmt.query_row(params![id], |row| {
+            let role_id: i32 = row.get(6)?;
+            let role_name: String = conn
+                .query_row(
+                    "SELECT name FROM roles WHERE id = ?1",
+                    params![role_id],
+                    |r| r.get(0),
+                )
+                .unwrap_or_else(|_| "".to_string());
+            Ok(User {
+                id: row.get(0)?,
+                full_name: row.get(1)?,
+                staffid: row.get(2)?,
+                password: "******".to_string(),
+                phone_number: row.get(4)?,
+                status: row.get(5)?,
+                role_id,
+                role_name,
+                page_id: row.get(7)?,
+                created_at: row.get(8)?,
+                updated_at: row.get(9)?,
+                section_ids: Vec::new(),
+            })
+        })?;
+
         user.section_ids = user.get_sections(conn)?;
         Ok(user)
     }
@@ -223,25 +278,38 @@ impl User {
              FROM users u
              ORDER BY u.created_at DESC"
         )?;
-        
-        let mut users = stmt.query_map([], |row| Ok(User {
-            id: row.get(0)?,
-            full_name: row.get(1)?,
-            staffid: row.get(2)?,
-            password: "******".to_string(),
-            phone_number: row.get(4)?,
-            status: row.get(5)?,
-            role_id: row.get(6)?,
-            page_id: row.get(7)?,
-            created_at: row.get(8)?,
-            updated_at: row.get(9)?,
-            section_ids: Vec::new(),
-        }))?.collect::<Result<Vec<_>, _>>()?;
-        
+
+        let mut users = stmt
+            .query_map([], |row| {
+                let role_id: i32 = row.get(6)?;
+                let role_name: String = conn
+                    .query_row(
+                        "SELECT name FROM roles WHERE id = ?1",
+                        params![role_id],
+                        |r| r.get(0),
+                    )
+                    .unwrap_or_else(|_| "".to_string());
+                Ok(User {
+                    id: row.get(0)?,
+                    full_name: row.get(1)?,
+                    staffid: row.get(2)?,
+                    password: "******".to_string(),
+                    phone_number: row.get(4)?,
+                    status: row.get(5)?,
+                    role_id,
+                    role_name,
+                    page_id: row.get(7)?,
+                    created_at: row.get(8)?,
+                    updated_at: row.get(9)?,
+                    section_ids: Vec::new(),
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+
         for user in &mut users {
             user.section_ids = user.get_sections(conn)?;
         }
-        
+
         Ok(users)
     }
 
@@ -257,21 +325,22 @@ impl User {
             "SELECT u.staffid, r.name AS role, u.id, u.page_id
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id
-            WHERE lower(u.staffid) = lower(?1) AND u.password = ?2"
+            WHERE lower(u.staffid) = lower(?1) AND u.password = ?2",
         )?;
-        let signin_response = stmt.query_row(params![&payload.staffid, &hashed_password], |row| {
-            Ok(SignInResponse {
-                staffid: row.get(0)?,
-                role: row.get::<_, String>(1).unwrap_or_default(),
-                whois: format!(
-                    "{} {}",
-                    row.get::<_, String>(0)?,
-                    row.get::<_, String>(1).unwrap_or_default()
-                ),
-                id: row.get(2)?,
-                page_id: row.get(3)?,
-            })
-        })?;
+        let signin_response =
+            stmt.query_row(params![&payload.staffid, &hashed_password], |row| {
+                Ok(SignInResponse {
+                    staffid: row.get(0)?,
+                    role: row.get::<_, String>(1).unwrap_or_default(),
+                    whois: format!(
+                        "{} {}",
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1).unwrap_or_default()
+                    ),
+                    id: row.get(2)?,
+                    page_id: row.get(3)?,
+                })
+            })?;
         Ok(signin_response)
     }
 
@@ -292,12 +361,10 @@ impl User {
     }
 
     pub fn get_sections(&self, conn: &Connection) -> Result<Vec<i32>> {
-        let mut stmt = conn.prepare(
-            "SELECT section_id FROM user_sections WHERE user_id = ?1"
-        )?;
-        let section_ids = stmt.query_map(params![self.id], |row| {
-            row.get(0)
-        })?.collect::<Result<Vec<i32>, _>>()?;
+        let mut stmt = conn.prepare("SELECT section_id FROM user_sections WHERE user_id = ?1")?;
+        let section_ids = stmt
+            .query_map(params![self.id], |row| row.get(0))?
+            .collect::<Result<Vec<i32>, _>>()?;
         Ok(section_ids)
     }
 
@@ -362,7 +429,9 @@ impl User {
             if let Ok(parsed) = val.parse::<i32>() {
                 section_ids.push(parsed);
                 params_vec.push(section_ids.last().unwrap());
-                query.push_str(" AND u.id IN (SELECT user_id FROM user_sections WHERE section_id = ?)");
+                query.push_str(
+                    " AND u.id IN (SELECT user_id FROM user_sections WHERE section_id = ?)",
+                );
             }
         }
 
@@ -383,7 +452,8 @@ impl User {
         }
 
         if let (Some(page), Some(per_page)) = (&filter.page, &filter.per_page) {
-            if let (Ok(page_val), Ok(per_page_val)) = (page.parse::<i32>(), per_page.parse::<i32>()) {
+            if let (Ok(page_val), Ok(per_page_val)) = (page.parse::<i32>(), per_page.parse::<i32>())
+            {
                 if per_page_val > 0 {
                     let offset = (page_val - 1) * per_page_val;
                     pages.push(offset);
@@ -398,22 +468,33 @@ impl User {
         }
 
         let mut stmt = conn.prepare(&query)?;
-        let mut users = stmt.query_map(params_vec.as_slice(), |row| {
-            Ok(User {
-                id: row.get(0)?,
-                full_name: row.get(1)?,
-                staffid: row.get(2)?,
-                password: "******".to_string(),
-                phone_number: row.get(4)?,
-                status: row.get(5)?,
-                role_id: row.get(6)?,
-                page_id: row.get(7)?,
-                created_at: row.get(8)?,
-                updated_at: row.get(9)?,
-                section_ids: Vec::new(),
-            })
-        })?.collect::<Result<Vec<_>, _>>()?;
-        
+        let mut users = stmt
+            .query_map(params_vec.as_slice(), |row| {
+                let role_id: i32 = row.get(6)?;
+                let role_name: String = conn
+                    .query_row(
+                        "SELECT name FROM roles WHERE id = ?1",
+                        params![role_id],
+                        |r| r.get(0),
+                    )
+                    .unwrap_or_else(|_| "".to_string());
+                Ok(User {
+                    id: row.get(0)?,
+                    full_name: row.get(1)?,
+                    staffid: row.get(2)?,
+                    password: "******".to_string(),
+                    phone_number: row.get(4)?,
+                    status: row.get(5)?,
+                    role_id,
+                    role_name,
+                    page_id: row.get(7)?,
+                    created_at: row.get(8)?,
+                    updated_at: row.get(9)?,
+                    section_ids: Vec::new(),
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+
         for user in &mut users {
             user.section_ids = user.get_sections(conn)?;
         }
@@ -430,7 +511,7 @@ pub struct UserCreatePayload {
     pub phone_number: Option<String>,
     pub status: String,
     pub role_id: i32,
-    pub page_id: i32,
+    pub page_id: String,
     pub section_ids: Option<Vec<i32>>,
 }
 
@@ -443,7 +524,7 @@ pub struct UserPayload {
     pub phone_number: Option<String>,
     pub status: Option<String>,
     pub role_id: Option<i32>,
-    pub page_id: Option<i32>,
+    pub page_id: Option<String>,
     pub section_ids: Option<Vec<i32>>,
 }
 
@@ -458,4 +539,3 @@ pub struct UserSectionPayload {
     pub user_id: i32,
     pub section_id: i32,
 }
-

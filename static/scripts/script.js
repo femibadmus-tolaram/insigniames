@@ -1,66 +1,137 @@
 /** @format */
-let currentUserPageId = null;
-let userData;
+
+let currentUser;
+let roleAccess;
+
+const pageModels = {
+	"/": [],
+	"/jobs": ["jobs", "po_codes"],
+	"/input-rolls": ["input_rolls", "jobs"],
+	"/output-rolls": ["output_rolls", "rolls", "jobs", "flag_reasons"],
+	"/production": ["jobs", "rolls"],
+	"/downtime": ["downtimes", "downtime_reasons", "jobs", "shifts"],
+	"/scrap": ["scraps", "scrap_types", "jobs", "shifts"],
+	"/consumables": ["ink_usages", "solvent_usages", "solvent_types", "colours", "jobs", "shifts"],
+	"/settings": [],
+	"/materials": ["materials"],
+	"/machines": ["machines"],
+	"/sections": ["sections"],
+	"/lookups": ["shifts", "colours", "solvent_types", "scrap_types", "downtime_reasons", "flag_reasons", "po_codes"],
+	"/users": ["users"],
+	"/roles": ["roles", "permissions"],
+	"/logout": [],
+};
+const hasPageAccess = (p) => p.can_create && p.can_read && p.can_update && p.can_delete;
+
+async function buildRoleAccessFromPermissions(roleId) {
+	const res = await fetch("/api/permissions");
+	const all = await res.json();
+	const perms = all.filter((p) => Number(p.role_id) === Number(roleId));
+
+	const modelAllowed = new Set(
+		perms.filter((p) => p.can_create && p.can_read && p.can_update && p.can_delete).map((p) => (p.model || "").toLowerCase()),
+	);
+
+	const access = {};
+	for (const [path, models] of Object.entries(pageModels)) {
+		access[path] = models.some((m) => modelAllowed.has(m.toLowerCase()));
+	}
+	access["/logout"] = true;
+	access["/"] = true;
+	return access;
+}
 
 document.addEventListener("DOMContentLoaded", async function () {
+	const originalPointerEvents = document.body.style.pointerEvents;
+	const originalCursor = document.body.style.cursor;
+	document.body.style.pointerEvents = "none";
+	document.body.style.cursor = "wait";
 	document.body.style.zoom = "90%";
+	try {
+		await loadUserData();
+	} finally {
+		document.body.style.pointerEvents = originalPointerEvents;
+		document.body.style.cursor = originalCursor;
+	}
 	cleanForm();
-	await loadUserPageId();
-	showNavBasedOnPageId();
-	highlightActiveLink();
 });
 
-async function loadUserPageId() {
+async function loadUserData() {
 	try {
 		const userResponse = await fetch("/api/users/me");
 		if (!userResponse.ok) throw new Error("Failed to load user data");
-		userData = await userResponse.json();
-		currentUserPageId = userData.page_id || 0;
+		currentUser = await userResponse.json();
+		roleAccess = await buildRoleAccessFromPermissions(currentUser.role_id);
+		showNavBasedOnRole(roleAccess);
+		highlightActiveLink();
 	} catch (error) {
-		console.error("Error loading user page_id:", error);
+		console.error("Error loading user:", error);
 	}
 }
 
-function showNavBasedOnPageId() {
+function showNavBasedOnRole() {
 	const nav = document.querySelector("#main-nav");
-	if (!nav) return;
+	if (!nav || !currentUser || !roleAccess) return;
 
-	const pageItemsMap = {
-		1: [
-			{ name: "Dashboard", href: "/", icon: "fa-chart-simple" },
-			{ name: "Jobs", href: "/jobs", icon: "fa-briefcase" },
-			{ name: "Rolls", href: "/rolls", icon: "fa-layer-group" },
-		],
-		2: [
-			{ name: "Production", href: "/production", icon: "fa-industry" },
-			{ name: "Downtime", href: "/downtime", icon: "fa-clock" },
-			{ name: "Scrap", href: "/scrap", icon: "fa-trash" },
-			{ name: "Actual Consumable", href: "/consumables", icon: "fa-flask" },
-		],
-		3: [
-			{ name: "Settings", href: "/settings", icon: "fa-cog" },
-			{ name: "Materials", href: "/materials", icon: "fa-industry" },
-			{ name: "Machines", href: "/machines", icon: "fa-cogs" },
-			{ name: "Sections", href: "/sections", icon: "fa-building" },
-			{ name: "Manage Lookups", href: "/lookups", icon: "fa-list" },
-			{ name: "Users Management", href: "/users", icon: "fa-users" },
-			{ name: "Roles & Permissions", href: "/roles", icon: "fa-user-tag" },
-			{ name: "Logout", href: "/logout", icon: "fa-sign-out-alt", class: "text-red-600 hover:bg-red-50" },
-		],
-	};
+	const navSections = [
+		{
+			label: "Dashboard",
+			items: [{ name: "Dashboard", href: "/", icon: "fa-chart-simple" }],
+		},
+		{
+			label: "Operations",
+			items: [
+				{ name: "Jobs", href: "/jobs", icon: "fa-briefcase" },
+				{ name: "Input Rolls", href: "/input-rolls", icon: "fa-layer-group" },
+				{ name: "Output Rolls", href: "/output-rolls", icon: "fa-layer-group" },
+				{ name: "Production", href: "/production", icon: "fa-industry" },
+				{ name: "Downtime", href: "/downtime", icon: "fa-clock" },
+				{ name: "Scrap", href: "/scrap", icon: "fa-trash" },
+				{ name: "Actual Consumable", href: "/consumables", icon: "fa-flask" },
+			],
+		},
+		{
+			label: "Admin",
+			items: [
+				{ name: "Settings", href: "/settings", icon: "fa-cog" },
+				{ name: "Materials", href: "/materials", icon: "fa-industry" },
+				{ name: "Machines", href: "/machines", icon: "fa-cogs" },
+				{ name: "Sections", href: "/sections", icon: "fa-building" },
+				{ name: "Manage Lookups", href: "/lookups", icon: "fa-list" },
+				{ name: "Users Management", href: "/users", icon: "fa-users" },
+				{ name: "Roles & Permissions", href: "/roles", icon: "fa-user-tag" },
+				{ name: "Logout", href: "/logout", icon: "fa-sign-out-alt", class: "text-red-600 hover:bg-red-50" },
+			],
+		},
+	];
 
-	if (pageItemsMap[currentUserPageId]) {
-		nav.innerHTML = "";
-		pageItemsMap[currentUserPageId].forEach((item) => {
+	nav.innerHTML = "";
+
+	navSections.forEach((section, index) => {
+		const allowedItems = section.items.filter((item) => roleAccess[item.href] === true);
+		if (!allowedItems.length) return;
+
+		if (section.label !== "Dashboard") {
+			const header = document.createElement("li");
+			header.className = index > 0 ? "mt-2" : "";
+			header.innerHTML = `
+        <div class="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">${section.label}</div>
+      `;
+			nav.appendChild(header);
+		}
+
+		allowedItems.forEach((item) => {
 			const li = document.createElement("li");
 			li.innerHTML = `
-				<a href="${item.href}" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 ${item.class || ""}">
-					<i class="fas ${item.icon}"></i> ${item.name}
-				</a>
-			`;
+        <a href="${item.href}" class="px-3 py-2 rounded-lg hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 ${item.class || ""}">
+          <i class="fas ${item.icon} w-5 text-center"></i> ${item.name}
+        </a>
+      `;
 			nav.appendChild(li);
 		});
-	}
+	});
+
+	nav.classList.remove("hidden");
 }
 
 function highlightActiveLink() {

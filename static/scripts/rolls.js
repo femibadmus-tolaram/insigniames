@@ -11,7 +11,7 @@ async function printRoll(rollId) {
 	if (printLoading) printLoading.classList.remove("hidden");
 
 	try {
-		const response = await fetch(`/api/rolls/details?id=${rollId}`);
+		const response = await fetch(`/api/output-rolls/details?id=${rollId}`);
 		const result = await handleApiResponse(response);
 
 		document.getElementById("print-preview").innerHTML = `
@@ -38,7 +38,7 @@ async function printRoll(rollId) {
 							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">MATERIAL NUMBER</label>
 							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.material_number)}</div>
 							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">ROLL NO</label>
-							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.output_roll_no)}</div>
+							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.output_batch)}</div>
 						</div>
 					</div>
 					<div style="display: flex; margin-bottom: 25px;">
@@ -86,7 +86,7 @@ async function printRoll(rollId) {
 					"po no": "PO-" + result.production_order,
 					"material no": "MA-" + result.material_number,
 					material: result.process_order_description,
-					"roll no": result.output_roll_no,
+					"roll no": result.output_batch,
 					flags: flagsCount,
 					weight: `${result.final_weight}kg`,
 					meter: `${result.final_meter}m`,
@@ -129,7 +129,7 @@ async function printRoll(rollId) {
 			"po no": "PO-" + result.production_order,
 			"material no": "MA-" + result.material_number,
 			material: result.process_order_description,
-			"roll no": result.output_roll_no,
+			"roll no": result.output_batch,
 			flags: flagsCount,
 			weight: `${result.final_weight}kg`,
 			meter: `${result.final_meter}m`,
@@ -235,7 +235,7 @@ async function printRoll(rollId) {
 		kv("PRODUCTION ORDER", result.production_order, leftX, kvStartY);
 		kv("SECTION", result.section, leftX, kvStartY - 34);
 		kv("MATERIAL NUMBER", result.material_number, rightX, kvStartY, "right");
-		kv("ROLL NO", result.output_roll_no, rightX, kvStartY - 34, "right");
+		kv("ROLL NO", result.output_batch, rightX, kvStartY - 34, "right");
 
 		kv("FINAL METER", `${formatNumber(result.final_meter)} m`, leftX, kvStartY - 72);
 		kv("FINAL WEIGHT", `${formatNumber(result.final_weight)} kg`, rightX, kvStartY - 72, "right");
@@ -249,7 +249,7 @@ async function printRoll(rollId) {
 		const a = document.createElement("a");
 		const pdfBlob = new Blob([bytes], { type: "application/pdf" });
 		a.href = URL.createObjectURL(pdfBlob);
-		a.download = `label-${result.output_roll_no || rollId}.pdf`;
+		a.download = `label-${result.output_batch || rollId}.pdf`;
 		document.getElementById("close-print-btn").addEventListener("click", closePrintModal);
 		document.getElementById("print-pdf-btn").addEventListener("click", async function () {
 			a.click();
@@ -346,7 +346,7 @@ async function loadRolls() {
 		params.append("page", currentPage);
 		params.append("per_page", itemsPerPage);
 
-		const response = await fetch(`/api/rolls/filter?${params}`);
+		const response = await fetch(`/api/output-rolls/filter?${params}`);
 		const result = await handleApiResponse(response);
 
 		rolls = result.data;
@@ -395,8 +395,8 @@ function renderRolls(rollsToRender) {
 		row.className = "hover:bg-gray-50";
 
 		row.innerHTML = `
-            <td class="py-3 px-4 detail-cell" ${!showDetails ? 'style="display: none"' : ""}>${escapeHtml(roll.from_batch || "N/A")}</td>
-            <td class="py-3 px-4 font-medium detail-cell" ${!showDetails ? 'style="display: none"' : ""}>${escapeHtml(roll.output_roll_no)}</td>
+            <td class="py-3 px-4 detail-cell" ${!showDetails ? 'style="display: none"' : ""}>${escapeHtml(roll.from_input_batch || "N/A")}</td>
+            <td class="py-3 px-4 font-medium detail-cell" ${!showDetails ? 'style="display: none"' : ""}>${escapeHtml(roll.output_batch)}</td>
             <td class="py-3 px-4 ${showDetails ? "" : "text-left"}">
 				<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
 					roll.final_weight === 0
@@ -528,7 +528,7 @@ async function applyFilters() {
 			if (!isNaN(searchTerm) && searchTerm.trim() !== "") {
 				params.append("job_id", searchTerm);
 			} else {
-				params.append("output_roll_no", searchTerm);
+				params.append("output_batch", searchTerm);
 			}
 		}
 
@@ -542,7 +542,7 @@ async function applyFilters() {
 		params.append("page", currentPage);
 		params.append("per_page", itemsPerPage);
 
-		const response = await fetch(`/api/rolls/filter?${params}`);
+		const response = await fetch(`/api/output-rolls/filter?${params}`);
 		const result = await handleApiResponse(response);
 
 		rolls = result.data;
@@ -650,7 +650,7 @@ function handleFormSubmit(e) {
 
 async function updateRoll(rollData) {
 	try {
-		const response = await fetch("/api/rolls/update", {
+		const response = await fetch("/api/output-rolls/update", {
 			method: "PUT",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify(rollData),
@@ -688,7 +688,7 @@ async function deleteRoll(rollId) {
 	if (deleteBtn) setButtonLoading(deleteBtn, true);
 
 	try {
-		const response = await fetch("/api/rolls/delete", {
+		const response = await fetch("/api/output-rolls/delete", {
 			method: "DELETE",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({ id: parseInt(rollId) }),
@@ -722,7 +722,7 @@ async function exportToExcel() {
 			if (!isNaN(searchTerm) && searchTerm.trim() !== "") {
 				params.append("job_id", searchTerm);
 			} else {
-				params.append("output_roll_no", searchTerm);
+				params.append("output_batch", searchTerm);
 			}
 		}
 
@@ -743,7 +743,7 @@ async function exportToExcel() {
 		if (startDate) params.append("start_date", startDate);
 		if (endDate) params.append("end_date", endDate);
 
-		const response = await fetch(`/api/rolls/filter?${params}`);
+		const response = await fetch(`/api/output-rolls/filter?${params}`);
 		const result = await handleApiResponse(response);
 		const filteredRolls = result.data;
 
@@ -757,7 +757,7 @@ async function exportToExcel() {
 			const createdBy = users.find((u) => u.id === roll.created_by);
 
 			return {
-				"Output Roll No": roll.output_roll_no,
+				"Output Batch": roll.output_batch,
 				Status: roll.final_weight === 0 ? "Pending" : roll.flag_count > 0 ? "Flagged" : "Completed",
 				Weight: formatWeight(roll.final_weight || 0),
 				Meters: roll.final_meter || 0 + " m",

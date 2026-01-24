@@ -1,5 +1,5 @@
 use crate::backend::models::{
-    EndJobPayload, IdPayload, Job, JobCreatePayload, JobFilterPayload, JobPayload,
+    IdPayload, Job, JobCreatePayload, JobFilterPayload, JobUpdatePayload,
 };
 use actix_web::{HttpResponse, Responder, web};
 use r2d2::Pool;
@@ -14,7 +14,6 @@ pub async fn create_job(
     if user_id.is_none() {
         return HttpResponse::Unauthorized().body("User not authenticated");
     }
-
     let conn = conn_data.get().unwrap();
     match Job::create(&conn, &data, user_id.unwrap()) {
         Ok(job) => HttpResponse::Ok().json(job),
@@ -24,7 +23,7 @@ pub async fn create_job(
 
 pub async fn update_job(
     conn_data: web::Data<Pool<SqliteConnectionManager>>,
-    data: web::Json<JobPayload>,
+    data: web::Json<JobUpdatePayload>,
 ) -> impl Responder {
     let conn = conn_data.get().unwrap();
     match Job::find_by_id(&conn, data.id) {
@@ -43,11 +42,6 @@ pub async fn delete_job(
     data: web::Json<IdPayload>,
 ) -> impl Responder {
     let conn = conn_data.get().unwrap();
-
-    if Job::has_rolls(&conn, data.id).unwrap_or(false) {
-        return HttpResponse::BadRequest().body("Cannot delete job - it has associated rolls");
-    }
-
     match Job::find_by_id(&conn, data.id) {
         Ok(job) => {
             if let Err(e) = job.delete(&conn) {
@@ -67,24 +61,13 @@ pub async fn all_jobs(conn_data: web::Data<Pool<SqliteConnectionManager>>) -> im
     }
 }
 
-pub async fn end_job(
-    conn_data: web::Data<Pool<SqliteConnectionManager>>,
-    data: web::Json<EndJobPayload>,
-) -> impl Responder {
-    let conn = conn_data.get().unwrap();
-    match Job::end_job(&conn, &data).await {
-        Ok(_) => HttpResponse::Ok().body("Roll consumed successfully"),
-        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
-    }
-}
-
-pub async fn filter_jobs(
+pub async fn filter_jobs_with_pending_input_rolls(
     conn_data: web::Data<Pool<SqliteConnectionManager>>,
     web::Query(filter): web::Query<JobFilterPayload>,
 ) -> impl Responder {
     let conn = conn_data.get().unwrap();
-    match Job::filter(&conn, &filter) {
-        Ok(jobs) => HttpResponse::Ok().json(jobs),
+    match Job::filter_with_input_rolls(&conn, &filter) {
+        Ok(jobs_with_input_rolls) => HttpResponse::Ok().json(jobs_with_input_rolls),
         Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
     }
 }
