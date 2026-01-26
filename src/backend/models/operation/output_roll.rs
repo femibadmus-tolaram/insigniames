@@ -306,13 +306,6 @@ impl OutputRoll {
             )?;
             self.flag_reason = Some(flag_reason.to_string());
         }
-        if let Some(final_weight) = data.final_weight {
-            conn.execute(
-                "UPDATE output_rolls SET final_weight = ?1 WHERE id = ?2",
-                params![final_weight, self.id],
-            )?;
-            self.final_weight = final_weight;
-        }
         if let Some(input_roll_id) = data.input_roll_id {
             conn.execute(
                 "UPDATE output_rolls SET input_roll_id = ?1 WHERE id = ?2",
@@ -343,10 +336,7 @@ impl OutputRoll {
     }
 
     pub fn delete(&self, conn: &Connection) -> Result<()> {
-        conn.execute(
-            "DELETE FROM output_rolls WHERE id = ?1",
-            params![self.id],
-        )?;
+        conn.execute("DELETE FROM output_rolls WHERE id = ?1", params![self.id])?;
         Ok(())
     }
 
