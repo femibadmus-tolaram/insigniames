@@ -9,7 +9,8 @@ const MODULE_NAMES = {
 	roles: "Roles",
 	permissions: "Permissions",
 	jobs: "Jobs",
-	rolls: "Rolls",
+	input_rolls: "Input Rolls",
+	output_rolls: "Output Rolls",
 	downtimes: "Downtimes",
 	scraps: "Scraps",
 	ink_usages: "Ink Usages",
@@ -37,6 +38,37 @@ document.addEventListener("DOMContentLoaded", () => {
 	loadRolesAndPermissions();
 	setupEventListeners();
 });
+
+function buildPermissionIndex(perms) {
+	const index = new Map();
+	perms.forEach((perm) => {
+		const key = `${perm.role_id}:${perm.model}`;
+		if (!index.has(key)) {
+			index.set(key, {
+				role_id: perm.role_id,
+				model: perm.model,
+				content_type_id: perm.content_type_id,
+				ids: [perm.id],
+				can_create: !!perm.can_create,
+				can_read: !!perm.can_read,
+				can_update: !!perm.can_update,
+				can_delete: !!perm.can_delete,
+			});
+			return;
+		}
+		const existing = index.get(key);
+		existing.ids.push(perm.id);
+		existing.can_create = existing.can_create || !!perm.can_create;
+		existing.can_read = existing.can_read || !!perm.can_read;
+		existing.can_update = existing.can_update || !!perm.can_update;
+		existing.can_delete = existing.can_delete || !!perm.can_delete;
+	});
+	return index;
+}
+
+function getAllModules(perms) {
+	return [...new Set(perms.map((p) => p.model))];
+}
 
 function setupEventListeners() {
 	document.getElementById("add-role-btn").addEventListener("click", showCreateRoleModal);
@@ -74,17 +106,20 @@ function updateStats() {
 	document.getElementById("total-permissions").textContent = permissions.length;
 
 	const adminRoles = roles.filter(
-		(role) => role.name.toLowerCase().includes("admin") || role.description.toLowerCase().includes("full access")
+		(role) =>
+			(role.name || "").toLowerCase().includes("admin") ||
+			(role.description || "").toLowerCase().includes("full access")
 	).length;
 	document.getElementById("admin-roles").textContent = adminRoles;
 
-	const readonlyRoles = roles.filter((role) => role.description.toLowerCase().includes("read-only")).length;
+	const readonlyRoles = roles.filter((role) => (role.description || "").toLowerCase().includes("read-only")).length;
 	document.getElementById("readonly-roles").textContent = readonlyRoles;
 }
 
 function renderRolesTable(rolesToRender) {
 	const tbody = document.getElementById("roles-table-body");
 	const table = document.getElementById("roles-table");
+	const permissionIndex = buildPermissionIndex(permissions);
 
 	if (rolesToRender.length === 0) {
 		tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500">No roles found</td></tr>';
@@ -94,7 +129,7 @@ function renderRolesTable(rolesToRender) {
 
 	tbody.innerHTML = rolesToRender
 		.map((role) => {
-			const rolePermissions = permissions.filter((p) => p.role_id === role.id);
+			const rolePermissions = [...permissionIndex.values()].filter((p) => p.role_id === role.id);
 			return `
             <tr>
                 <td class="font-mono text-sm text-gray-600">${role.id}</td>
@@ -130,6 +165,7 @@ function getRoleBadgeClass(role) {
 function renderPermissionsMatrix() {
 	const thead = document.querySelector("#permissions-table thead tr");
 	const tbody = document.getElementById("permissions-table-body");
+	const permissionIndex = buildPermissionIndex(permissions);
 
 	thead.innerHTML = "<th>Module</th>";
 	tbody.innerHTML = "";
@@ -141,7 +177,7 @@ function renderPermissionsMatrix() {
 		thead.appendChild(th);
 	});
 
-	const modules = [...new Set(permissions.map((p) => p.model))];
+	const modules = getAllModules(permissions);
 
 	modules.forEach((module) => {
 		const row = document.createElement("tr");
@@ -153,12 +189,12 @@ function renderPermissionsMatrix() {
 		row.appendChild(moduleCell);
 
 		roles.forEach((role) => {
-			const rolePermissions = permissions.filter((p) => p.role_id === role.id && p.model === module);
+			const rolePermissions = permissionIndex.get(`${role.id}:${module}`);
 			const cell = document.createElement("td");
 			cell.className = "permission-cell";
 
-			if (rolePermissions.length > 0) {
-				const perm = rolePermissions[0];
+			if (rolePermissions) {
+				const perm = rolePermissions;
 				const hasAll = perm.can_create && perm.can_read && perm.can_update && perm.can_delete;
 				const hasSome = perm.can_create || perm.can_read || perm.can_update || perm.can_delete;
 
@@ -229,17 +265,17 @@ function renderPermissionsManagement() {
 }
 
 function renderPermissionControls(roleId) {
-	const rolePermissions = permissions.filter((p) => p.role_id === roleId);
+	const permissionIndex = buildPermissionIndex(permissions);
 
 	// Get all unique modules from permissions data
-	const allModules = [...new Set(permissions.map((p) => p.model))];
+	const allModules = getAllModules(permissions);
 
 	return `
         <div class="permission-grid">
             ${allModules
 				.map((key) => {
 					const name = MODULE_NAMES[key] || key;
-					const modulePerms = rolePermissions.find((p) => p.model === key) || {
+					const modulePerms = permissionIndex.get(`${roleId}:${key}`) || {
 						can_create: false,
 						can_read: false,
 						can_update: false,
@@ -330,12 +366,13 @@ async function updateRole(roleData) {
 async function savePermissions() {
 	const permissionsToSave = [];
 	const processedModules = new Set();
+	const permissionIndex = buildPermissionIndex(permissions);
 
 	// Get the CURRENT selected role ID (right before processing)
 	const roleId = parseInt(document.getElementById("role-selector").value);
 
 	// Collect all modules that have at least one permission change
-	const allModules = [...new Set(permissions.map((p) => p.model))];
+	const allModules = getAllModules(permissions);
 
 	allModules.forEach((module) => {
 		const canCreate = document.getElementById(`perm-${roleId}-${module}-can_create`)?.checked || false;
@@ -344,7 +381,7 @@ async function savePermissions() {
 		const canDelete = document.getElementById(`perm-${roleId}-${module}-can_delete`)?.checked || false;
 
 		// Find existing permission for this role and module
-		const existing = permissions.find((p) => p.role_id === roleId && p.model === module);
+		const existing = permissionIndex.get(`${roleId}:${module}`);
 
 		// Check if any permission has changed
 		if (existing) {
@@ -365,10 +402,10 @@ async function savePermissions() {
 
 	processedModules.forEach((module) => {
 		// Get content_type_id from existing permissions data
-		const existingPerm = permissions.find((p) => p.model === module);
-		if (!existingPerm) return;
+		const anyPerm = permissions.find((p) => p.model === module);
+		if (!anyPerm) return;
 
-		const content_type_id = existingPerm.content_type_id;
+		const content_type_id = anyPerm.content_type_id;
 
 		const permData = {
 			role_id: roleId,
@@ -380,12 +417,14 @@ async function savePermissions() {
 			can_delete: document.getElementById(`perm-${roleId}-${module}-can_delete`)?.checked || false,
 		};
 
-		const existing = permissions.find((p) => p.role_id === roleId && p.model === module);
-		if (existing) {
-			permData.id = existing.id;
+		const existing = permissionIndex.get(`${roleId}:${module}`);
+		if (existing && existing.ids.length > 0) {
+			existing.ids.forEach((id) => {
+				permissionsToSave.push({ ...permData, id });
+			});
+		} else {
+			permissionsToSave.push(permData);
 		}
-
-		permissionsToSave.push(permData);
 	});
 
 	try {
