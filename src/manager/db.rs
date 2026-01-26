@@ -234,13 +234,30 @@ pub fn init_local_db(path: &str) -> Result<()> {
         ",
     )?;
 
+    // Drop legacy rolls table and remove its permissions/content type
+    conn.execute("DROP TABLE IF EXISTS rolls", [])?;
+    conn.execute(
+        "DELETE FROM role_permissions WHERE permission_id IN (
+            SELECT p.id FROM permissions p
+            JOIN content_type c ON p.content_type_id = c.id
+            WHERE c.model = 'rolls'
+        )",
+        [],
+    )?;
+    conn.execute(
+        "DELETE FROM permissions WHERE content_type_id IN (
+            SELECT id FROM content_type WHERE model = 'rolls'
+        )",
+        [],
+    )?;
+    conn.execute("DELETE FROM content_type WHERE model = 'rolls'", [])?;
+
     // Initialize content types and permissions if they don't exist
     let models = vec![
         "users",
         "roles",
         "permissions",
         "jobs",
-        "rolls",
         "input_rolls",
         "output_rolls",
         "downtimes",
@@ -334,6 +351,19 @@ pub fn init_local_db(path: &str) -> Result<()> {
                 rusqlite::params![role_id, perm_id],
             )?;
         }
+    }
+
+    // Grant full access on all models to role_id = 1 by default
+    let mut all_perm_stmt = conn.prepare("SELECT id FROM permissions")?;
+    let all_perm_ids: Vec<i32> = all_perm_stmt
+        .query_map([], |row| row.get(0))?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    for perm_id in all_perm_ids {
+        conn.execute(
+            "INSERT OR IGNORE INTO role_permissions (role_id, permission_id) VALUES (?1, ?2)",
+            rusqlite::params![1, perm_id],
+        )?;
     }
 
     Ok(())

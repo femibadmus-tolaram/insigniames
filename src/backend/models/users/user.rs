@@ -62,12 +62,12 @@ impl User {
         )?;
         total_count += jobs_count;
 
-        let rolls_count: i32 = conn.query_row(
-            "SELECT COUNT(*) FROM rolls WHERE created_by = ?1",
+        let output_rolls_count: i32 = conn.query_row(
+            "SELECT COUNT(*) FROM output_rolls WHERE created_by = ?1",
             params![user_id],
             |row| row.get(0),
         )?;
-        total_count += rolls_count;
+        total_count += output_rolls_count;
 
         let downtimes_count: i32 = conn.query_row(
             "SELECT COUNT(*) FROM downtimes WHERE created_by = ?1",

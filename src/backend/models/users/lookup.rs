@@ -388,9 +388,12 @@ impl DowntimeReason {
 
 impl FlagReason {
     pub fn has_related_records(conn: &Connection, flag_reason_id: i32) -> Result<bool> {
+        let flag_id = flag_reason_id.to_string();
         let count: i32 = conn.query_row(
-            "SELECT COUNT(*) FROM rolls WHERE flag_reason_id = ?1",
-            params![flag_reason_id],
+            "SELECT COUNT(*) FROM output_rolls
+             WHERE flag_reason IS NOT NULL
+               AND instr(flag_reason, ?1) > 0",
+            params![flag_id],
             |row| row.get(0),
         )?;
         Ok(count > 0)
