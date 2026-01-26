@@ -1,5 +1,5 @@
-use rusqlite::{params, Connection, Result};
-use serde::{Serialize, Deserialize};
+use rusqlite::{Connection, Result, params};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
 pub struct Role {
@@ -15,23 +15,57 @@ impl Role {
             params![r.name, r.description],
         )?;
         let id = conn.last_insert_rowid() as i32;
-        Ok(Role { id, name: r.name.clone(), description: r.description.clone() })
+        Ok(Role {
+            id,
+            name: r.name.clone(),
+            description: r.description.clone(),
+        })
     }
 
     pub fn update(&mut self, conn: &Connection, r: &RoleUpdatePayload) -> Result<()> {
         if let Some(name) = &r.name {
-            conn.execute("UPDATE roles SET name = ?1 WHERE id = ?2", params![name, self.id])?;
+            conn.execute(
+                "UPDATE roles SET name = ?1 WHERE id = ?2",
+                params![name, self.id],
+            )?;
             self.name = name.clone();
         }
         if let Some(description) = &r.description {
-            conn.execute("UPDATE roles SET description = ?1 WHERE id = ?2", params![description, self.id])?;
+            conn.execute(
+                "UPDATE roles SET description = ?1 WHERE id = ?2",
+                params![description, self.id],
+            )?;
             self.description = Some(description.clone());
         }
         Ok(())
     }
 
-    pub fn delete(&self, conn: &Connection) -> Result<()> {
-        conn.execute("DELETE FROM roles WHERE id = ?1", params![self.id])?;
+    pub fn delete(&self, conn: &mut Connection) -> Result<()> {
+        let tx = conn.transaction()?;
+
+        tx.execute(
+            "UPDATE users SET role_id = 2 WHERE role_id = ?1",
+            params![self.id],
+        )?;
+
+        tx.execute(
+            "DELETE FROM role_permissions WHERE role_id = ?1",
+            params![self.id],
+        )?;
+
+        tx.execute(
+            "DELETE FROM permissions WHERE id NOT IN (SELECT permission_id FROM role_permissions)",
+            [],
+        )?;
+
+        tx.execute(
+            "DELETE FROM content_type WHERE id NOT IN (SELECT content_type_id FROM permissions)",
+            [],
+        )?;
+
+        tx.execute("DELETE FROM roles WHERE id = ?1", params![self.id])?;
+
+        tx.commit()?;
         Ok(())
     }
 
@@ -51,13 +85,25 @@ impl Role {
         conn.query_row(
             "SELECT id, name, description FROM roles WHERE id = ?1",
             params![id],
-            |row| Ok(Role { id: row.get(0)?, name: row.get(1)?, description: row.get(2)? }),
+            |row| {
+                Ok(Role {
+                    id: row.get(0)?,
+                    name: row.get(1)?,
+                    description: row.get(2)?,
+                })
+            },
         )
     }
 
     pub fn all(conn: &Connection) -> Result<Vec<Self>> {
         let mut stmt = conn.prepare("SELECT id, name, description FROM roles ORDER BY id DESC")?;
-        let rows = stmt.query_map([], |row| Ok(Role { id: row.get(0)?, name: row.get(1)?, description: row.get(2)? }))?;
+        let rows = stmt.query_map([], |row| {
+            Ok(Role {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                description: row.get(2)?,
+            })
+        })?;
         rows.collect()
     }
 }
@@ -74,4 +120,3 @@ pub struct RoleUpdatePayload {
     pub name: Option<String>,
     pub description: Option<String>,
 }
-

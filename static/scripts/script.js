@@ -5,39 +5,46 @@ let roleAccess;
 
 const pageModels = {
 	"/": [],
-	"/jobs": ["jobs", "po_codes"],
+	"/jobs": ["jobs", "input_rolls"],
 	"/input-rolls": ["input_rolls", "jobs"],
-	"/output-rolls": ["output_rolls", "rolls", "jobs", "flag_reasons"],
-	"/production": ["jobs", "rolls"],
-	"/downtime": ["downtimes", "downtime_reasons", "jobs", "shifts"],
-	"/scrap": ["scraps", "scrap_types", "jobs", "shifts"],
-	"/consumables": ["ink_usages", "solvent_usages", "solvent_types", "colours", "jobs", "shifts"],
+	"/output-rolls": ["output_rolls", "input_rolls"],
+	"/production": ["jobs", "input_rolls", "output_rolls"],
+	"/downtime": ["downtimes"],
+	"/scrap": ["scraps"],
+	"/consumables": ["ink_usages"],
 	"/settings": [],
 	"/materials": ["materials"],
 	"/machines": ["machines"],
 	"/sections": ["sections"],
-	"/lookups": ["shifts", "colours", "solvent_types", "scrap_types", "downtime_reasons", "flag_reasons", "po_codes"],
+	"/lookups": ["downtime_reasons", "flag_reasons"],
 	"/users": ["users"],
 	"/roles": ["roles", "permissions"],
 	"/logout": [],
 };
-const hasPageAccess = (p) => p.can_create && p.can_read && p.can_update && p.can_delete;
+const hasPageAccess = (p) => p.can_create && p.can_read && p.can_delete;
 
 async function buildRoleAccessFromPermissions(roleId) {
 	const res = await fetch("/api/permissions");
 	const all = await res.json();
 	const perms = all.filter((p) => Number(p.role_id) === Number(roleId));
 
-	const modelAllowed = new Set(
-		perms.filter((p) => p.can_create && p.can_read && p.can_update && p.can_delete).map((p) => (p.model || "").toLowerCase()),
-	);
+	const modelAllowed = new Set(perms.filter((p) => p.can_create && p.can_read && p.can_delete).map((p) => (p.model || "").toLowerCase()));
+
+	console.log("[nav] roleId", roleId);
+	console.log("[nav] total perms", perms.length);
+	console.log("[nav] full CRUD models", Array.from(modelAllowed.values()).sort());
 
 	const access = {};
 	for (const [path, models] of Object.entries(pageModels)) {
-		access[path] = models.some((m) => modelAllowed.has(m.toLowerCase()));
+		if (!models.length) {
+			access[path] = true;
+			continue;
+		}
+		access[path] = models.every((m) => modelAllowed.has(m.toLowerCase()));
 	}
 	access["/logout"] = true;
 	access["/"] = true;
+	console.log("[nav] access map", access);
 	return access;
 }
 
