@@ -141,13 +141,13 @@ impl Scale {
 pub fn check_printer() -> bool {
     let data_dir = Path::new("data");
     let pdf_path = data_dir.join("test.pdf");
-    let sumatra_path = data_dir.join("SumatraPDF-3.5.2-64.exe");
+    let pdf_exe_path = data_dir.join("pdf.exe");
 
-    if !pdf_path.exists() || !sumatra_path.exists() {
+    if !pdf_path.exists() || !pdf_exe_path.exists() {
         return false;
     }
 
-    match Command::new(sumatra_path)
+    match Command::new(pdf_exe_path)
         .args(&[
             "-print-to-default",
             pdf_path.to_str().unwrap(),
@@ -166,15 +166,15 @@ pub fn check_printer() -> bool {
 pub fn print_pdf(pdf_data: &[u8]) -> Result<(), String> {
     let data_dir = Path::new("data");
     let pdf_path = data_dir.join("temp_print.pdf");
-    let sumatra_path = data_dir.join("SumatraPDF-3.5.2-64.exe");
+    let pdf_exe_path = data_dir.join("pdf.exe");
 
-    if !sumatra_path.exists() {
+    if !pdf_exe_path.exists() {
         return Err("SumatraPDF not found".to_string());
     }
 
     fs::write(&pdf_path, pdf_data).map_err(|e| format!("Failed to save PDF: {}", e))?;
 
-    let output = Command::new(sumatra_path)
+    let output = Command::new(pdf_exe_path)
         .args(&[
             "-print-to-default",
             pdf_path.to_str().unwrap(),
