@@ -13,7 +13,8 @@ async function initializePage() {
 	await loadMachines();
 	await loadFlagReasons();
 	setupEventListeners();
-	syncStartNewButton();
+	setUseRollVisible(false);
+	setAddRollVisible(false);
 }
 
 async function loadMachines() {
@@ -301,7 +302,22 @@ function syncStartNewButton() {
 	const submitBtn = document.querySelector("#input-form button[type='submit']");
 	const startNewBtn = document.getElementById("start-new-btn");
 	if (!submitBtn || !startNewBtn) return;
-	startNewBtn.style.display = submitBtn.disabled ? "inline-block" : "none";
+	const useRollVisible = submitBtn.style.display !== "none";
+	if (useRollVisible) startNewBtn.style.display = "none";
+}
+
+function setUseRollVisible(visible) {
+	const submitBtn = document.querySelector("#input-form button[type='submit']");
+	if (!submitBtn) return;
+	submitBtn.style.display = visible ? "inline-block" : "none";
+	submitBtn.disabled = !visible;
+	syncStartNewButton();
+}
+
+function setAddRollVisible(visible) {
+	const startNewBtn = document.getElementById("start-new-btn");
+	if (!startNewBtn) return;
+	startNewBtn.style.display = visible ? "inline-block" : "none";
 }
 
 function removeClearInputButton() {
@@ -377,7 +393,8 @@ function setupEventListeners() {
 		if (poData) {
 			updateInputTitle(poData);
 			document.getElementById("input-section").style.display = "block";
-			document.querySelector("#input-form button[type='submit']").disabled = false;
+			setUseRollVisible(true);
+			setAddRollVisible(false);
 		} else {
 			document.getElementById("input-section").style.display = "none";
 			document.getElementById("input-form").reset();
@@ -385,7 +402,8 @@ function setupEventListeners() {
 			document.getElementById("consuming-material").innerHTML = '<option value="">Select Material</option>';
 			document.getElementById("batch-roll-no").innerHTML = '<option value="">Select Material First</option>';
 			document.getElementById("batch-roll-no").disabled = true;
-			document.querySelector("#input-form button[type='submit']").disabled = true;
+			setUseRollVisible(false);
+			setAddRollVisible(false);
 		}
 	});
 
@@ -461,8 +479,9 @@ function resetToMachineSelection() {
 	document.getElementById("output-form").reset();
 
 	const submitBtn = document.querySelector("#input-form button[type='submit']");
-	submitBtn.disabled = true;
-	submitBtn.textContent = "Use Roll";
+	if (submitBtn) submitBtn.textContent = "Use Roll";
+	setUseRollVisible(false);
+	setAddRollVisible(false);
 
 	const clearBtn = document.getElementById("clear-input-btn");
 	if (clearBtn) clearBtn.remove();
@@ -569,9 +588,7 @@ async function confirmStartNew() {
 		document.getElementById("shift-select").disabled = false;
 
 		enableInputForm();
-		document.getElementById("start-new-btn").style.display = "none";
-		const submitBtn = document.querySelector("#input-form button[type='submit']");
-		if (submitBtn) submitBtn.disabled = false;
+		setUseRollVisible(true);
 
 		const inputForm = document.getElementById("input-form");
 		if (inputForm) {
@@ -635,10 +652,11 @@ function resetForm() {
 	document.getElementById("job-details").style.display = "none";
 	document.getElementById("input-section").style.display = "none";
 	document.getElementById("input-form").reset();
-	document.querySelector("#input-form button[type='submit']").disabled = true;
-	document.querySelector("#input-form button[type='submit']").textContent = "Use Roll";
+	const submitBtn = document.querySelector("#input-form button[type='submit']");
+	if (submitBtn) submitBtn.textContent = "Use Roll";
+	setUseRollVisible(false);
+	setAddRollVisible(false);
 	document.getElementById("input-title").textContent = "Currently Consuming (Input)";
-	syncStartNewButton();
 	document.getElementById("rolls-table-body").innerHTML = `
         <tr>
             <td colspan="5" class="text-center text-gray-500 py-4">No rolls found</td>
@@ -756,8 +774,8 @@ function enableInputForm() {
 	document.getElementById("input-form").reset();
 
 	const submitBtn = document.querySelector("#input-form button[type='submit']");
-	submitBtn.disabled = false;
-	submitBtn.textContent = "Use Roll";
+	if (submitBtn) submitBtn.textContent = "Use Roll";
+	setUseRollVisible(true);
 
 	disableOutputForm();
 	syncStartNewButton();
@@ -768,8 +786,8 @@ function disableInputForm() {
 	document.getElementById("batch-roll-no").disabled = true;
 	document.getElementById("start-meter").disabled = true;
 	document.getElementById("start-weight").disabled = true;
-	const submitBtn = document.querySelector("#input-form button[type='submit']");
-	submitBtn.disabled = true;
+	setUseRollVisible(false);
+	setAddRollVisible(true);
 	enableOutputForm();
 	syncStartNewButton();
 }
@@ -844,9 +862,9 @@ async function handleInputSubmit(e) {
 
 		addClearInputButton();
 
-		submitBtn.disabled = true;
 		submitBtn.textContent = "Production Started";
-		syncStartNewButton();
+		setUseRollVisible(false);
+		setAddRollVisible(true);
 
 		document.getElementById("shift-select").disabled = true;
 		document.getElementById("date-select").disabled = true;
@@ -854,11 +872,10 @@ async function handleInputSubmit(e) {
 		document.getElementById("process-order").disabled = true;
 		disableInputForm();
 	} catch (error) {
+		enableInputForm();
 		showNotification(error.message, "error");
 	} finally {
 		setButtonLoading(submitBtn, false);
-		submitBtn.disabled = true;
-		syncStartNewButton();
 	}
 }
 
@@ -979,7 +996,8 @@ async function createRoll(rollData) {
 
 	const startNewBtn = document.getElementById("start-new-btn");
 	if (startNewBtn) {
-		startNewBtn.style.display = "inline-block";
+		setUseRollVisible(false);
+		setAddRollVisible(true);
 		removeClearInputButton();
 	}
 
@@ -1123,13 +1141,12 @@ async function loadJobRolls(production_order) {
 		const tableBody = document.getElementById("rolls-table-body");
 		tableBody.innerHTML = "";
 
-		const startNewBtn = document.getElementById("start-new-btn");
-
-		if (result.data && result.data.length > 0) {
-			startNewBtn.style.display = "inline-block";
-			result.data.forEach((roll) => {
-				const row = document.createElement("tr");
-				row.className = "hover:bg-gray-50";
+	if (result.data && result.data.length > 0) {
+		setUseRollVisible(false);
+		setAddRollVisible(true);
+		result.data.forEach((roll) => {
+			const row = document.createElement("tr");
+			row.className = "hover:bg-gray-50";
 
 				const flagCount = typeof roll.flag_count === "number" ? roll.flag_count : 0;
 
@@ -1141,9 +1158,10 @@ async function loadJobRolls(production_order) {
 				`;
 				tableBody.appendChild(row);
 			});
-		} else {
-			const submitBtn = document.querySelector("#input-form button[type='submit']");
-			addClearInputButton();
+	} else {
+		addClearInputButton();
+		setUseRollVisible(false);
+		setAddRollVisible(true);
 
 			// startNewBtn.style.display = "none";
 			tableBody.innerHTML = `
