@@ -377,7 +377,24 @@ impl Job {
     }
 
     pub fn delete(&self, conn: &Connection) -> Result<()> {
-        conn.execute("DELETE FROM jobs WHERE id = ?1", params![self.id])?;
+        let has_output_rolls: i32 = conn.query_row(
+            "SELECT COUNT(*) FROM output_rolls o \
+             JOIN input_rolls i ON o.input_roll_id = i.id \
+             WHERE i.job_id = ?1",
+            params![self.id],
+            |row| row.get(0),
+        )?;
+
+        if has_output_rolls > 0 {
+            return Err(rusqlite::Error::InvalidParameterName(
+                "Cannot delete job: output rolls exist for this job".to_string(),
+            ));
+        }
+
+        let tx = conn.transaction()?;
+        tx.execute("DELETE FROM input_rolls WHERE job_id = ?1", params![self.id])?;
+        tx.execute("DELETE FROM jobs WHERE id = ?1", params![self.id])?;
+        tx.commit()?;
         Ok(())
     }
 }
