@@ -41,10 +41,10 @@ pub async fn delete_job(
     conn_data: web::Data<Pool<SqliteConnectionManager>>,
     data: web::Json<IdPayload>,
 ) -> impl Responder {
-    let conn = conn_data.get().unwrap();
-    match Job::find_by_id(&conn, data.id) {
+    let mut conn = conn_data.get().unwrap();
+    match Job::find_by_id(&mut conn, data.id) {
         Ok(job) => {
-            if let Err(e) = job.delete(&conn) {
+            if let Err(e) = job.delete(&mut conn) {
                 return HttpResponse::InternalServerError().body(e.to_string());
             }
             HttpResponse::Ok().body("Job deleted successfully")
