@@ -19,7 +19,7 @@ impl Scale {
 
     pub fn test_connection(&self) -> Result<f32, String> {
         if self.port_name.is_empty() {
-            return Err("Scale port not configure, call LFN IT".to_string());
+            return Err("Scale port not configure, call the IT".to_string());
         }
 
         self.reset_com_port()?;
@@ -59,7 +59,7 @@ impl Scale {
 
     pub fn get_weight(&self) -> Result<f32, String> {
         if self.port_name.is_empty() {
-            return Err("Scale port not configure, call LFN IT".to_string());
+            return Err("Scale port not configure, call the IT".to_string());
         }
 
         self.reset_com_port()?;
@@ -100,8 +100,14 @@ impl Scale {
     fn reset_com_port(&self) -> Result<(), String> {
         std::thread::sleep(std::time::Duration::from_millis(100));
 
-        let output = std::process::Command::new("cmd")
-            .args(&["/C", &format!("mode {}:115200,N,8,1,P", self.port_name)])
+        let mut cmd = std::process::Command::new("cmd");
+        cmd.args(&["/C", &format!("mode {}:115200,N,8,1,P", self.port_name)]);
+        #[cfg(windows)]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
+        let output = cmd
             .output()
             .map_err(|e| format!("Failed to reset COM port: {}", e))?;
 
