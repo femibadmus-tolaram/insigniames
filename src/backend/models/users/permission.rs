@@ -1,4 +1,4 @@
-use rusqlite::{Connection, OptionalExtension, Result, params};
+use rusqlite::{Connection, OptionalExtension, Result, params, params_from_iter};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
@@ -32,6 +32,16 @@ pub struct PermissionUpdatePayload {
 }
 
 impl Permission {
+    pub fn ensure_admin_full_access(conn: &mut Connection) -> Result<()> {
+        let tx = conn.transaction()?;
+        tx.execute(
+            "INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+             SELECT 1, id FROM permissions",
+            [],
+        )?;
+        tx.commit()?;
+        Ok(())
+    }
     pub fn create(conn: &Connection, p: &PermissionPayload) -> Result<Self> {
         conn.execute(
             "INSERT OR IGNORE INTO content_type (model) VALUES (?1)",
@@ -43,6 +53,61 @@ impl Permission {
             params![p.model],
             |row| row.get(0),
         )?;
+
+        let mut stmt = conn.prepare(
+            "SELECT p.id
+             FROM permissions p
+             JOIN role_permissions rp ON rp.permission_id = p.id
+             WHERE rp.role_id = ?1 AND p.content_type_id = ?2",
+        )?;
+        let existing_ids: Vec<i32> = stmt
+            .query_map(params![p.role_id, content_type_id], |row| row.get(0))?
+            .collect::<Result<Vec<_>, _>>()?;
+
+        if !existing_ids.is_empty() {
+            for id in &existing_ids {
+                conn.execute(
+                    "UPDATE permissions
+                     SET can_create = ?1, can_read = ?2, can_update = ?3, can_delete = ?4
+                     WHERE id = ?5",
+                    params![p.can_create, p.can_read, p.can_update, p.can_delete, id],
+                )?;
+            }
+
+            // Keep the newest permission row, remove duplicates.
+            let keep_id = *existing_ids.iter().max().unwrap();
+            let delete_ids: Vec<i32> = existing_ids
+                .into_iter()
+                .filter(|id| *id != keep_id)
+                .collect();
+            if !delete_ids.is_empty() {
+                let placeholders = std::iter::repeat("?")
+                    .take(delete_ids.len())
+                    .collect::<Vec<_>>()
+                    .join(",");
+                let sql_rp = format!(
+                    "DELETE FROM role_permissions WHERE role_id = ?1 AND permission_id IN ({})",
+                    placeholders
+                );
+                let mut params_vec: Vec<&dyn rusqlite::ToSql> =
+                    Vec::with_capacity(delete_ids.len() + 1);
+                params_vec.push(&p.role_id);
+                for id in &delete_ids {
+                    params_vec.push(id);
+                }
+                conn.execute(&sql_rp, params_from_iter(params_vec))?;
+            }
+
+            return Ok(Permission {
+                id: keep_id,
+                role_id: p.role_id,
+                model: p.model.clone(),
+                can_create: p.can_create,
+                can_read: p.can_read,
+                can_update: p.can_update,
+                can_delete: p.can_delete,
+            });
+        }
 
         conn.execute(
             "INSERT INTO permissions (content_type_id, can_create, can_read, can_update, can_delete)
@@ -159,7 +224,9 @@ impl Permission {
         Ok(result.is_some())
     }
 
-    pub fn all(conn: &Connection) -> Result<Vec<Self>> {
+    pub fn all(conn: &mut Connection) -> Result<Vec<Self>> {
+        let _ = Self::cleanup_role_permission_duplicates(conn);
+        let _ = Self::ensure_admin_full_access(conn);
         let mut stmt = conn.prepare(
             "SELECT p.id, rp.role_id, c.model, 
                     p.can_create, p.can_read, p.can_update, p.can_delete
@@ -181,5 +248,66 @@ impl Permission {
         })?;
 
         rows.collect()
+    }
+
+    pub fn cleanup_role_permission_duplicates(conn: &mut Connection) -> Result<usize> {
+        let tx = conn.transaction()?;
+
+        let mut map: std::collections::HashMap<(i32, i32), Vec<i32>> =
+            std::collections::HashMap::new();
+        {
+            let mut stmt = tx.prepare(
+                "SELECT rp.role_id, p.content_type_id, p.id
+                 FROM role_permissions rp
+                 JOIN permissions p ON rp.permission_id = p.id
+                 ORDER BY rp.role_id ASC, p.content_type_id ASC, p.id ASC",
+            )?;
+
+            let rows = stmt.query_map([], |row| {
+                Ok((
+                    row.get::<_, i32>(0)?,
+                    row.get::<_, i32>(1)?,
+                    row.get::<_, i32>(2)?,
+                ))
+            })?;
+
+            for row in rows {
+                let (role_id, content_type_id, perm_id) = row?;
+                map.entry((role_id, content_type_id))
+                    .or_default()
+                    .push(perm_id);
+            }
+        }
+
+        let mut removed = 0usize;
+        for ((role_id, _content_type_id), mut ids) in map {
+            if ids.len() <= 1 {
+                continue;
+            }
+            ids.sort_unstable();
+            let keep_id = *ids.last().unwrap();
+            let delete_ids: Vec<i32> = ids.into_iter().filter(|id| *id != keep_id).collect();
+            if delete_ids.is_empty() {
+                continue;
+            }
+            let placeholders = std::iter::repeat("?")
+                .take(delete_ids.len())
+                .collect::<Vec<_>>()
+                .join(",");
+            let sql = format!(
+                "DELETE FROM role_permissions WHERE role_id = ?1 AND permission_id IN ({})",
+                placeholders
+            );
+            let mut params_vec: Vec<&dyn rusqlite::ToSql> =
+                Vec::with_capacity(delete_ids.len() + 1);
+            params_vec.push(&role_id);
+            for id in &delete_ids {
+                params_vec.push(id);
+            }
+            removed += tx.execute(&sql, params_from_iter(params_vec))? as usize;
+        }
+
+        tx.commit()?;
+        Ok(removed)
     }
 }
