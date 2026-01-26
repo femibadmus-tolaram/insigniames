@@ -376,7 +376,7 @@ impl Job {
         Ok(())
     }
 
-    pub fn delete(&self, conn: &Connection) -> Result<()> {
+    pub fn delete(&self, conn: &mut Connection) -> Result<()> {
         let has_output_rolls: i32 = conn.query_row(
             "SELECT COUNT(*) FROM output_rolls o \
              JOIN input_rolls i ON o.input_roll_id = i.id \
@@ -392,7 +392,10 @@ impl Job {
         }
 
         let tx = conn.transaction()?;
-        tx.execute("DELETE FROM input_rolls WHERE job_id = ?1", params![self.id])?;
+        tx.execute(
+            "DELETE FROM input_rolls WHERE job_id = ?1",
+            params![self.id],
+        )?;
         tx.execute("DELETE FROM jobs WHERE id = ?1", params![self.id])?;
         tx.commit()?;
         Ok(())
