@@ -252,7 +252,7 @@ async function printRoll(rollId) {
 		a.download = `label-${result.output_batch || rollId}.pdf`;
 		document.getElementById("close-print-btn").addEventListener("click", closePrintModal);
 		document.getElementById("print-pdf-btn").addEventListener("click", async function () {
-			a.click();
+			// a.click();
 			const reader = new FileReader();
 			reader.onloadend = async function () {
 				const base64data = reader.result.split(",")[1];

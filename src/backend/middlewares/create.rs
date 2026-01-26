@@ -1,13 +1,13 @@
-use actix_web::{dev::ServiceRequest, dev::ServiceResponse, Error, HttpResponse};
-use actix_web::dev::{Transform, Service};
-use futures::future::{LocalBoxFuture, Ready, ready};
 use crate::backend::models::Permission;
-use r2d2_sqlite::SqliteConnectionManager;
-use r2d2::Pool;
-use std::task::{Context, Poll};
 use actix_session::SessionExt;
 use actix_web::body::BoxBody;
-// use actix_web::http::StatusCode;
+use actix_web::dev::{Service, Transform};
+use actix_web::http::StatusCode;
+use actix_web::{Error, HttpResponse, dev::ServiceRequest, dev::ServiceResponse};
+use futures::future::{LocalBoxFuture, Ready, ready};
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
+use std::task::{Context, Poll};
 
 pub struct CheckCreate {
     pub model: &'static str,
@@ -78,12 +78,18 @@ where
             }
         }
 
-        // let body = match perm_opt {
-        //     Some(p) => format!("User {} has no CREATE permission on {}, found permission for model {}", uid, model, p.model),
-        //     None => format!("User {} has no CREATE permission on {}, no permission found", uid, model),
-        // };
-        // let res = HttpResponse::new(StatusCode::FORBIDDEN).set_body(BoxBody::new(body));
-        let res = HttpResponse::Forbidden().json(&serde_json::json!({ "message": "Permission Denied" }));
+        let body = match perm_opt {
+            Some(p) => format!(
+                "User {} has no CREATE permission on {}, found permission for model {}",
+                uid, model, p.model
+            ),
+            None => format!(
+                "User {} has no CREATE permission on {}, no permission found",
+                uid, model
+            ),
+        };
+        let res = HttpResponse::new(StatusCode::FORBIDDEN).set_body(BoxBody::new(body));
+        // let res = HttpResponse::Forbidden().json(&serde_json::json!({ "message": "Permission Denied" }));
         Box::pin(async move { Ok(req.into_response(res)) })
     }
 }
