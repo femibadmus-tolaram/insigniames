@@ -21,6 +21,7 @@ pub struct JobFilterPayload {
     pub machine_id: Option<i32>,
     pub shift_id: Option<i32>,
     pub created_by: Option<i32>,
+    pub status: Option<String>,
     pub production_order: Option<String>,
     pub start_datetime: Option<String>,
     pub end_datetime: Option<String>,
@@ -177,6 +178,11 @@ impl Job {
         conn: &Connection,
         filter: &JobFilterPayload,
     ) -> Result<JobInputRollMergedResponse> {
+        let status_is_active = filter
+            .status
+            .as_deref()
+            .map(|s| s.eq_ignore_ascii_case("active"))
+            .unwrap_or(false);
         let mut sql = String::from(
             "SELECT id, machine_id, shift_id, created_by, production_order, start_datetime, end_datetime, created_at, updated_at FROM jobs WHERE 1=1",
         );
@@ -252,10 +258,14 @@ impl Job {
                 per_page: None,
                 page: None,
             };
-            let input_rolls: Vec<InputRoll> = InputRoll::filter(conn, &input_filter)?
-                .into_iter()
-                .filter(|r| r.consumed_weight.is_none())
-                .collect();
+            let input_rolls: Vec<InputRoll> = if status_is_active {
+                InputRoll::filter(conn, &input_filter)?
+                    .into_iter()
+                    .filter(|r| r.consumed_weight.is_none())
+                    .collect()
+            } else {
+                InputRoll::filter(conn, &input_filter)?
+            };
             for input_roll in input_rolls {
                 merged.push(JobInputRollMerged {
                     id: job.id,
