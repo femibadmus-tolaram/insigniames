@@ -27,21 +27,21 @@ pub async fn get_batch_availability(
 
     if let Some(results) = res["d"]["results"].as_array() {
         for item in results {
-            let valuation_type = item["ValuationType"].as_str().unwrap_or("");
+            // let valuation_type = item["ValuationType"].as_str().unwrap_or("");
 
-            if valuation_type == "" {
-                if let (Some(batch), Some(total_stock), Some(unit)) = (
-                    item["Batch"].as_str(),
-                    item["TotalStock"].as_str(),
-                    item["UnitOfMeasure"].as_str(),
-                ) {
-                    let stock_value: f64 = total_stock.trim().parse().unwrap_or(0.0);
-                    if stock_value > 0.0 {
-                        let start_weight = format!("{}{}", total_stock.trim(), unit);
-                        batches.push((batch.to_string(), start_weight));
-                    }
+            // if valuation_type == "" {
+            if let (Some(batch), Some(total_stock), Some(unit)) = (
+                item["Batch"].as_str(),
+                item["TotalStock"].as_str(),
+                item["UnitOfMeasure"].as_str(),
+            ) {
+                let stock_value: f64 = total_stock.trim().parse().unwrap_or(0.0);
+                if stock_value > 0.0 {
+                    let start_weight = format!("{}{}", total_stock.trim(), unit);
+                    batches.push((batch.to_string(), start_weight));
                 }
             }
+            // }
         }
     }
 
