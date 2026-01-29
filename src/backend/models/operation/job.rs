@@ -69,6 +69,23 @@ pub struct JobInputRollMerged {
 }
 
 #[derive(Serialize)]
+pub struct JobSummary {
+    pub id: i32,
+    pub production_order: String,
+    pub machine_id: i32,
+    pub shift_id: i32,
+    pub created_by: i32,
+    pub last_updated: String,
+    pub total_consumed_weight: f64,
+}
+
+#[derive(Serialize)]
+pub struct JobSummaryResponse {
+    pub total_count: usize,
+    pub data: Vec<JobSummary>,
+}
+
+#[derive(Serialize)]
 pub struct JobInputRollMergedResponse {
     pub total_count: usize,
     pub data: Vec<JobInputRollMerged>,
@@ -174,6 +191,92 @@ impl Job {
         })
     }
 
+    pub fn filter(
+        conn: &Connection,
+        filter: &JobFilterPayload,
+    ) -> Result<JobSummaryResponse> {
+        let status_is_active = filter
+            .status
+            .as_deref()
+            .map(|s| s.eq_ignore_ascii_case("active"))
+            .unwrap_or(false);
+        let mut sql = String::from(
+            "SELECT j.id, j.production_order, j.machine_id, j.shift_id, j.created_by, \
+                j.updated_at, MAX(ir.updated_at) as last_input_update, \
+                COALESCE(SUM(ir.consumed_weight), 0) as total_consumed_weight \
+             FROM jobs j \
+             LEFT JOIN input_rolls ir ON ir.job_id = j.id \
+             WHERE 1=1",
+        );
+        let mut params: Vec<rusqlite::types::Value> = Vec::new();
+        if let Some(id) = filter.id {
+            sql.push_str(" AND j.id = ?");
+            params.push(id.into());
+        }
+        if let Some(machine_id) = filter.machine_id {
+            sql.push_str(" AND j.machine_id = ?");
+            params.push(machine_id.into());
+        }
+        if let Some(shift_id) = filter.shift_id {
+            sql.push_str(" AND j.shift_id = ?");
+            params.push(shift_id.into());
+        }
+        if let Some(created_by) = filter.created_by {
+            sql.push_str(" AND j.created_by = ?");
+            params.push(created_by.into());
+        }
+        if let Some(ref production_order) = filter.production_order {
+            sql.push_str(" AND j.production_order = ?");
+            params.push(production_order.clone().into());
+        }
+        if let Some(ref start_datetime) = filter.start_datetime {
+            sql.push_str(" AND j.start_datetime = ?");
+            params.push(start_datetime.clone().into());
+        }
+        if let Some(ref end_datetime) = filter.end_datetime {
+            sql.push_str(" AND j.end_datetime = ?");
+            params.push(end_datetime.clone().into());
+        }
+        if let Some(ref created_at) = filter.created_at {
+            sql.push_str(" AND j.created_at = ?");
+            params.push(created_at.clone().into());
+        }
+        if let Some(ref updated_at) = filter.updated_at {
+            sql.push_str(" AND j.updated_at = ?");
+            params.push(updated_at.clone().into());
+        }
+        if status_is_active {
+            sql.push_str(" AND j.end_datetime IS NULL");
+        }
+        sql.push_str(" GROUP BY j.id");
+        sql.push_str(" ORDER BY j.created_at DESC");
+
+        let mut stmt = conn.prepare(&sql)?;
+        let rows = stmt.query_map(rusqlite::params_from_iter(params.iter()), |row| {
+            let job_updated_at: String = row.get(5)?;
+            let last_input_update: Option<String> = row.get(6)?;
+            let last_updated = match last_input_update {
+                Some(last) if last > job_updated_at => last,
+                _ => job_updated_at,
+            };
+            Ok(JobSummary {
+                id: row.get(0)?,
+                production_order: row.get(1)?,
+                machine_id: row.get(2)?,
+                shift_id: row.get(3)?,
+                created_by: row.get(4)?,
+                last_updated,
+                total_consumed_weight: row.get(7)?,
+            })
+        })?;
+
+        let data = rows.collect::<Result<Vec<_>, _>>()?;
+        Ok(JobSummaryResponse {
+            total_count: data.len(),
+            data,
+        })
+    }
+
     pub fn filter_with_input_rolls(
         conn: &Connection,
         filter: &JobFilterPayload,
@@ -222,6 +325,9 @@ impl Job {
         if let Some(ref updated_at) = filter.updated_at {
             sql.push_str(" AND updated_at = ?");
             params.push(updated_at.clone().into());
+        }
+        if status_is_active {
+            sql.push_str(" AND end_datetime IS NULL");
         }
         sql.push_str(" ORDER BY created_at DESC");
 
