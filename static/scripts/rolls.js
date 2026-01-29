@@ -22,26 +22,25 @@ async function printRoll(rollId) {
 						<div style="font-size: 13px; font-weight: bold; margin-top: 4px;">${escapeHtml(result.process_order_description)}</div>
 					</div>
 					<!-- QR CODE IN CENTER -->
-					<div style="text-align: center; margin: 0 auto 30px auto;">
+					<div style="text-align: center; margin: 0 auto 20px auto;">
 						<div id="qrcode-container" style="display:block;width:180px;height:180px;margin:0;padding:0;"></div>
-						<label style="margin-top: 5px; font-size: 8px; font-weight: bold; display: block; text-transform: uppercase; color: #444;">ROLL NO SCAN</label>
 					</div>
 					<!-- CONTENT BELOW QR CODE -->
-					<div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+					<div style="display: flex; justify-content: space-between; margin-bottom: 22px;">
 						<div style="flex: 1;">
 							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">PRODUCTION ORDER</label>
-							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.production_order)}</div>
+							<div style="font-size: 12px; font-weight: bold; margin-bottom: 18px;">${escapeHtml(result.production_order)}</div>
 							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">SECTION</label>
-							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.section)}</div>
+							<div style="font-size: 12px; font-weight: bold; margin-bottom: 18px;">${escapeHtml(result.section)}</div>
 						</div>
 						<div style="flex: 1; text-align: right;">
 							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">MATERIAL NUMBER</label>
-							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.material_number)}</div>
+							<div style="font-size: 12px; font-weight: bold; margin-bottom: 18px;">${escapeHtml(result.material_number)}</div>
 							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">ROLL NO</label>
-							<div style="font-size: 12px; font-weight: bold; margin-bottom: 15px;">${escapeHtml(result.output_batch)}</div>
+							<div style="font-size: 12px; font-weight: bold; margin-bottom: 18px;">${escapeHtml(result.output_batch)}</div>
 						</div>
 					</div>
-					<div style="display: flex; margin-bottom: 25px;">
+					<div style="display: flex; margin-bottom: 28px;">
 						<div style="flex: 1;">
 							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">FINAL METER</label>
 							<div style="font-size: 14px; font-weight: bold;">${formatNumber(result.final_meter)} m</div>
@@ -51,17 +50,16 @@ async function printRoll(rollId) {
 							<div style="font-size: 14px; font-weight: bold;">${formatNumber(result.final_weight)} kg</div>
 						</div>
 					</div>
-					<div style="margin-top: auto; display: flex; justify-content: space-between; padding-bottom: 5px;">
+					<div style="margin-top: auto; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-start;">
 						<div>
-							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">TIMESTAMP</label>
 							<div style="font-size: 11px; font-family: monospace; font-weight: bold;">${escapeHtml(result.created_at)}</div>
 						</div>
 						<div style="text-align: right;">
-							<label style="font-size: 10px; font-weight: bold; display: block; text-transform: uppercase; color: #444; margin-bottom: 4px;">REMARK</label>
-							<div style="font-size: 11px; font-family: monospace; font-weight: bold;">
-								${result.flag_count > 0 ? `${result.flag_count} Flags` : "GOOD"}
-							</div>
+							<div style="font-size: 11px; font-family: monospace; font-weight: bold;">${escapeHtml(result.operator_name || "SYSTEM")}</div>
 						</div>
+					</div>
+					<div style="font-size: 9px; font-family: monospace; font-weight: bold; width: 100%; text-align: center; white-space: normal; word-break: break-word; line-height: 1.2; margin-top: auto; padding-bottom: 20px;">
+						${escapeHtml(formatFlagReasonDisplay(result))}
 					</div>
 				</div>
 			</div>
@@ -194,14 +192,13 @@ async function printRoll(rollId) {
 		// Move QR code up a bit, and push text blocks below QR code further down
 		const qrY = y - 5; // QR code closer to subtitle
 		page.drawImage(img, { x: (288 - 150) / 2, y: qrY - 150, width: 150, height: 150 });
-		page.drawText("ROLL NO SCAN", { x: 110, y: qrY - 158, size: 7, font: fontB, color: rgb(0.25, 0.25, 0.25) });
 
-		// Adjust y for key-value text blocks to come down more
-		let kvStartY = qrY - 200; // move all key-value texts further down
+		// Adjust y for key-value text blocks: move slightly up under QR
+		let kvStartY = qrY - 190;
 
 		const leftX = 24,
 			rightX = 288 - 24 - 80; // 24px margin from right, 80px block width
-		// Increase font sizes for key-value texts
+		// Restore original font sizes for key-value block
 		const kv = (label, value, x, y, align = "left") => {
 			const labelFontSize = 10;
 			const valueFontSize = 13;
@@ -221,29 +218,81 @@ async function printRoll(rollId) {
 				});
 				page.drawText(String(value ?? ""), {
 					x: rightEdge - valueWidth,
-					y: y - 15,
+					y: y - 16,
 					size: valueFontSize,
 					font: fontB,
 					align: "right",
 				});
 			} else {
 				page.drawText(label, { x, y, size: labelFontSize, font: fontB, color: rgb(0.25, 0.25, 0.25) });
-				page.drawText(String(value ?? ""), { x, y: y - 15, size: valueFontSize, font: fontB });
+				page.drawText(String(value ?? ""), { x, y: y - 16, size: valueFontSize, font: fontB });
 			}
 		};
 
 		kv("PRODUCTION ORDER", result.production_order, leftX, kvStartY);
-		kv("SECTION", result.section, leftX, kvStartY - 34);
+		kv("SECTION", result.section, leftX, kvStartY - 38);
 		kv("MATERIAL NUMBER", result.material_number, rightX, kvStartY, "right");
-		kv("ROLL NO", result.output_batch, rightX, kvStartY - 34, "right");
+		kv("ROLL NO", result.output_batch, rightX, kvStartY - 38, "right");
 
-		kv("FINAL METER", `${formatNumber(result.final_meter)} m`, leftX, kvStartY - 72);
-		kv("FINAL WEIGHT", `${formatNumber(result.final_weight)} kg`, rightX, kvStartY - 72, "right");
+		kv("FINAL METER", `${formatNumber(result.final_meter)} m`, leftX, kvStartY - 80);
+		kv("FINAL WEIGHT", `${formatNumber(result.final_weight)} kg`, rightX, kvStartY - 80, "right");
 
-		// Only show the values for TIMESTAMP and REMARK, no key/label
-		const valueFontSize = 13;
-		page.drawText(String(result.created_at ?? ""), { x: leftX, y: kvStartY - 152, size: valueFontSize, font });
-		page.drawText(result.flag_count > 0 ? `${result.flag_count} Flags` : "GOOD", { x: rightX, y: kvStartY - 152, size: valueFontSize, font });
+		// TIMESTAMP + OPERATOR stays up; REASON sits at footer with full width
+		const timestampY = kvStartY - 120;
+		const valueSize = 12;
+		page.drawText(String(result.created_at ?? ""), { x: leftX, y: timestampY - 14, size: valueSize, font });
+		const operatorName = result.operator_name || "SYSTEM";
+		const operatorValueWidth = font.widthOfTextAtSize(operatorName, valueSize);
+		const rightEdge = 288 - 24;
+		page.drawText(operatorName, { x: rightEdge - operatorValueWidth, y: timestampY - 14, size: valueSize, font });
+
+		const remarkText = result.flag_count > 0 ? `${result.flag_reason || ""}` : "GOOD";
+		const wrapByWidth = (text, maxWidth, size) => {
+			const words = (text || "").replace(/\s+/g, " ").trim().split(" ").filter(Boolean);
+			if (words.length === 0) return [""];
+			const lines = [];
+			let line = "";
+			const fits = (t) => font.widthOfTextAtSize(t, size) <= maxWidth;
+			for (const word of words) {
+				const next = line ? `${line} ${word}` : word;
+				if (fits(next)) {
+					line = next;
+				} else {
+					if (line) lines.push(line);
+					if (fits(word)) {
+						line = word;
+					} else {
+						let chunk = "";
+						for (const ch of word) {
+							const trial = chunk + ch;
+							if (fits(trial)) {
+								chunk = trial;
+							} else {
+								if (chunk) lines.push(chunk);
+								chunk = ch;
+							}
+						}
+						line = chunk;
+					}
+				}
+			}
+			if (line) lines.push(line);
+			return lines;
+		};
+
+		const remarkFontSize = 7;
+		const remarkMaxWidth = 288 - leftX * 2;
+		const remarkLines = wrapByWidth(remarkText, remarkMaxWidth, remarkFontSize);
+		const lineHeight = 8;
+		const bottomMargin = 10;
+		const maxLines = Math.max(1, Math.floor((timestampY - 18 - bottomMargin) / lineHeight));
+		const usedLines = Math.min(remarkLines.length, maxLines);
+		const totalHeight = usedLines * lineHeight;
+		const startY = bottomMargin + totalHeight - lineHeight;
+		remarkLines.slice(0, maxLines).forEach((ln, i) => {
+			const x = (288 - font.widthOfTextAtSize(ln, remarkFontSize)) / 2;
+			page.drawText(ln, { x, y: startY - i * lineHeight, size: remarkFontSize, font });
+		});
 
 		const bytes = await pdf.save();
 		const a = document.createElement("a");
@@ -252,7 +301,7 @@ async function printRoll(rollId) {
 		a.download = `label-${result.output_batch || rollId}.pdf`;
 		document.getElementById("close-print-btn").addEventListener("click", closePrintModal);
 		document.getElementById("print-pdf-btn").addEventListener("click", async function () {
-			// a.click();
+			a.click();
 			const reader = new FileReader();
 			reader.onloadend = async function () {
 				const base64data = reader.result.split(",")[1];
@@ -279,6 +328,25 @@ let currentPage = 1;
 let itemsPerPage = 10;
 let totalCount = 0;
 
+function formatFlagReasonDisplay(roll) {
+	if (!roll || !roll.flag_count || roll.flag_count <= 0) return "GOOD";
+	const raw = (roll.flag_reason || "").trim();
+	if (!raw) return "FLAGGED";
+	const parts = raw
+		.split("|")
+		.map((s) => s.trim())
+		.filter(Boolean);
+	if (parts.length === 0) return "FLAGGED";
+	const display = parts.map((part) => {
+		const [idPart, msgPart] = part.split(":").map((s) => (s || "").trim());
+		const idNum = parseInt(idPart, 10);
+		const reason = Number.isFinite(idNum) ? flagReasons.find((fr) => fr.id === idNum) : null;
+		const name = reason?.name || idPart || part;
+		return msgPart ? `${name}: ${msgPart}` : name;
+	});
+	return display.join(", ");
+}
+
 document.addEventListener("DOMContentLoaded", function () {
 	initializePage();
 });
@@ -290,6 +358,7 @@ async function initializePage() {
 		toggle.checked = showDetails;
 		toggle.addEventListener("change", toggleDetails);
 	}
+	await loadFlagReasonsForDisplay();
 	await loadRolls();
 	setupEventListeners();
 	setTimeout(() => toggleDetails(), 100);
@@ -322,20 +391,13 @@ function toggleDetails() {
 	localStorage.setItem("rollsShowDetails", showDetails);
 }
 
-async function loadFilterOptions() {
+async function loadFlagReasonsForDisplay() {
 	try {
-		const [reasonsResponse, usersResponse] = await Promise.all([
-			fetch("/api/lookups/flag-reasons").then(handleApiResponse),
-			fetch("/api/users").then(handleApiResponse),
-		]);
-
-		flagReasons = reasonsResponse;
-		users = usersResponse;
-
-		populateSelect("filter-flag-reason", flagReasons, "name", "All Reasons");
-		populateSelect("filter-user", users, "full_name", "All Users");
+		const response = await fetch("/api/lookups/flag-reasons");
+		const reasons = await handleApiResponse(response);
+		flagReasons = Array.isArray(reasons) ? reasons : [];
 	} catch (error) {
-		showNotification(error.message, "error");
+		flagReasons = [];
 	}
 }
 
@@ -386,8 +448,6 @@ function renderRolls(rollsToRender) {
 	tbody.innerHTML = "";
 
 	rollsToRender.forEach((roll) => {
-		const reason = flagReasons.find((r) => r.id === roll.flag_reason_id);
-		const createdBy = users.find((u) => u.id === roll.created_by);
 		const isEditable = roll.final_weight === 0;
 		const isDeletable = roll.final_weight === 0;
 
@@ -436,13 +496,8 @@ function renderRolls(rollsToRender) {
             </td>
         `;
 
-		if (roll.flag_reason_id) {
-			const reason = flagReasons.find((r) => r.id === roll.flag_reason_id);
-			if (reason) {
-				row.setAttribute("title", `Flag Reason: ${reason.name}`);
-				row.classList.add("cursor-help");
-			}
-		}
+		row.setAttribute("title", `Flag Reason: ${formatFlagReasonDisplay(roll)}`);
+		row.classList.add("cursor-help");
 
 		tbody.appendChild(row);
 	});
@@ -534,8 +589,6 @@ async function applyFilters() {
 
 		if (statusFilter) params.append("status", statusFilter);
 
-		// if (reasonFilter) params.append("flag_reason_id", reasonFilter);
-		// if (userFilter) params.append("created_by", userFilter);
 		if (shiftFilter) params.append("shift_id", shiftFilter);
 		if (startDate) params.append("start_date", startDate);
 		if (endDate) params.append("end_date", endDate);
@@ -736,9 +789,6 @@ async function exportToExcel() {
 				params.append("number_of_flags", "0");
 			}
 		}
-
-		// if (reasonFilter) params.append("flag_reason_id", reasonFilter);
-		// if (userFilter) params.append("created_by", userFilter);
 		if (shiftFilter) params.append("shift_id", shiftFilter);
 		if (startDate) params.append("start_date", startDate);
 		if (endDate) params.append("end_date", endDate);
@@ -753,7 +803,6 @@ async function exportToExcel() {
 		}
 
 		const data = filteredRolls.map((roll) => {
-			const reason = flagReasons.find((r) => r.id === roll.flag_reason_id);
 			const createdBy = users.find((u) => u.id === roll.created_by);
 
 			return {
@@ -762,7 +811,7 @@ async function exportToExcel() {
 				Weight: formatWeight(roll.final_weight || 0),
 				Meters: roll.final_meter || 0 + " m",
 				"Job ID": roll.job_id,
-				"Flag Reason": reason?.name || "-",
+				"Flag Reason": formatFlagReasonDisplay(roll),
 				"Flag Count": typeof roll.flag_count === "number" ? roll.flag_count : 0,
 				"Created By": createdBy?.full_name || "System",
 				"Created At": formatDateTime(roll.created_at),
