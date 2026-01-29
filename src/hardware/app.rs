@@ -5,7 +5,9 @@ use chrono::Local;
 use reqwest;
 use serde::Deserialize;
 use serde_json::json;
-use std::{ffi::CString, fs, path::Path, ptr};
+use std::{fs, path::Path};
+#[cfg(windows)]
+use std::{ffi::CString, ptr};
 #[cfg(windows)]
 use winapi::um::processthreadsapi::{CreateProcessA, PROCESS_INFORMATION, STARTUPINFOA};
 
