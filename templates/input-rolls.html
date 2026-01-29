@@ -243,7 +243,18 @@
 
 						<div class="mt-6">
 							<div class="flex justify-between items-center mb-4">
-								<h3 class="text-lg font-medium text-gray-700">Input Roll Records</h3>
+								<div class="flex items-center gap-3">
+									<h3 class="text-lg font-medium text-gray-700">Input Roll Records</h3>
+									<div class="flex items-center gap-2">
+										<span class="text-sm text-gray-600">Details</span>
+										<label class="relative inline-flex items-center cursor-pointer">
+											<input type="checkbox" id="details-toggle" class="sr-only peer" />
+											<div
+												class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"
+											></div>
+										</label>
+									</div>
+								</div>
 								<div class="flex items-center gap-2">
 									<button class="btn btn-secondary" id="export-btn"><i class="fas fa-file-export"></i> Export</button>
 								</div>
@@ -279,11 +290,17 @@
 											</th>
 											<th class="cursor-pointer">
 												<div class="flex items-center gap-1">
+													<span>Material Document</span>
+													<i class="fas fa-sort text-gray-400"></i>
+												</div>
+											</th>
+											<th class="cursor-pointer details-column">
+												<div class="flex items-center gap-1">
 													<span>Start Meter</span>
 													<i class="fas fa-sort text-gray-400"></i>
 												</div>
 											</th>
-											<th class="cursor-pointer">
+											<th class="cursor-pointer details-column">
 												<div class="flex items-center gap-1">
 													<span>Start Weight</span>
 													<i class="fas fa-sort text-gray-400"></i>
@@ -311,7 +328,7 @@
 									</thead>
 									<tbody id="input-rolls-table-body" class="divide-y divide-gray-200">
 										<tr>
-											<td colspan="9" class="text-center text-gray-500 py-4">Loading input rolls...</td>
+											<td colspan="10" class="text-center text-gray-500 py-4">Loading input rolls...</td>
 										</tr>
 									</tbody>
 								</table>
