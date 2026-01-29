@@ -6,6 +6,14 @@ pub fn init_local_db(path: &str) -> Result<()> {
     let conn = Connection::open(path)?;
     conn.execute_batch(
         "
+        PRAGMA journal_mode=WAL;
+        PRAGMA synchronous=NORMAL;
+        PRAGMA busy_timeout=5000;
+        PRAGMA foreign_keys=ON;
+        ",
+    )?;
+    conn.execute_batch(
+        "
         CREATE TABLE IF NOT EXISTS content_type (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             model TEXT UNIQUE
@@ -370,7 +378,16 @@ pub fn init_local_db(path: &str) -> Result<()> {
 }
 
 pub fn connect_local_db(path: &str) -> Result<Pool<SqliteConnectionManager>> {
-    let manager = SqliteConnectionManager::file(path);
+    let manager = SqliteConnectionManager::file(path).with_init(|c| {
+        c.execute_batch(
+            "
+            PRAGMA journal_mode=WAL;
+            PRAGMA synchronous=NORMAL;
+            PRAGMA busy_timeout=5000;
+            PRAGMA foreign_keys=ON;
+            ",
+        )
+    });
     let pool = Pool::new(manager).unwrap();
     Ok(pool)
 }
