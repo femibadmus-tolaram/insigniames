@@ -21,6 +21,7 @@ pub struct OutputRoll {
     pub from_input_batch: String,
     pub flag_count: i32,
     pub created_by: i32,
+    pub operator_name: Option<String>,
     pub updated_by: Option<i32>,
     pub created_at: String,
     pub updated_at: String,
@@ -85,6 +86,7 @@ pub struct OutputRollDetails {
     pub created_at: String,
     pub section: String,
     pub flag_count: i32,
+    pub operator_name: Option<String>,
 }
 
 impl OutputRoll {
@@ -228,6 +230,7 @@ impl OutputRoll {
             input_roll_id: data.input_roll_id,
             job_id,
             created_by: user_id,
+            operator_name: None,
             updated_by: None,
             created_at: now.clone(),
             updated_at: now.clone(),
@@ -342,8 +345,12 @@ impl OutputRoll {
 
     pub fn find_by_id(conn: &Connection, id: i32) -> Result<Self> {
         let mut stmt = conn.prepare(
-                "SELECT o.id, o.output_batch, o.final_meter, o.flag_reason, o.final_weight, o.core_weight, o.input_roll_id, j.id as job_id, o.created_by, o.updated_by, o.created_at, o.updated_at, o.from_input_batch, o.flag_count \
-                 FROM output_rolls o JOIN input_rolls ir ON o.input_roll_id = ir.id JOIN jobs j ON ir.job_id = j.id WHERE o.id = ?1"
+                "SELECT o.id, o.output_batch, o.final_meter, o.flag_reason, o.final_weight, o.core_weight, o.input_roll_id, j.id as job_id, o.created_by, u.full_name, o.updated_by, o.created_at, o.updated_at, o.from_input_batch, o.flag_count \
+                 FROM output_rolls o \
+                 JOIN input_rolls ir ON o.input_roll_id = ir.id \
+                 JOIN jobs j ON ir.job_id = j.id \
+                 LEFT JOIN users u ON o.created_by = u.id \
+                 WHERE o.id = ?1"
             )?;
         stmt.query_row(params![id], |row| {
             Ok(OutputRoll {
@@ -356,19 +363,24 @@ impl OutputRoll {
                 input_roll_id: row.get(6)?,
                 job_id: row.get(7)?,
                 created_by: row.get(8)?,
-                updated_by: row.get(9)?,
-                created_at: row.get(10)?,
-                updated_at: row.get(11)?,
-                from_input_batch: row.get(12)?,
-                flag_count: row.get(13)?,
+                operator_name: row.get(9)?,
+                updated_by: row.get(10)?,
+                created_at: row.get(11)?,
+                updated_at: row.get(12)?,
+                from_input_batch: row.get(13)?,
+                flag_count: row.get(14)?,
             })
         })
     }
 
     pub fn all(conn: &Connection) -> Result<Vec<Self>> {
         let mut stmt = conn.prepare(
-                "SELECT o.id, o.output_batch, o.final_meter, o.flag_reason, o.final_weight, o.core_weight, o.input_roll_id, j.id as job_id, o.created_by, o.updated_by, o.created_at, o.updated_at, o.from_input_batch, o.flag_count \
-                 FROM output_rolls o JOIN input_rolls ir ON o.input_roll_id = ir.id JOIN jobs j ON ir.job_id = j.id ORDER BY o.created_at DESC"
+                "SELECT o.id, o.output_batch, o.final_meter, o.flag_reason, o.final_weight, o.core_weight, o.input_roll_id, j.id as job_id, o.created_by, u.full_name, o.updated_by, o.created_at, o.updated_at, o.from_input_batch, o.flag_count \
+                 FROM output_rolls o \
+                 JOIN input_rolls ir ON o.input_roll_id = ir.id \
+                 JOIN jobs j ON ir.job_id = j.id \
+                 LEFT JOIN users u ON o.created_by = u.id \
+                 ORDER BY o.created_at DESC"
         )?;
         let rolls = stmt
             .query_map([], |row| {
@@ -382,11 +394,12 @@ impl OutputRoll {
                     input_roll_id: row.get(6)?,
                     job_id: row.get(7)?,
                     created_by: row.get(8)?,
-                    updated_by: row.get(9)?,
-                    created_at: row.get(10)?,
-                    updated_at: row.get(11)?,
-                    from_input_batch: row.get(12)?,
-                    flag_count: row.get(13)?,
+                    operator_name: row.get(9)?,
+                    updated_by: row.get(10)?,
+                    created_at: row.get(11)?,
+                    updated_at: row.get(12)?,
+                    from_input_batch: row.get(13)?,
+                    flag_count: row.get(14)?,
                 })
             })?
             .collect::<Result<Vec<_>, _>>()?;
@@ -401,8 +414,12 @@ impl OutputRoll {
             "SELECT COUNT(*) FROM output_rolls r JOIN input_rolls ir ON r.input_roll_id = ir.id JOIN jobs j ON ir.job_id = j.id WHERE 1=1"
                 .to_string();
         let mut data_query =
-            "SELECT r.id, r.output_batch, r.final_meter, r.flag_reason, r.final_weight, r.core_weight, r.input_roll_id, j.id as job_id, r.created_by, r.updated_by, r.created_at, r.updated_at, r.from_input_batch, r.flag_count \
-             FROM output_rolls r JOIN input_rolls ir ON r.input_roll_id = ir.id JOIN jobs j ON ir.job_id = j.id WHERE 1=1".to_string();
+            "SELECT r.id, r.output_batch, r.final_meter, r.flag_reason, r.final_weight, r.core_weight, r.input_roll_id, j.id as job_id, r.created_by, u.full_name, r.updated_by, r.created_at, r.updated_at, r.from_input_batch, r.flag_count \
+             FROM output_rolls r \
+             JOIN input_rolls ir ON r.input_roll_id = ir.id \
+             JOIN jobs j ON ir.job_id = j.id \
+             LEFT JOIN users u ON r.created_by = u.id \
+             WHERE 1=1".to_string();
         let mut params_vec: Vec<&dyn rusqlite::ToSql> = vec![];
         // Hold boxed section_ids for params_vec lifetime
         let mut boxed_section_ids: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
@@ -549,11 +566,12 @@ impl OutputRoll {
                 input_roll_id: row.get(6)?,
                 job_id: row.get(7)?,
                 created_by: row.get(8)?,
-                updated_by: row.get(9)?,
-                created_at: row.get(10)?,
-                updated_at: row.get(11)?,
-                from_input_batch: row.get(12)?,
-                flag_count: row.get(13)?,
+                operator_name: row.get(9)?,
+                updated_by: row.get(10)?,
+                created_at: row.get(11)?,
+                updated_at: row.get(12)?,
+                from_input_batch: row.get(13)?,
+                flag_count: row.get(14)?,
             })
         })?;
 
@@ -566,11 +584,12 @@ impl OutputRoll {
         let mut stmt = conn.prepare(
             "SELECT r.output_batch, r.final_weight, r.final_meter, r.flag_reason, r.created_at,
                 j.production_order, ir.material_number, j.machine_id,
-                po.description, r.flag_count
+                po.description, r.flag_count, u.full_name
          FROM output_rolls r
          JOIN input_rolls ir ON r.input_roll_id = ir.id
          JOIN jobs j ON ir.job_id = j.id
          LEFT JOIN process_order po ON j.production_order = po.process_order
+         LEFT JOIN users u ON r.created_by = u.id
          WHERE r.id = ?1",
         )?;
 
@@ -585,6 +604,7 @@ impl OutputRoll {
             let machine_id: Option<i32> = row.get(7)?;
             let process_order_description: Option<String> = row.get(8)?;
             let flag_count: i32 = row.get(9)?;
+            let operator_name: Option<String> = row.get(10)?;
 
             let material_description = material_number.as_ref().and_then(|num| {
                 conn.query_row(
@@ -606,31 +626,52 @@ impl OutputRoll {
                 })
                 .unwrap_or_default();
 
-            // Parse flag_reason as IDs, fetch names, join with ','
+            // Parse flag_reason as IDs (optionally with ":message"), fetch names, join with ','
+            // Fallback to raw tokens when IDs don't resolve so PDF never shows null.
             let flag_reason = if let Some(ref ids_str) = flag_reason_raw {
-                let ids: Vec<&str> = ids_str
+                let parts: Vec<&str> = ids_str
                     .split('|')
                     .map(|s| s.trim())
                     .filter(|s| !s.is_empty())
                     .collect();
-                if !ids.is_empty() {
+                if parts.is_empty() {
+                    None
+                } else {
                     let mut names = Vec::new();
-                    for id in ids {
-                        if let Ok(flag_name) = conn.query_row(
-                            "SELECT name FROM flag_reasons WHERE id = ?1",
-                            params![id],
-                            |row| row.get::<_, String>(0),
-                        ) {
-                            names.push(flag_name);
+                    for part in parts {
+                        let (id_part, msg_part) = match part.split_once(':') {
+                            Some((id, msg)) => (id.trim(), Some(msg.trim())),
+                            None => (part, None),
+                        };
+
+                        let resolved_name = id_part
+                            .parse::<i32>()
+                            .ok()
+                            .and_then(|id| {
+                                conn.query_row(
+                                    "SELECT name FROM flag_reasons WHERE id = ?1",
+                                    params![id],
+                                    |row| row.get::<_, String>(0),
+                                )
+                                .ok()
+                            });
+
+                        let display = match (resolved_name, msg_part) {
+                            (Some(name), Some(msg)) if !msg.is_empty() => format!("{}: {}", name, msg),
+                            (Some(name), _) => name,
+                            (None, _) => part.to_string(),
+                        };
+
+                        if !display.trim().is_empty() {
+                            names.push(display);
                         }
                     }
-                    if !names.is_empty() {
-                        Some(names.join(", "))
-                    } else {
+
+                    if names.is_empty() {
                         None
+                    } else {
+                        Some(names.join(", "))
                     }
-                } else {
-                    None
                 }
             } else {
                 None
@@ -648,6 +689,7 @@ impl OutputRoll {
                 created_at,
                 section,
                 flag_count,
+                operator_name,
             })
         })
     }
