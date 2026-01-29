@@ -52,7 +52,7 @@ async function loadJobs() {
 		updatePerPageOptions(result.total_count);
 	} catch (error) {
 		document.getElementById("jobs-table-body").innerHTML =
-			'<tr><td colspan="10" class="text-center text-red-500 py-4">Failed to load job records</td></tr>';
+			'<tr><td colspan="6" class="text-center text-red-500 py-4">Failed to load job records</td></tr>';
 		showNotification(error.message, "error");
 	} finally {
 		showLoading(false, "jobs-table");
@@ -72,7 +72,7 @@ function updateJobStats(jobs) {
 function renderJobs(jobsToRender) {
 	const tbody = document.getElementById("jobs-table-body");
 	if (!jobsToRender || jobsToRender.length === 0) {
-		tbody.innerHTML = '<tr><td colspan="10" class="text-center text-gray-500 py-4">No job records found</td></tr>';
+		tbody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-500 py-4">No job records found</td></tr>';
 		return;
 	}
 
@@ -87,15 +87,11 @@ function renderJobs(jobsToRender) {
 
 		row.innerHTML = `
 			<td class="py-3 px-4">${escapeHtml(job.production_order)}</td>
-			<td class="py-3 px-4">${escapeHtml(job.batch || "-")}</td>
 			<td class="py-3 px-4">${escapeHtml(machine?.name || "Unknown")}</td>
 			<td class="py-3 px-4">${job.shift_id === 1 ? "Day" : "Night"}</td>
-			<td class="py-3 px-4">${job.start_datetime ? formatDateTime(job.start_datetime) : "-"}</td>
-			<td class="py-3 px-4">${escapeHtml(job.start_weight || "-")}</td>
-			<td class="py-3 px-4">${typeof job.start_meter === "number" ? formatMeter(job.start_meter) : "-"}</td>
-			<td class="py-3 px-4">${escapeHtml(job.material_number || "-")}</td>
-			<td class="py-3 px-4">${formatDateTime(job.last_updated || job.updated_at)}</td>
+			<td class="py-3 px-4">${formatDateTime(job.last_updated)}</td>
 			<td class="py-3 px-4">${escapeHtml(createdBy?.full_name || "System")}</td>
+			<td class="py-3 px-4">${formatWeight(job.total_consumed_weight || 0)}</td>
 		`;
 
 		tbody.appendChild(row);
@@ -223,17 +219,12 @@ async function exportToExcel() {
 			const machine = machines.find((m) => m.id === job.machine_id);
 
 			return {
-								"Production Order": job.production_order,
-				Batch: job.batch || "-",
+				"Production Order": job.production_order,
 				Machine: machine?.name || "Unknown",
 				Shift: job.shift_id === 1 ? "Day" : "Night",
-				"Start Weight": job.start_weight || "-",
-				"Start Meter": typeof job.start_meter === "number" ? job.start_meter : "-",
-				"Material Number": job.material_number || "-",
+				"Last Updated": formatDateTime(job.last_updated),
 				"Created By": createdBy?.full_name || "System",
-				"Start Time": job.start_datetime ? formatDateTime(job.start_datetime) : "-",
-				"Created At": formatDateTime(job.created_at),
-				"Last Updated": formatDateTime(job.last_updated || job.updated_at),
+				"Total Consumed Weight": formatWeight(job.total_consumed_weight || 0),
 			};
 		});
 
