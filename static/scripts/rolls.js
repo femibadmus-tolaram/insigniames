@@ -13,6 +13,8 @@ async function printRoll(rollId) {
 	try {
 		const response = await fetch(`/api/output-rolls/details?id=${rollId}`);
 		const result = await handleApiResponse(response);
+		// const qrPayload = `${result.output_batch}-${result.material_number}-${rollId}`;
+		const qrPayload = rollId;
 
 		document.getElementById("print-preview").innerHTML = `
 			<div style="background: #fff; margin: 0; display: flex; justify-content: center; padding: 10px;" id="print-preview-content">
@@ -80,16 +82,16 @@ async function printRoll(rollId) {
 							.map((s) => s.trim())
 							.filter((s) => s.length > 0).length
 					: 0;
-				const qrPayload = {
-					"po no": "PO-" + result.production_order,
-					"material no": "MA-" + result.material_number,
-					material: result.process_order_description,
-					"roll no": result.output_batch,
-					flags: flagsCount,
-					weight: `${result.final_weight}kg`,
-					meter: `${result.final_meter}m`,
-					date: result.created_at,
-				};
+				// const qrPayload = {
+				// 	"po no": "PO-" + result.production_order,
+				// 	"material no": "MA-" + result.material_number,
+				// 	material: result.process_order_description,
+				// 	"roll no": result.output_batch,
+				// 	flags: flagsCount,
+				// 	weight: `${result.final_weight}kg`,
+				// 	meter: `${result.final_meter}m`,
+				// 	date: result.created_at,
+				// };
 				const qrData = JSON.stringify(qrPayload);
 				qrContainer.innerHTML = "";
 				const qr = qrcode(0, "L");
@@ -122,17 +124,6 @@ async function printRoll(rollId) {
 					.map((s) => s.trim())
 					.filter(Boolean).length
 			: 0;
-
-		const qrPayload = {
-			"po no": "PO-" + result.production_order,
-			"material no": "MA-" + result.material_number,
-			material: result.process_order_description,
-			"roll no": result.output_batch,
-			flags: flagsCount,
-			weight: `${result.final_weight}kg`,
-			meter: `${result.final_meter}m`,
-			date: result.created_at,
-		};
 
 		const qr = qrcode(0, "L");
 		qr.addData(JSON.stringify(qrPayload));
@@ -301,7 +292,7 @@ async function printRoll(rollId) {
 		a.download = `label-${result.output_batch || rollId}.pdf`;
 		document.getElementById("close-print-btn").addEventListener("click", closePrintModal);
 		document.getElementById("print-pdf-btn").addEventListener("click", async function () {
-			// a.click();
+			a.click();
 			const reader = new FileReader();
 			reader.onloadend = async function () {
 				const base64data = reader.result.split(",")[1];
