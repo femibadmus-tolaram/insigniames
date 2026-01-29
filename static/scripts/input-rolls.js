@@ -4,15 +4,23 @@ let inputRolls = [];
 let users = [];
 let currentPage = 1;
 let itemsPerPage = 10;
+let showDetails = false;
 
 document.addEventListener("DOMContentLoaded", function () {
 	initializePage();
 });
 
 async function initializePage() {
+	showDetails = localStorage.getItem("inputRollsShowDetails") === "true";
+	const toggle = document.getElementById("details-toggle");
+	if (toggle) {
+		toggle.checked = showDetails;
+		toggle.addEventListener("change", toggleDetails);
+	}
 	await loadUsers();
 	await loadInputRolls();
 	setupEventListeners();
+	setTimeout(() => toggleDetails(), 100);
 }
 
 async function loadUsers() {
@@ -109,7 +117,7 @@ function updateStats(filtered) {
 function renderInputRolls(filtered) {
 	const tbody = document.getElementById("input-rolls-table-body");
 	if (!filtered.length) {
-		tbody.innerHTML = '<tr><td colspan="9" class="text-center text-gray-500 py-4">No input rolls found</td></tr>';
+		tbody.innerHTML = '<tr><td colspan="10" class="text-center text-gray-500 py-4">No input rolls found</td></tr>';
 		return;
 	}
 
@@ -134,15 +142,34 @@ function renderInputRolls(filtered) {
 			<td class="py-3 px-4 font-medium">${escapeHtml(roll.batch || "-")}</td>
 			<td class="py-3 px-4">${escapeHtml(roll.process_order || "-")}</td>
 			<td class="py-3 px-4">${escapeHtml(roll.material_description || "-")}</td>
+			<td class="py-3 px-4 detail-cell" ${!showDetails ? 'style="display: none"' : ""}>${escapeHtml(roll.material_document || "-")}</td>
 			<td class="py-3 px-4">${typeof roll.start_meter === "number" ? formatMeter(roll.start_meter) : "-"}</td>
 			<td class="py-3 px-4">${escapeHtml(roll.start_weight || "-")}</td>
-			<td class="py-3 px-4">${consumedWeight === null || Number.isNaN(consumedWeight) ? "-" : formatWeight(consumedWeight)}</td>
+			<td class="py-3 px-4 detail-cell" ${!showDetails ? 'style="display: none"' : ""}>${consumedWeight === null || Number.isNaN(consumedWeight) ? "-" : formatWeight(consumedWeight)}</td>
 			<td class="py-3 px-4">${escapeHtml(createdByName)}</td>
 			<td class="py-3 px-4">${formatDateTime(roll.created_at)}</td>
 		`;
 
 		tbody.appendChild(row);
 	});
+}
+
+function toggleDetails() {
+	showDetails = !showDetails;
+	const toggle = document.getElementById("details-toggle");
+	if (toggle) toggle.checked = showDetails;
+	const detailColumns = document.querySelectorAll(".details-column");
+	const detailCells = document.querySelectorAll(".detail-cell");
+
+	if (showDetails) {
+		detailColumns.forEach((col) => (col.style.display = "table-cell"));
+		detailCells.forEach((cell) => (cell.style.display = "table-cell"));
+	} else {
+		detailColumns.forEach((col) => (col.style.display = "none"));
+		detailCells.forEach((cell) => (cell.style.display = "none"));
+	}
+
+	localStorage.setItem("inputRollsShowDetails", showDetails);
 }
 
 function resolveUserName(userId) {
@@ -227,6 +254,7 @@ async function exportToExcel() {
 				Batch: roll.batch || "-",
 				"Process Order": roll.process_order || "-",
 				"Material Description": roll.material_description || "-",
+				"Material Document": roll.material_document || "-",
 				"Start Meter": typeof roll.start_meter === "number" ? roll.start_meter : "-",
 				"Start Weight": roll.start_weight || "-",
 				"Consumed Weight": consumedWeight === null || Number.isNaN(consumedWeight) ? "-" : consumedWeight,
