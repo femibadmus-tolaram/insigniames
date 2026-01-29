@@ -61,7 +61,18 @@ pub async fn all_jobs(conn_data: web::Data<Pool<SqliteConnectionManager>>) -> im
     }
 }
 
-pub async fn filter_jobs_with_pending_input_rolls(
+pub async fn filter_jobs(
+    conn_data: web::Data<Pool<SqliteConnectionManager>>,
+    web::Query(filter): web::Query<JobFilterPayload>,
+) -> impl Responder {
+    let conn = conn_data.get().unwrap();
+    match Job::filter(&conn, &filter) {
+        Ok(jobs_with_input_rolls) => HttpResponse::Ok().json(jobs_with_input_rolls),
+        Err(e) => HttpResponse::InternalServerError().body(e.to_string()),
+    }
+}
+
+pub async fn filter_jobs_with_input_rolls(
     conn_data: web::Data<Pool<SqliteConnectionManager>>,
     web::Query(filter): web::Query<JobFilterPayload>,
 ) -> impl Responder {
