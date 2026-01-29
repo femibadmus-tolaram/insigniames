@@ -1,0 +1,18 @@
+[Unit]
+Description=InsigniaMES Rust Backend
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/insigniames
+# This line ensures cargo can find rustc and other tools
+Environment="PATH=/root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+ExecStartPre=/usr/bin/git pull origin2 main
+# Use the full path you just found
+ExecStart=/root/.cargo/bin/cargo run --bin backend --release
+Restart=on-failure
+EnvironmentFile=/root/insigniames/.env
+
+[Install]
+WantedBy=multi-user.target
