@@ -78,7 +78,7 @@ async function loadShiftOverview() {
 		const today = new Date().toISOString().split("T")[0];
 
 		const [jobsResponse, rollsResponse, downtimesResponse, scrapsResponse] = await Promise.all([
-			fetch(`/api/jobs/filter?shift_id=${currentShift}&start_date=${today}&end_date=${today}`).then((r) => r.json()),
+			fetch(`/api/jobs/filter-with-input-rolls?shift_id=${currentShift}&start_date=${today}&end_date=${today}`).then((r) => r.json()),
 			fetch(`/api/output-rolls/filter?shift_id=${currentShift}&start_date=${today}&end_date=${today}`).then((r) => r.json()),
 			fetch(`/api/downtimes/filter?shift_id=${currentShift}&start_date=${today}&end_date=${today}`).then((r) => r.json()),
 			fetch(`/api/scraps/filter?shift_id=${currentShift}&start_date=${today}&end_date=${today}`).then((r) => r.json()),
@@ -108,7 +108,7 @@ function updateShiftStats(jobsData, rollsData, downtimesData, scrapsData) {
 
 async function loadRecentJobs() {
 	try {
-		const response = await fetch(`/api/jobs/filter?per_page=5&page=1`);
+		const response = await fetch(`/api/jobs/filter-with-input-rolls?per_page=5&page=1`);
 		const result = await response.json();
 		renderRecentJobs(result.data);
 	} catch (error) {
