@@ -1021,7 +1021,7 @@ function setSelectLoading(selectElement, loading) {
 
 async function checkActiveJobs(machineId) {
 	try {
-		const response = await fetch(`/api/jobs/filter?machine_id=${machineId}&status=active`);
+		const response = await fetch(`/api/jobs/filter-with-input-rolls?machine_id=${machineId}&status=active`);
 		const result = await handleApiResponse(response);
 		return result.data || [];
 	} catch (error) {
@@ -1228,7 +1228,7 @@ function populateActiveJobSelect(activeJobs) {
 }
 
 function modifyJobFilterFunction() {
-	const jobFilterUrl = "/api/jobs/filter?status=active";
+	const jobFilterUrl = "/api/jobs/filter-with-input-rolls?status=active";
 
 	fetch(jobFilterUrl)
 		.then((response) => response.json())
