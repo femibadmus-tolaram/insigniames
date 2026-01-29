@@ -186,7 +186,15 @@ pub fn init_routes(
                         model: "jobs",
                         conn_data: conn_data.clone(),
                     })
-                    .route(web::get().to(filter_jobs_with_pending_input_rolls)),
+                    .route(web::get().to(filter_jobs)),
+            )
+            .service(
+                web::resource("/filter-with-input-rolls")
+                    .wrap(CheckRead {
+                        model: "jobs",
+                        conn_data: conn_data.clone(),
+                    })
+                    .route(web::get().to(filter_jobs_with_input_rolls)),
             ),
     );
 
